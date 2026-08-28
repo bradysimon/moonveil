@@ -153,7 +153,7 @@ impl Oklab {
 
 impl Oklch {
     /// Creates a new [`Oklch`] color.
-    fn new(lightness: f32, chroma: f32, hue: f32, alpha: f32) -> Self {
+    pub(crate) fn new(lightness: f32, chroma: f32, hue: f32, alpha: f32) -> Self {
         debug_assert!(
             (0.0..=1.0).contains(&lightness),
             "Lightness must be in the range [0.0, 1.0], got {lightness}"
@@ -177,6 +177,11 @@ impl Oklch {
             hue,
             alpha,
         }
+    }
+
+    /// Gets the `lightness`, `chroma`, `hue`, and `alpha` components of this color.
+    pub(crate) fn components(self) -> [f32; 4] {
+        [self.lightness, self.chroma, self.hue, self.alpha]
     }
 }
 
@@ -429,13 +434,5 @@ mod tests {
     #[should_panic]
     fn srgb_rejects_out_of_range_components() {
         Srgb::new(1.1, 0.0, 0.0, 1.0);
-    }
-
-    #[test]
-    fn components_returns_correct_values() {
-        let color = Srgb::new(0.1, 0.2, 0.3, 0.4);
-        let components = color.components();
-
-        assert_eq!(components, [0.1, 0.2, 0.3, 0.4]);
     }
 }

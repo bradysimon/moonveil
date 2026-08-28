@@ -2,5 +2,7 @@
 name = "moonveil"
 version = "0.0.1"
 edition = "2024"
+description = "A custom theme and design framework for iced."
+license = "MIT"
 
 [dependencies]

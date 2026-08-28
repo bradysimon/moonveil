@@ -1,8 +1,8 @@
 //! Various types of colors used in Moonveil.
 //!
 //! Conversions pulled from various sources:
-//! - https://bottosson.github.io/posts/oklab/
-//! - https://drafts.csswg.org/css-color-4/
+//! - <https://bottosson.github.io/posts/oklab/>
+//! - <https://drafts.csswg.org/css-color-4/>
 
 /// A color in the sRGB color space.
 #[derive(Debug, Clone, Copy, PartialEq)]

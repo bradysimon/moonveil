@@ -113,13 +113,13 @@ pub(crate) fn contrast_ratio(foreground: Color, background: Color) -> f32 {
     (lighter + 0.05) / (darker + 0.05)
 }
 
-/// Adjusts a foreground to meet `minimum_ratio` against every background.
+/// Adjusts an opaque foreground to meet `minimum_ratio` against every background.
 ///
 /// The original color is returned unchanged when it already passes. Otherwise,
-/// this searches toward both black and white in Oklch and returns the passing
-/// color with the smallest lightness change. Hue and alpha are preserved;
-/// chroma is only reduced by sRGB gamut mapping. Returns `None` when neither
-/// direction can satisfy the requested ratio.
+/// this finds every relative-luminance interval that satisfies all backgrounds
+/// and returns the passing color with the smallest Oklch lightness change. Hue
+/// and alpha are preserved, and chroma is only reduced by sRGB gamut mapping.
+/// Returns `None` when neither direction can satisfy the requested ratio.
 pub(crate) fn adjust_foreground(
     foreground: Color,
     backgrounds: &[Color],
@@ -129,44 +129,38 @@ pub(crate) fn adjust_foreground(
         (1.0..=21.0).contains(&minimum_ratio),
         "contrast ratio must be in the range [1.0, 21.0]"
     );
+    let [lightness, chroma, hue, alpha] = Oklch::from(foreground).components();
+    debug_assert!(
+        (alpha - 1.0).abs() <= f32::EPSILON,
+        "adjusted foregrounds must be opaque"
+    );
 
     if meets_contrast(foreground, backgrounds, minimum_ratio) {
         return Some(foreground);
     }
 
-    let [lightness, chroma, hue, alpha] = Oklch::from(foreground).components();
-    let darker = search_lightness(
-        [lightness, 0.0],
-        chroma,
-        hue,
-        alpha,
-        backgrounds,
-        minimum_ratio,
-    );
-    let lighter = search_lightness(
-        [lightness, 1.0],
-        chroma,
-        hue,
-        alpha,
-        backgrounds,
-        minimum_ratio,
-    );
+    passing_luminance_intervals(backgrounds, minimum_ratio)
+        .into_iter()
+        .filter_map(|interval| {
+            let [minimum, maximum] = inset_interval(interval);
+            let minimum_lightness =
+                lightness_for_luminance(minimum, chroma, hue, alpha, LuminanceBound::Minimum);
+            let maximum_lightness =
+                lightness_for_luminance(maximum, chroma, hue, alpha, LuminanceBound::Maximum);
+            let candidate = Color::from(Oklch::new(
+                lightness.clamp(minimum_lightness, maximum_lightness),
+                chroma,
+                hue,
+                alpha,
+            ));
 
-    match (darker, lighter) {
-        (Some(darker), Some(lighter)) => {
-            let darker_delta = lightness - Oklch::from(darker).components()[0];
-            let lighter_delta = Oklch::from(lighter).components()[0] - lightness;
-
-            Some(if darker_delta <= lighter_delta {
-                darker
-            } else {
-                lighter
-            })
-        }
-        (Some(darker), None) => Some(darker),
-        (None, Some(lighter)) => Some(lighter),
-        (None, None) => None,
-    }
+            meets_contrast(candidate, backgrounds, minimum_ratio).then_some(candidate)
+        })
+        .min_by(|first, second| {
+            let first_delta = (Oklch::from(*first).components()[0] - lightness).abs();
+            let second_delta = (Oklch::from(*second).components()[0] - lightness).abs();
+            first_delta.total_cmp(&second_delta)
+        })
 }
 
 /// Selects deterministic near-black or near-white text for an opaque fill.
@@ -228,42 +222,76 @@ pub(crate) fn adjust_semantic_solid(solid: Color, minimum_ratio: f32) -> Option<
     }
 }
 
-/// Searches from a failing Oklch `start` lightness toward an endpoint `end`.
-///
-/// The endpoint is checked first because it establishes the passing side of the
-/// binary-search interval. If it cannot meet `minimum_ratio` against every
-/// background, no candidate in that direction is returned. Otherwise, the
-/// search narrows the interval and returns the nearest known passing lightness.
-/// Chroma, hue, and alpha remain fixed, except for any chroma reduction required
-/// when the candidate is mapped into the sRGB gamut.
-fn search_lightness(
-    [start, end]: [f32; 2],
-    chroma: f32,
-    hue: f32,
-    alpha: f32,
-    backgrounds: &[Color],
-    minimum_ratio: f32,
-) -> Option<Color> {
-    let endpoint = Color::from(Oklch::new(end, chroma, hue, alpha));
+fn passing_luminance_intervals(backgrounds: &[Color], minimum_ratio: f32) -> Vec<[f32; 2]> {
+    let mut intervals: Vec<[f32; 2]> = vec![[0.0, 1.0]];
 
-    if !meets_contrast(endpoint, backgrounds, minimum_ratio) {
-        return None;
-    }
+    for background in backgrounds {
+        let luminance = relative_luminance(*background);
+        let darker_maximum = (luminance + 0.05) / minimum_ratio - 0.05;
+        let lighter_minimum = minimum_ratio * (luminance + 0.05) - 0.05;
+        let mut allowed = Vec::with_capacity(2);
 
-    let (mut failing, mut passing) = (start, end);
+        if darker_maximum >= 0.0 {
+            allowed.push([0.0, darker_maximum.min(1.0)]);
+        }
+        if lighter_minimum <= 1.0 {
+            allowed.push([lighter_minimum.max(0.0), 1.0]);
+        }
 
-    for _ in 0..SEARCH_ITERATIONS {
-        let lightness = (failing + passing) / 2.0;
-        let candidate = Color::from(Oklch::new(lightness, chroma, hue, alpha));
+        intervals = intervals
+            .into_iter()
+            .flat_map(|[start, end]| {
+                allowed
+                    .iter()
+                    .filter_map(move |[allowed_start, allowed_end]| {
+                        let intersection = [start.max(*allowed_start), end.min(*allowed_end)];
+                        (intersection[0] <= intersection[1]).then_some(intersection)
+                    })
+            })
+            .collect();
 
-        if meets_contrast(candidate, backgrounds, minimum_ratio) {
-            passing = lightness;
-        } else {
-            failing = lightness;
+        if intervals.is_empty() {
+            break;
         }
     }
 
-    Some(Color::from(Oklch::new(passing, chroma, hue, alpha)))
+    intervals
+}
+
+fn inset_interval([start, end]: [f32; 2]) -> [f32; 2] {
+    let inset = ((end - start) / 4.0).min(0.000_01);
+    [start + inset, end - inset]
+}
+
+enum LuminanceBound {
+    Minimum,
+    Maximum,
+}
+
+fn lightness_for_luminance(
+    target: f32,
+    chroma: f32,
+    hue: f32,
+    alpha: f32,
+    bound: LuminanceBound,
+) -> f32 {
+    let (mut lower, mut upper) = (0.0, 1.0);
+
+    for _ in 0..SEARCH_ITERATIONS {
+        let lightness = (lower + upper) / 2.0;
+        let candidate = Color::from(Oklch::new(lightness, chroma, hue, alpha));
+
+        if relative_luminance(candidate) < target {
+            lower = lightness;
+        } else {
+            upper = lightness;
+        }
+    }
+
+    match bound {
+        LuminanceBound::Minimum => upper,
+        LuminanceBound::Maximum => lower,
+    }
 }
 
 fn search_solid_lightness(
@@ -439,6 +467,23 @@ mod tests {
         ];
 
         assert_eq!(adjust_foreground(foreground, &backgrounds, 7.0), None);
+    }
+
+    #[test]
+    fn adjustment_finds_a_passing_tone_when_both_endpoints_fail() {
+        let foreground = Color::new(0.5, 0.5, 0.5, 1.0);
+        let backgrounds = [
+            Color::new(0.0, 0.0, 0.0, 1.0),
+            Color::new(1.0, 1.0, 1.0, 1.0),
+        ];
+
+        let adjusted = adjust_foreground(foreground, &backgrounds, 4.5).unwrap();
+
+        assert!(
+            backgrounds
+                .into_iter()
+                .all(|background| contrast_ratio(adjusted, background) >= 4.5)
+        );
     }
 
     #[test]

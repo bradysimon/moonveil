@@ -42,6 +42,22 @@ pub(crate) struct Oklch {
     alpha: f32,
 }
 
+impl Srgb {
+    /// Mixes two [`Srgb`] colors in the [`Oklab`] color space.
+    pub(crate) fn mix_oklab(self, other: Self, amount: f32) -> Self {
+        let first = Oklab::from(self);
+        let second = Oklab::from(other);
+
+        Oklab {
+            lightness: lerp(first.lightness, second.lightness, amount),
+            a: lerp(first.a, second.a, amount),
+            b: lerp(first.b, second.b, amount),
+            alpha: lerp(first.alpha, second.alpha, amount),
+        }
+        .into()
+    }
+}
+
 impl From<Srgb> for Oklab {
     fn from(color: Srgb) -> Self {
         let red = srgb_to_linear(color.red);
@@ -131,6 +147,10 @@ impl From<Oklch> for Srgb {
     fn from(color: Oklch) -> Self {
         Oklab::from(color).into()
     }
+}
+
+fn lerp(first: f32, second: f32, amount: f32) -> f32 {
+    first + (second - first) * amount
 }
 
 fn srgb_to_linear(channel: f32) -> f32 {
@@ -251,5 +271,29 @@ mod tests {
             let actual = Srgb::from(Oklch::from(expected));
             assert_srgba_approx_eq(actual, expected);
         }
+    }
+
+    #[test]
+    fn mix_oklab_preserves_endpoints() {
+        let first = srgba(25, 27, 32, 0.25);
+        let second = srgba(230, 225, 213, 0.75);
+
+        assert_srgba_approx_eq(first.mix_oklab(second, 0.0), first);
+        assert_srgba_approx_eq(first.mix_oklab(second, 1.0), second);
+    }
+
+    #[test]
+    fn mix_oklab_interpolates_in_oklab_and_includes_alpha() {
+        let mixed = srgba(0, 0, 0, 0.25).mix_oklab(srgba(255, 255, 255, 0.75), 0.5);
+
+        assert_srgba_approx_eq(
+            mixed,
+            Srgb {
+                red: 0.388_572_87,
+                green: 0.388_572_87,
+                blue: 0.388_572_87,
+                alpha: 0.5,
+            },
+        );
     }
 }

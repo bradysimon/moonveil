@@ -44,7 +44,7 @@ pub(crate) struct Oklch {
 
 impl Srgb {
     /// Creates a new [`Srgb`] color.
-    fn new(red: f32, green: f32, blue: f32, alpha: f32) -> Self {
+    pub(crate) fn new(red: f32, green: f32, blue: f32, alpha: f32) -> Self {
         debug_assert!(
             (0.0..=1.0).contains(&red),
             "Red must be in the range [0.0, 1.0], got {red}"
@@ -68,6 +68,11 @@ impl Srgb {
             blue,
             alpha,
         }
+    }
+
+    /// Gets the `red`, `green`, `blue`, and `alpha` components of this color.
+    pub(crate) fn components(self) -> [f32; 4] {
+        [self.red, self.green, self.blue, self.alpha]
     }
 
     /// Mixes two [`Srgb`] colors in the [`Oklab`] color space.
@@ -424,5 +429,13 @@ mod tests {
     #[should_panic]
     fn srgb_rejects_out_of_range_components() {
         Srgb::new(1.1, 0.0, 0.0, 1.0);
+    }
+
+    #[test]
+    fn components_returns_correct_values() {
+        let color = Srgb::new(0.1, 0.2, 0.3, 0.4);
+        let components = color.components();
+
+        assert_eq!(components, [0.1, 0.2, 0.3, 0.4]);
     }
 }

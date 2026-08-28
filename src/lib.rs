@@ -10,5 +10,5 @@ pub mod token;
 
 pub use color::Color;
 pub use contrast::{Profile, Targets};
-pub use theme::{Definition, Metadata, Polarity, Seed};
+pub use theme::{Definition, Metadata, Polarity, Seed, Theme};
 pub use token::ResolveError;

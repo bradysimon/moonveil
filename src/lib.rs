@@ -5,4 +5,9 @@
 //! a real version once iced 0.15 is released.
 mod color;
 mod contrast;
-mod token;
+mod theme;
+pub mod token;
+
+pub use color::Color;
+pub use contrast::{Profile, Targets};
+pub use theme::{Definition, Metadata, Polarity, Seed};

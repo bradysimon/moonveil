@@ -2,10 +2,10 @@
 //!
 //! Conversions pulled from various sources:
 //! - https://bottosson.github.io/posts/oklab/
-//! -
+//! - https://drafts.csswg.org/css-color-4/
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub(crate) struct Srgba {
+pub(crate) struct Srgb {
     /// The red component of the color, [0.0, 1.0].
     red: f32,
     /// The green component of the color, [0.0, 1.0].
@@ -17,7 +17,7 @@ pub(crate) struct Srgba {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub(crate) struct Oklaba {
+pub(crate) struct Oklab {
     /// The lightness component of the color, [0.0, 1.0].
     lightness: f32,
     /// The green-to-red component. Negative values are greener, positive values are redder.
@@ -31,7 +31,7 @@ pub(crate) struct Oklaba {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub(crate) struct Oklcha {
+pub(crate) struct Oklch {
     /// The lightness component of the color, [0.0, 1.0].
     lightness: f32,
     /// The chroma component of the color, [0.0, 1.0].
@@ -42,8 +42,8 @@ pub(crate) struct Oklcha {
     alpha: f32,
 }
 
-impl From<Srgba> for Oklaba {
-    fn from(color: Srgba) -> Self {
+impl From<Srgb> for Oklab {
+    fn from(color: Srgb) -> Self {
         let red = srgb_to_linear(color.red);
         let green = srgb_to_linear(color.green);
         let blue = srgb_to_linear(color.blue);
@@ -65,8 +65,8 @@ impl From<Srgba> for Oklaba {
     }
 }
 
-impl From<Oklaba> for Srgba {
-    fn from(color: Oklaba) -> Self {
+impl From<Oklab> for Srgb {
+    fn from(color: Oklab) -> Self {
         let lightness = color.lightness + 0.396_337_78 * color.a + 0.215_803_76 * color.b;
         let medium = color.lightness - 0.105_561_346 * color.a - 0.063_854_17 * color.b;
         let short = color.lightness - 0.089_484_18 * color.a - 1.291_485_5 * color.b;
@@ -90,8 +90,8 @@ impl From<Oklaba> for Srgba {
     }
 }
 
-impl From<Oklaba> for Oklcha {
-    fn from(color: Oklaba) -> Self {
+impl From<Oklab> for Oklch {
+    fn from(color: Oklab) -> Self {
         let chroma = color.a.hypot(color.b);
         let hue = if chroma <= f32::EPSILON {
             0.0
@@ -108,8 +108,8 @@ impl From<Oklaba> for Oklcha {
     }
 }
 
-impl From<Oklcha> for Oklaba {
-    fn from(color: Oklcha) -> Self {
+impl From<Oklch> for Oklab {
+    fn from(color: Oklch) -> Self {
         let hue = color.hue.to_radians();
 
         Self {
@@ -121,15 +121,15 @@ impl From<Oklcha> for Oklaba {
     }
 }
 
-impl From<Srgba> for Oklcha {
-    fn from(color: Srgba) -> Self {
-        Oklaba::from(color).into()
+impl From<Srgb> for Oklch {
+    fn from(color: Srgb) -> Self {
+        Oklab::from(color).into()
     }
 }
 
-impl From<Oklcha> for Srgba {
-    fn from(color: Oklcha) -> Self {
-        Oklaba::from(color).into()
+impl From<Oklch> for Srgb {
+    fn from(color: Oklch) -> Self {
+        Oklab::from(color).into()
     }
 }
 
@@ -162,8 +162,8 @@ mod tests {
         );
     }
 
-    fn srgba(red: u8, green: u8, blue: u8, alpha: f32) -> Srgba {
-        Srgba {
+    fn srgba(red: u8, green: u8, blue: u8, alpha: f32) -> Srgb {
+        Srgb {
             red: f32::from(red) / 255.0,
             green: f32::from(green) / 255.0,
             blue: f32::from(blue) / 255.0,
@@ -171,7 +171,7 @@ mod tests {
         }
     }
 
-    fn assert_srgba_approx_eq(actual: Srgba, expected: Srgba) {
+    fn assert_srgba_approx_eq(actual: Srgb, expected: Srgb) {
         assert_approx_eq(actual.red, expected.red);
         assert_approx_eq(actual.green, expected.green);
         assert_approx_eq(actual.blue, expected.blue);
@@ -180,7 +180,7 @@ mod tests {
 
     #[test]
     fn converts_srgba_red_to_known_oklab_value() {
-        let color = Oklaba::from(srgba(255, 0, 0, 0.75));
+        let color = Oklab::from(srgba(255, 0, 0, 0.75));
 
         assert_approx_eq(color.lightness, 0.627_955_4);
         assert_approx_eq(color.a, 0.224_863_07);
@@ -190,7 +190,7 @@ mod tests {
 
     #[test]
     fn converts_oklab_red_to_known_oklch_value() {
-        let color = Oklcha::from(Oklaba::from(srgba(255, 0, 0, 0.75)));
+        let color = Oklch::from(Oklab::from(srgba(255, 0, 0, 0.75)));
 
         assert_approx_eq(color.lightness, 0.627_955_4);
         assert_approx_eq(color.chroma, 0.257_683_3);
@@ -200,7 +200,7 @@ mod tests {
 
     #[test]
     fn normalizes_negative_hue() {
-        let color = Oklcha::from(Oklaba {
+        let color = Oklch::from(Oklab {
             lightness: 0.5,
             a: 0.0,
             b: -0.2,
@@ -212,7 +212,7 @@ mod tests {
 
     #[test]
     fn uses_zero_hue_for_achromatic_colors() {
-        let color = Oklcha::from(Oklaba {
+        let color = Oklch::from(Oklab {
             lightness: 0.5,
             a: 0.0,
             b: 0.0,
@@ -233,7 +233,7 @@ mod tests {
         ];
 
         for expected in colors {
-            let actual = Srgba::from(Oklaba::from(expected));
+            let actual = Srgb::from(Oklab::from(expected));
             assert_srgba_approx_eq(actual, expected);
         }
     }
@@ -248,7 +248,7 @@ mod tests {
         ];
 
         for expected in colors {
-            let actual = Srgba::from(Oklcha::from(expected));
+            let actual = Srgb::from(Oklch::from(expected));
             assert_srgba_approx_eq(actual, expected);
         }
     }

@@ -1,7 +1,5 @@
 //! Color compositing and WCAG contrast measurement.
 
-use serde::{Deserialize, Serialize};
-
 use crate::color::{Color, Oklch};
 
 const SEARCH_ITERATIONS: usize = 24;
@@ -12,7 +10,7 @@ const LIGHT_ON_COLOR_LIGHTNESS: f32 = 0.99;
 ///
 /// Higher contrast ratios are more accessible and may be required by some users,
 /// but limit the range of colors that can be used.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Targets {
     /// Minimum ratio for normal-size text.
     pub normal_text: f32,
@@ -43,8 +41,7 @@ impl Targets {
 }
 
 /// The contrast policy used to resolve a theme.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Profile {
     /// Standard WCAG targets.
     Standard,

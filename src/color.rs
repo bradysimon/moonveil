@@ -4,10 +4,8 @@
 //! - https://bottosson.github.io/posts/oklab/
 //! - https://drafts.csswg.org/css-color-4/
 
-use serde::{Deserialize, Serialize};
-
 /// A color in the sRGB color space.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Color {
     /// The red component of the color, [0.0, 1.0].
     red: f32,

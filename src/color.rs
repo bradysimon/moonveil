@@ -4,8 +4,11 @@
 //! - https://bottosson.github.io/posts/oklab/
 //! - https://drafts.csswg.org/css-color-4/
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub(crate) struct Srgb {
+use serde::{Deserialize, Serialize};
+
+/// A color in the sRGB color space.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct Color {
     /// The red component of the color, [0.0, 1.0].
     red: f32,
     /// The green component of the color, [0.0, 1.0].
@@ -42,25 +45,18 @@ pub(crate) struct Oklch {
     alpha: f32,
 }
 
-impl Srgb {
-    /// Creates a new [`Srgb`] color.
-    pub(crate) fn new(red: f32, green: f32, blue: f32, alpha: f32) -> Self {
-        debug_assert!(
-            (0.0..=1.0).contains(&red),
-            "Red must be in the range [0.0, 1.0], got {red}"
-        );
-        debug_assert!(
-            (0.0..=1.0).contains(&green),
-            "Green must be in the range [0.0, 1.0], got {green}"
-        );
-        debug_assert!(
-            (0.0..=1.0).contains(&blue),
-            "Blue must be in the range [0.0, 1.0], got {blue}"
-        );
-        debug_assert!(
-            (0.0..=1.0).contains(&alpha),
-            "Alpha must be in the range [0.0, 1.0], got {alpha}"
-        );
+impl Color {
+    /// Creates an opaque color from sRGB components in range `[0.0, 1.0]`.
+    pub const fn from_rgb(red: f32, green: f32, blue: f32) -> Self {
+        Self::from_rgba(red, green, blue, 1.0)
+    }
+
+    /// Creates a color from sRGB components in range `[0.0, 1.0]`.
+    pub const fn from_rgba(red: f32, green: f32, blue: f32, alpha: f32) -> Self {
+        assert!(red >= 0.0 && red <= 1.0, "red must be in [0.0, 1.0]");
+        assert!(green >= 0.0 && green <= 1.0, "green must be in [0.0, 1.0]");
+        assert!(blue >= 0.0 && blue <= 1.0, "blue must be in [0.0, 1.0]");
+        assert!(alpha >= 0.0 && alpha <= 1.0, "alpha must be in [0.0, 1.0]");
 
         Self {
             red,
@@ -70,8 +66,13 @@ impl Srgb {
         }
     }
 
+    /// Creates a new [`Color`].
+    pub(crate) fn new(red: f32, green: f32, blue: f32, alpha: f32) -> Self {
+        Self::from_rgba(red, green, blue, alpha)
+    }
+
     /// Gets the `red`, `green`, `blue`, and `alpha` components of this color.
-    pub(crate) fn components(self) -> [f32; 4] {
+    pub const fn components(self) -> [f32; 4] {
         [self.red, self.green, self.blue, self.alpha]
     }
 
@@ -124,22 +125,16 @@ impl Srgb {
 
 impl Oklab {
     /// Creates a new [`Oklab`] color.
-    fn new(lightness: f32, a: f32, b: f32, alpha: f32) -> Self {
+    const fn new(lightness: f32, a: f32, b: f32, alpha: f32) -> Self {
         debug_assert!(
-            (0.0..=1.0).contains(&lightness),
-            "Lightness must be in the range [0.0, 1.0], got {lightness}"
+            lightness >= 0.0 && lightness <= 1.0,
+            "Lightness must be in range [0.0, 1.0]"
         );
+        debug_assert!(a >= -1.0 && a <= 1.0, "A must be in range [-1.0, 1.0]");
+        debug_assert!(b >= -1.0 && b <= 1.0, "B must be in range [-1.0, 1.0]");
         debug_assert!(
-            (-1.0..=1.0).contains(&a),
-            "A must be in the range [-1.0, 1.0], got {a}"
-        );
-        debug_assert!(
-            (-1.0..=1.0).contains(&b),
-            "B must be in the range [-1.0, 1.0], got {b}"
-        );
-        debug_assert!(
-            (0.0..=1.0).contains(&alpha),
-            "Alpha must be in the range [0.0, 1.0], got {alpha}"
+            alpha >= 0.0 && alpha <= 1.0,
+            "Alpha must be in range [0.0, 1.0]"
         );
 
         Self {
@@ -153,22 +148,22 @@ impl Oklab {
 
 impl Oklch {
     /// Creates a new [`Oklch`] color.
-    pub(crate) fn new(lightness: f32, chroma: f32, hue: f32, alpha: f32) -> Self {
+    pub(crate) const fn new(lightness: f32, chroma: f32, hue: f32, alpha: f32) -> Self {
         debug_assert!(
-            (0.0..=1.0).contains(&lightness),
-            "Lightness must be in the range [0.0, 1.0], got {lightness}"
+            lightness >= 0.0 && lightness <= 1.0,
+            "Lightness must be in range [0.0, 1.0]"
         );
         debug_assert!(
-            (0.0..=1.0).contains(&chroma),
-            "Chroma must be in the range [0.0, 1.0], got {chroma}"
+            chroma >= 0.0 && chroma <= 1.0,
+            "Chroma must be in range [0.0, 1.0]"
         );
         debug_assert!(
-            (0.0..=360.0).contains(&hue),
-            "Hue must be in the range [0.0, 360.0], got {hue}"
+            hue >= 0.0 && hue <= 360.0,
+            "Hue must be in range [0.0, 360.0]"
         );
         debug_assert!(
-            (0.0..=1.0).contains(&alpha),
-            "Alpha must be in the range [0.0, 1.0], got {alpha}"
+            alpha >= 0.0 && alpha <= 1.0,
+            "Alpha must be in range [0.0, 1.0]"
         );
 
         Self {
@@ -185,8 +180,8 @@ impl Oklch {
     }
 }
 
-impl From<Srgb> for Oklab {
-    fn from(color: Srgb) -> Self {
+impl From<Color> for Oklab {
+    fn from(color: Color) -> Self {
         let red = srgb_to_linear(color.red);
         let green = srgb_to_linear(color.green);
         let blue = srgb_to_linear(color.blue);
@@ -208,7 +203,7 @@ impl From<Srgb> for Oklab {
     }
 }
 
-impl From<Oklab> for Srgb {
+impl From<Oklab> for Color {
     fn from(color: Oklab) -> Self {
         if let Some(candidate) = Self::try_from(color) {
             return candidate;
@@ -270,13 +265,13 @@ impl From<Oklch> for Oklab {
     }
 }
 
-impl From<Srgb> for Oklch {
-    fn from(color: Srgb) -> Self {
+impl From<Color> for Oklch {
+    fn from(color: Color) -> Self {
         Oklab::from(color).into()
     }
 }
 
-impl From<Oklch> for Srgb {
+impl From<Oklch> for Color {
     fn from(color: Oklch) -> Self {
         Oklab::from(color).into()
     }
@@ -315,8 +310,8 @@ mod tests {
         );
     }
 
-    fn srgba(red: u8, green: u8, blue: u8, alpha: f32) -> Srgb {
-        Srgb::new(
+    fn srgba(red: u8, green: u8, blue: u8, alpha: f32) -> Color {
+        Color::new(
             f32::from(red) / 255.0,
             f32::from(green) / 255.0,
             f32::from(blue) / 255.0,
@@ -324,7 +319,7 @@ mod tests {
         )
     }
 
-    fn assert_srgba_approx_eq(actual: Srgb, expected: Srgb) {
+    fn assert_srgba_approx_eq(actual: Color, expected: Color) {
         assert_approx_eq(actual.red, expected.red);
         assert_approx_eq(actual.green, expected.green);
         assert_approx_eq(actual.blue, expected.blue);
@@ -376,7 +371,7 @@ mod tests {
         ];
 
         for expected in colors {
-            let actual = Srgb::from(Oklab::from(expected));
+            let actual = Color::from(Oklab::from(expected));
             assert_srgba_approx_eq(actual, expected);
         }
     }
@@ -391,7 +386,7 @@ mod tests {
         ];
 
         for expected in colors {
-            let actual = Srgb::from(Oklch::from(expected));
+            let actual = Color::from(Oklch::from(expected));
             assert_srgba_approx_eq(actual, expected);
         }
     }
@@ -413,14 +408,14 @@ mod tests {
 
         assert_srgba_approx_eq(
             mixed,
-            Srgb::new(0.388_572_87, 0.388_572_87, 0.388_572_87, 0.5),
+            Color::new(0.388_572_87, 0.388_572_87, 0.388_572_87, 0.5),
         );
     }
 
     #[test]
     fn gamut_mapping_reduces_chroma_without_shifting_lightness_or_hue() {
         let source = Oklch::new(0.7, 0.4, 40.0, 0.75);
-        let mapped = Srgb::from(source);
+        let mapped = Color::from(source);
         let mapped_oklch = Oklch::from(mapped);
 
         assert!(mapped_oklch.chroma < source.chroma);
@@ -430,9 +425,8 @@ mod tests {
     }
 
     #[test]
-    #[cfg(debug_assertions)]
     #[should_panic]
-    fn srgb_rejects_out_of_range_components() {
-        Srgb::new(1.1, 0.0, 0.0, 1.0);
+    fn color_rejects_out_of_range_components() {
+        Color::new(1.1, 0.0, 0.0, 1.0);
     }
 }

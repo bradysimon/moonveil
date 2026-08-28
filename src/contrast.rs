@@ -1,10 +1,69 @@
 //! Color compositing and WCAG contrast measurement.
 
-use crate::color::{Oklch, Srgb};
+use serde::{Deserialize, Serialize};
+
+use crate::color::{Color, Oklch};
 
 const SEARCH_ITERATIONS: usize = 24;
 const DARK_ON_COLOR_LIGHTNESS: f32 = 0.03;
 const LIGHT_ON_COLOR_LIGHTNESS: f32 = 0.99;
+
+/// Contrast ratios used while resolving accessible tokens.
+///
+/// Higher contrast ratios are more accessible and may be required by some users,
+/// but limit the range of colors that can be used.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct Targets {
+    /// Minimum ratio for normal-size text.
+    pub normal_text: f32,
+    /// Minimum ratio for large text.
+    pub large_text: f32,
+    /// Minimum ratio for essential boundaries and focus indicators.
+    pub boundary: f32,
+    /// Minimum ratio for disabled or decorative content.
+    pub decorative: f32,
+}
+
+impl Targets {
+    /// WCAG targets used by standard apps.
+    pub const STANDARD: Self = Self {
+        normal_text: 4.5,
+        large_text: 3.0,
+        boundary: 3.0,
+        decorative: 0.0,
+    };
+
+    /// Stricter targets used by high-contrast apps.
+    pub const HIGH: Self = Self {
+        normal_text: 7.0,
+        large_text: 4.5,
+        boundary: 4.5,
+        decorative: 3.0,
+    };
+}
+
+/// The contrast policy used to resolve a theme.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Profile {
+    /// Standard WCAG targets.
+    Standard,
+    /// Stricter high-contrast targets.
+    High,
+    /// User-supplied contrast targets.
+    Custom(Targets),
+}
+
+impl Profile {
+    /// Returns the concrete targets for this profile.
+    pub const fn targets(self) -> Targets {
+        match self {
+            Self::Standard => Targets::STANDARD,
+            Self::High => Targets::HIGH,
+            Self::Custom(targets) => targets,
+        }
+    }
+}
 
 /// Composites `foreground` over `background` using source-over alpha blending.
 ///
@@ -13,21 +72,21 @@ const LIGHT_ON_COLOR_LIGHTNESS: f32 = 0.99;
 /// gray, so measuring the original black would overstate its contrast. When the
 /// background is opaque, the returned color is also opaque and can be measured
 /// directly for contrast.
-pub(crate) fn composite(foreground: Srgb, background: Srgb) -> Srgb {
+pub(crate) fn composite(foreground: Color, background: Color) -> Color {
     let [f_red, f_green, f_blue, f_alpha] = foreground.components();
     let [b_red, b_green, b_blue, b_alpha] = background.components();
 
     let alpha = f_alpha + b_alpha * (1.0 - f_alpha);
 
     if alpha <= f32::EPSILON {
-        return Srgb::new(0.0, 0.0, 0.0, 0.0);
+        return Color::new(0.0, 0.0, 0.0, 0.0);
     }
 
     let blend = |f_channel: f32, b_channel: f32| {
         (f_channel * f_alpha + b_channel * b_alpha * (1.0 - f_alpha)) / alpha
     };
 
-    Srgb::new(
+    Color::new(
         blend(f_red, b_red),
         blend(f_green, b_green),
         blend(f_blue, b_blue),
@@ -42,7 +101,7 @@ pub(crate) fn composite(foreground: Srgb, background: Srgb) -> Srgb {
 /// We target at least `4.5:1` for normal text and `3:1` for large text and
 /// important component boundaries. High contrast profiles should raise those
 /// targets to `7:1` and `4.5:1` respectively.
-pub(crate) fn contrast_ratio(foreground: Srgb, background: Srgb) -> f32 {
+pub(crate) fn contrast_ratio(foreground: Color, background: Color) -> f32 {
     let [.., background_alpha] = background.components();
     debug_assert!(
         (background_alpha - 1.0).abs() <= f32::EPSILON,
@@ -65,10 +124,10 @@ pub(crate) fn contrast_ratio(foreground: Srgb, background: Srgb) -> f32 {
 /// chroma is only reduced by sRGB gamut mapping. Returns `None` when neither
 /// direction can satisfy the requested ratio.
 pub(crate) fn adjust_foreground(
-    foreground: Srgb,
-    backgrounds: &[Srgb],
+    foreground: Color,
+    backgrounds: &[Color],
     minimum_ratio: f32,
-) -> Option<Srgb> {
+) -> Option<Color> {
     debug_assert!(
         (1.0..=21.0).contains(&minimum_ratio),
         "contrast ratio must be in the range [1.0, 21.0]"
@@ -118,7 +177,7 @@ pub(crate) fn adjust_foreground(
 /// The on-color candidate with the greater contrast ratio is returned. Using
 /// fixed, achromatic Oklch tones keeps semantic fill pairs stable across themes
 /// and avoids introducing a second hue into their text color.
-pub(crate) fn on_color_foreground(background: Srgb) -> Srgb {
+pub(crate) fn on_color_foreground(background: Color) -> Color {
     let dark = on_color(DARK_ON_COLOR_LIGHTNESS);
     let light = on_color(LIGHT_ON_COLOR_LIGHTNESS);
 
@@ -136,7 +195,7 @@ pub(crate) fn on_color_foreground(background: Srgb) -> Srgb {
 /// solid's Oklch lightness range and returns the nearest passing tone. Hue is
 /// preserved and chroma is only reduced when required by sRGB gamut mapping.
 /// Returns `None` if the requested ratio cannot be met with either candidate.
-pub(crate) fn adjust_semantic_solid(solid: Srgb, minimum_ratio: f32) -> Option<Srgb> {
+pub(crate) fn adjust_semantic_solid(solid: Color, minimum_ratio: f32) -> Option<Color> {
     let [.., alpha] = solid.components();
     debug_assert!(
         (alpha - 1.0).abs() <= f32::EPSILON,
@@ -185,10 +244,10 @@ fn search_lightness(
     chroma: f32,
     hue: f32,
     alpha: f32,
-    backgrounds: &[Srgb],
+    backgrounds: &[Color],
     minimum_ratio: f32,
-) -> Option<Srgb> {
-    let endpoint = Srgb::from(Oklch::new(end, chroma, hue, alpha));
+) -> Option<Color> {
+    let endpoint = Color::from(Oklch::new(end, chroma, hue, alpha));
 
     if !meets_contrast(endpoint, backgrounds, minimum_ratio) {
         return None;
@@ -198,7 +257,7 @@ fn search_lightness(
 
     for _ in 0..SEARCH_ITERATIONS {
         let lightness = (failing + passing) / 2.0;
-        let candidate = Srgb::from(Oklch::new(lightness, chroma, hue, alpha));
+        let candidate = Color::from(Oklch::new(lightness, chroma, hue, alpha));
 
         if meets_contrast(candidate, backgrounds, minimum_ratio) {
             passing = lightness;
@@ -207,7 +266,7 @@ fn search_lightness(
         }
     }
 
-    Some(Srgb::from(Oklch::new(passing, chroma, hue, alpha)))
+    Some(Color::from(Oklch::new(passing, chroma, hue, alpha)))
 }
 
 fn search_solid_lightness(
@@ -216,8 +275,8 @@ fn search_solid_lightness(
     hue: f32,
     alpha: f32,
     minimum_ratio: f32,
-) -> Option<Srgb> {
-    let endpoint = Srgb::from(Oklch::new(end, chroma, hue, alpha));
+) -> Option<Color> {
+    let endpoint = Color::from(Oklch::new(end, chroma, hue, alpha));
 
     if maximum_on_color_contrast(endpoint) < minimum_ratio {
         return None;
@@ -227,7 +286,7 @@ fn search_solid_lightness(
 
     for _ in 0..SEARCH_ITERATIONS {
         let lightness = (failing + passing) / 2.0;
-        let candidate = Srgb::from(Oklch::new(lightness, chroma, hue, alpha));
+        let candidate = Color::from(Oklch::new(lightness, chroma, hue, alpha));
 
         if maximum_on_color_contrast(candidate) >= minimum_ratio {
             passing = lightness;
@@ -236,26 +295,26 @@ fn search_solid_lightness(
         }
     }
 
-    Some(Srgb::from(Oklch::new(passing, chroma, hue, alpha)))
+    Some(Color::from(Oklch::new(passing, chroma, hue, alpha)))
 }
 
-fn maximum_on_color_contrast(background: Srgb) -> f32 {
+fn maximum_on_color_contrast(background: Color) -> f32 {
     contrast_ratio(on_color_foreground(background), background)
 }
 
-fn on_color(lightness: f32) -> Srgb {
-    Srgb::from(Oklch::new(lightness, 0.0, 0.0, 1.0))
+fn on_color(lightness: f32) -> Color {
+    Color::from(Oklch::new(lightness, 0.0, 0.0, 1.0))
 }
 
 /// Whether the given `foreground` meets `minimum_ratio` against every value in `backgrounds`.
-fn meets_contrast(foreground: Srgb, backgrounds: &[Srgb], minimum_ratio: f32) -> bool {
+fn meets_contrast(foreground: Color, backgrounds: &[Color], minimum_ratio: f32) -> bool {
     backgrounds
         .iter()
         .all(|background| contrast_ratio(foreground, *background) >= minimum_ratio)
 }
 
 /// Returns the WCAG relative luminance of an opaque sRGB color.
-fn relative_luminance(color: Srgb) -> f32 {
+fn relative_luminance(color: Color) -> f32 {
     let [red, green, blue, alpha] = color.components();
     debug_assert!(
         (alpha - 1.0).abs() <= f32::EPSILON,
@@ -287,7 +346,7 @@ mod tests {
         );
     }
 
-    fn assert_color_approx_eq(actual: Srgb, expected: Srgb) {
+    fn assert_color_approx_eq(actual: Color, expected: Color) {
         for (actual, expected) in actual.components().into_iter().zip(expected.components()) {
             assert_approx_eq(actual, expected);
         }
@@ -295,38 +354,50 @@ mod tests {
 
     #[test]
     fn composites_translucent_foreground_over_opaque_background() {
-        let actual = composite(Srgb::new(1.0, 0.0, 0.0, 0.5), Srgb::new(0.0, 0.0, 1.0, 1.0));
-        assert_color_approx_eq(actual, Srgb::new(0.5, 0.0, 0.5, 1.0));
+        let actual = composite(
+            Color::new(1.0, 0.0, 0.0, 0.5),
+            Color::new(0.0, 0.0, 1.0, 1.0),
+        );
+        assert_color_approx_eq(actual, Color::new(0.5, 0.0, 0.5, 1.0));
     }
 
     #[test]
     fn composites_two_translucent_colors() {
-        let actual = composite(Srgb::new(1.0, 0.0, 0.0, 0.5), Srgb::new(0.0, 0.0, 1.0, 0.5));
-        assert_color_approx_eq(actual, Srgb::new(2.0 / 3.0, 0.0, 1.0 / 3.0, 0.75));
+        let actual = composite(
+            Color::new(1.0, 0.0, 0.0, 0.5),
+            Color::new(0.0, 0.0, 1.0, 0.5),
+        );
+        assert_color_approx_eq(actual, Color::new(2.0 / 3.0, 0.0, 1.0 / 3.0, 0.75));
     }
 
     #[test]
     fn black_and_white_have_maximum_contrast() {
-        let ratio = contrast_ratio(Srgb::new(0.0, 0.0, 0.0, 1.0), Srgb::new(1.0, 1.0, 1.0, 1.0));
+        let ratio = contrast_ratio(
+            Color::new(0.0, 0.0, 0.0, 1.0),
+            Color::new(1.0, 1.0, 1.0, 1.0),
+        );
         assert_approx_eq(ratio, 21.0);
     }
 
     #[test]
     fn equal_colors_have_minimum_contrast() {
-        let color = Srgb::new(0.25, 0.5, 0.75, 1.0);
+        let color = Color::new(0.25, 0.5, 0.75, 1.0);
         assert_approx_eq(contrast_ratio(color, color), 1.0);
     }
 
     #[test]
     fn contrast_composites_alpha_before_measuring() {
-        let ratio = contrast_ratio(Srgb::new(0.0, 0.0, 0.0, 0.5), Srgb::new(1.0, 1.0, 1.0, 1.0));
+        let ratio = contrast_ratio(
+            Color::new(0.0, 0.0, 0.0, 0.5),
+            Color::new(1.0, 1.0, 1.0, 1.0),
+        );
         assert_approx_eq(ratio, 3.976_653);
     }
 
     #[test]
     fn adjustment_leaves_a_passing_foreground_unchanged() {
-        let foreground = Srgb::new(0.0, 0.0, 0.0, 1.0);
-        let background = Srgb::new(1.0, 1.0, 1.0, 1.0);
+        let foreground = Color::new(0.0, 0.0, 0.0, 1.0);
+        let background = Color::new(1.0, 1.0, 1.0, 1.0);
 
         assert_eq!(
             adjust_foreground(foreground, &[background], 4.5),
@@ -336,8 +407,8 @@ mod tests {
 
     #[test]
     fn adjustment_darkens_foreground_on_a_light_background() {
-        let foreground = Srgb::new(0.8, 0.5, 0.4, 1.0);
-        let background = Srgb::new(1.0, 1.0, 1.0, 1.0);
+        let foreground = Color::new(0.8, 0.5, 0.4, 1.0);
+        let background = Color::new(1.0, 1.0, 1.0, 1.0);
         let adjusted = adjust_foreground(foreground, &[background], 4.5).unwrap();
         let [original_lightness, original_chroma, original_hue, ..] =
             Oklch::from(foreground).components();
@@ -352,8 +423,8 @@ mod tests {
 
     #[test]
     fn adjustment_lightens_foreground_on_a_dark_background() {
-        let foreground = Srgb::new(0.2, 0.3, 0.7, 1.0);
-        let background = Srgb::new(0.0, 0.0, 0.0, 1.0);
+        let foreground = Color::new(0.2, 0.3, 0.7, 1.0);
+        let background = Color::new(0.0, 0.0, 0.0, 1.0);
         let adjusted = adjust_foreground(foreground, &[background], 4.5).unwrap();
         let [original_lightness, ..] = Oklch::from(foreground).components();
         let [adjusted_lightness, ..] = Oklch::from(adjusted).components();
@@ -364,22 +435,25 @@ mod tests {
 
     #[test]
     fn adjustment_returns_none_when_no_direction_can_pass_every_background() {
-        let foreground = Srgb::new(0.5, 0.5, 0.5, 1.0);
-        let backgrounds = [Srgb::new(0.0, 0.0, 0.0, 1.0), Srgb::new(1.0, 1.0, 1.0, 1.0)];
+        let foreground = Color::new(0.5, 0.5, 0.5, 1.0);
+        let backgrounds = [
+            Color::new(0.0, 0.0, 0.0, 1.0),
+            Color::new(1.0, 1.0, 1.0, 1.0),
+        ];
 
         assert_eq!(adjust_foreground(foreground, &backgrounds, 7.0), None);
     }
 
     #[test]
     fn on_color_foreground_selects_near_black_for_a_light_fill() {
-        let fill = Srgb::new(1.0, 1.0, 1.0, 1.0);
+        let fill = Color::new(1.0, 1.0, 1.0, 1.0);
 
         assert_color_approx_eq(on_color_foreground(fill), on_color(DARK_ON_COLOR_LIGHTNESS));
     }
 
     #[test]
     fn on_color_foreground_selects_near_white_for_a_dark_fill() {
-        let fill = Srgb::new(0.0, 0.0, 0.0, 1.0);
+        let fill = Color::new(0.0, 0.0, 0.0, 1.0);
 
         assert_color_approx_eq(
             on_color_foreground(fill),
@@ -389,14 +463,14 @@ mod tests {
 
     #[test]
     fn semantic_solid_is_unchanged_when_it_supports_on_color_text() {
-        let solid = Srgb::new(0.5, 0.5, 0.5, 1.0);
+        let solid = Color::new(0.5, 0.5, 0.5, 1.0);
 
         assert_eq!(adjust_semantic_solid(solid, 4.5), Some(solid));
     }
 
     #[test]
     fn semantic_solid_moves_to_the_nearest_tone_that_supports_text() {
-        let solid = Srgb::new(0.5, 0.5, 0.5, 1.0);
+        let solid = Color::new(0.5, 0.5, 0.5, 1.0);
         let adjusted = adjust_semantic_solid(solid, 7.0).unwrap();
         let [lightness, chroma, hue, alpha] = Oklch::from(solid).components();
         let darker = search_solid_lightness([lightness, 0.0], chroma, hue, alpha, 7.0).unwrap();
@@ -416,7 +490,7 @@ mod tests {
 
     #[test]
     fn semantic_solid_returns_none_when_on_colors_cannot_meet_the_target() {
-        let solid = Srgb::new(0.5, 0.5, 0.5, 1.0);
+        let solid = Color::new(0.5, 0.5, 0.5, 1.0);
 
         assert_eq!(adjust_semantic_solid(solid, 21.0), None);
     }

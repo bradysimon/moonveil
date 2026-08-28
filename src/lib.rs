@@ -4,3 +4,4 @@
 //! I can utilize the latest features on the `master` branch. I aim to release
 //! a real version once iced 0.15 is released.
 mod color;
+mod contrast;

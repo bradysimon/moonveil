@@ -3,6 +3,8 @@
 use crate::color::{Oklch, Srgb};
 
 const SEARCH_ITERATIONS: usize = 24;
+const DARK_ON_COLOR_LIGHTNESS: f32 = 0.03;
+const LIGHT_ON_COLOR_LIGHTNESS: f32 = 0.99;
 
 /// Composites `foreground` over `background` using source-over alpha blending.
 ///
@@ -111,7 +113,66 @@ pub(crate) fn adjust_foreground(
     }
 }
 
-/// Searches from a failing Oklch `start` lightness toward a terminal `end`.
+/// Selects deterministic near-black or near-white text for an opaque fill.
+///
+/// The on-color candidate with the greater contrast ratio is returned. Using
+/// fixed, achromatic Oklch tones keeps semantic fill pairs stable across themes
+/// and avoids introducing a second hue into their text color.
+pub(crate) fn on_color_foreground(background: Srgb) -> Srgb {
+    let dark = on_color(DARK_ON_COLOR_LIGHTNESS);
+    let light = on_color(LIGHT_ON_COLOR_LIGHTNESS);
+
+    if contrast_ratio(dark, background) >= contrast_ratio(light, background) {
+        dark
+    } else {
+        light
+    }
+}
+
+/// Adjusts an opaque semantic solid until it supports on-color foreground text.
+///
+/// The solid is returned unchanged when either on-color candidate already
+/// meets `minimum_ratio`. Otherwise, this searches toward both ends of the
+/// solid's Oklch lightness range and returns the nearest passing tone. Hue is
+/// preserved and chroma is only reduced when required by sRGB gamut mapping.
+/// Returns `None` if the requested ratio cannot be met with either candidate.
+pub(crate) fn adjust_semantic_solid(solid: Srgb, minimum_ratio: f32) -> Option<Srgb> {
+    let [.., alpha] = solid.components();
+    debug_assert!(
+        (alpha - 1.0).abs() <= f32::EPSILON,
+        "semantic solids must be opaque"
+    );
+    debug_assert!(
+        (1.0..=21.0).contains(&minimum_ratio),
+        "contrast ratio must be in the range [1.0, 21.0]"
+    );
+
+    if maximum_on_color_contrast(solid) >= minimum_ratio {
+        return Some(solid);
+    }
+
+    let [lightness, chroma, hue, alpha] = Oklch::from(solid).components();
+    let darker = search_solid_lightness([lightness, 0.0], chroma, hue, alpha, minimum_ratio);
+    let lighter = search_solid_lightness([lightness, 1.0], chroma, hue, alpha, minimum_ratio);
+
+    match (darker, lighter) {
+        (Some(darker), Some(lighter)) => {
+            let darker_delta = lightness - Oklch::from(darker).components()[0];
+            let lighter_delta = Oklch::from(lighter).components()[0] - lightness;
+
+            Some(if darker_delta <= lighter_delta {
+                darker
+            } else {
+                lighter
+            })
+        }
+        (Some(darker), None) => Some(darker),
+        (None, Some(lighter)) => Some(lighter),
+        (None, None) => None,
+    }
+}
+
+/// Searches from a failing Oklch `start` lightness toward an endpoint `end`.
 ///
 /// The endpoint is checked first because it establishes the passing side of the
 /// binary-search interval. If it cannot meet `minimum_ratio` against every
@@ -147,6 +208,43 @@ fn search_lightness(
     }
 
     Some(Srgb::from(Oklch::new(passing, chroma, hue, alpha)))
+}
+
+fn search_solid_lightness(
+    [start, end]: [f32; 2],
+    chroma: f32,
+    hue: f32,
+    alpha: f32,
+    minimum_ratio: f32,
+) -> Option<Srgb> {
+    let endpoint = Srgb::from(Oklch::new(end, chroma, hue, alpha));
+
+    if maximum_on_color_contrast(endpoint) < minimum_ratio {
+        return None;
+    }
+
+    let (mut failing, mut passing) = (start, end);
+
+    for _ in 0..SEARCH_ITERATIONS {
+        let lightness = (failing + passing) / 2.0;
+        let candidate = Srgb::from(Oklch::new(lightness, chroma, hue, alpha));
+
+        if maximum_on_color_contrast(candidate) >= minimum_ratio {
+            passing = lightness;
+        } else {
+            failing = lightness;
+        }
+    }
+
+    Some(Srgb::from(Oklch::new(passing, chroma, hue, alpha)))
+}
+
+fn maximum_on_color_contrast(background: Srgb) -> f32 {
+    contrast_ratio(on_color_foreground(background), background)
+}
+
+fn on_color(lightness: f32) -> Srgb {
+    Srgb::from(Oklch::new(lightness, 0.0, 0.0, 1.0))
 }
 
 /// Whether the given `foreground` meets `minimum_ratio` against every value in `backgrounds`.
@@ -270,5 +368,56 @@ mod tests {
         let backgrounds = [Srgb::new(0.0, 0.0, 0.0, 1.0), Srgb::new(1.0, 1.0, 1.0, 1.0)];
 
         assert_eq!(adjust_foreground(foreground, &backgrounds, 7.0), None);
+    }
+
+    #[test]
+    fn on_color_foreground_selects_near_black_for_a_light_fill() {
+        let fill = Srgb::new(1.0, 1.0, 1.0, 1.0);
+
+        assert_color_approx_eq(on_color_foreground(fill), on_color(DARK_ON_COLOR_LIGHTNESS));
+    }
+
+    #[test]
+    fn on_color_foreground_selects_near_white_for_a_dark_fill() {
+        let fill = Srgb::new(0.0, 0.0, 0.0, 1.0);
+
+        assert_color_approx_eq(
+            on_color_foreground(fill),
+            on_color(LIGHT_ON_COLOR_LIGHTNESS),
+        );
+    }
+
+    #[test]
+    fn semantic_solid_is_unchanged_when_it_supports_on_color_text() {
+        let solid = Srgb::new(0.5, 0.5, 0.5, 1.0);
+
+        assert_eq!(adjust_semantic_solid(solid, 4.5), Some(solid));
+    }
+
+    #[test]
+    fn semantic_solid_moves_to_the_nearest_tone_that_supports_text() {
+        let solid = Srgb::new(0.5, 0.5, 0.5, 1.0);
+        let adjusted = adjust_semantic_solid(solid, 7.0).unwrap();
+        let [lightness, chroma, hue, alpha] = Oklch::from(solid).components();
+        let darker = search_solid_lightness([lightness, 0.0], chroma, hue, alpha, 7.0).unwrap();
+        let lighter = search_solid_lightness([lightness, 1.0], chroma, hue, alpha, 7.0).unwrap();
+        let darker_delta = lightness - Oklch::from(darker).components()[0];
+        let lighter_delta = Oklch::from(lighter).components()[0] - lightness;
+        let expected = if darker_delta <= lighter_delta {
+            darker
+        } else {
+            lighter
+        };
+        let text = on_color_foreground(adjusted);
+
+        assert_color_approx_eq(adjusted, expected);
+        assert!(contrast_ratio(text, adjusted) >= 7.0);
+    }
+
+    #[test]
+    fn semantic_solid_returns_none_when_on_colors_cannot_meet_the_target() {
+        let solid = Srgb::new(0.5, 0.5, 0.5, 1.0);
+
+        assert_eq!(adjust_semantic_solid(solid, 21.0), None);
     }
 }

@@ -3,6 +3,7 @@
 use std::{error::Error, fmt};
 
 use crate::Color;
+use iced_anim::Animate;
 
 mod resolve;
 mod semantic;
@@ -229,7 +230,7 @@ impl Error for ResolveError {}
 
 /// Neutral planes used to establish visual depth and grouping.
 #[non_exhaustive]
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Animate)]
 pub struct Surfaces {
     /// Recessed content such as code wells and terminal output.
     pub sunken: Color,
@@ -251,7 +252,7 @@ pub struct Surfaces {
 
 /// Foregrounds grouped by content emphasis.
 #[non_exhaustive]
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Animate)]
 pub struct Content {
     /// Headings, values, and primary document content.
     pub primary: Color,
@@ -269,7 +270,7 @@ pub struct Content {
 
 /// Boundaries grouped by visual and interaction intent.
 #[non_exhaustive]
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Animate)]
 pub struct Borders {
     /// Decorative separation where shape is already apparent.
     pub subtle: Color,
@@ -285,7 +286,7 @@ pub struct Borders {
 
 /// Temporary overlays for interaction states.
 #[non_exhaustive]
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Animate)]
 pub struct Interaction {
     /// Overlay applied while a pointer hovers over an interactive region.
     pub hover: Color,
@@ -302,7 +303,7 @@ pub struct Interaction {
 }
 
 /// A fill and the text or icon color guaranteed against it.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Animate)]
 pub struct Pair {
     /// The background or fill color.
     pub color: Color,
@@ -312,7 +313,7 @@ pub struct Pair {
 
 /// Resolved fill pairs for each interactive state.
 #[non_exhaustive]
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Animate)]
 pub struct Fill {
     /// The default fill and foreground pair.
     pub active: Pair,
@@ -324,7 +325,7 @@ pub struct Fill {
 
 /// Resolved roles for one semantic intent.
 #[non_exhaustive]
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Animate)]
 pub struct Semantic {
     /// Semantic text and icons shown directly on neutral surfaces.
     pub foreground: Color,
@@ -340,7 +341,7 @@ pub struct Semantic {
 
 /// All resolved color tokens for a theme.
 #[non_exhaustive]
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Animate)]
 pub struct Colors {
     /// Neutral planes used throughout the interface.
     pub surfaces: Surfaces,

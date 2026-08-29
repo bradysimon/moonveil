@@ -121,6 +121,52 @@ impl Color {
     }
 }
 
+impl From<Color> for iced::Color {
+    fn from(color: Color) -> Self {
+        let [red, green, blue, alpha] = color.components();
+        Self::from_rgba(red, green, blue, alpha)
+    }
+}
+
+impl iced_anim::Animate for Color {
+    fn components() -> usize {
+        4
+    }
+
+    fn update(&mut self, components: &mut impl Iterator<Item = f32>) {
+        let color = Oklab::from(*self);
+        *self = Oklab::new(
+            (color.lightness + components.next().unwrap()).clamp(0.0, 1.0),
+            (color.a + components.next().unwrap()).clamp(-1.0, 1.0),
+            (color.b + components.next().unwrap()).clamp(-1.0, 1.0),
+            (color.alpha + components.next().unwrap()).clamp(0.0, 1.0),
+        )
+        .into();
+    }
+
+    fn distance_to(&self, end: &Self) -> Vec<f32> {
+        let start = Oklab::from(*self);
+        let end = Oklab::from(*end);
+
+        vec![
+            start.lightness - end.lightness,
+            start.a - end.a,
+            start.b - end.b,
+            start.alpha - end.alpha,
+        ]
+    }
+
+    fn lerp(&mut self, start: &Self, end: &Self, progress: f32) {
+        *self = if progress <= 0.0 {
+            *start
+        } else if progress >= 1.0 {
+            *end
+        } else {
+            start.mix_oklab(*end, progress)
+        };
+    }
+}
+
 impl Oklab {
     /// Creates a new [`Oklab`] color.
     const fn new(lightness: f32, a: f32, b: f32, alpha: f32) -> Self {
@@ -298,6 +344,7 @@ fn linear_to_srgb(channel: f32) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use iced_anim::Animate;
 
     const EPSILON: f32 = 0.000_01;
 
@@ -407,6 +454,29 @@ mod tests {
         assert_srgba_approx_eq(
             mixed,
             Color::new(0.388_572_87, 0.388_572_87, 0.388_572_87, 0.5),
+        );
+    }
+
+    #[test]
+    fn converts_to_iced_color() {
+        let color = Color::from_rgba(0.1, 0.2, 0.3, 0.4);
+        let iced = iced::Color::from(color);
+
+        assert_eq!([iced.r, iced.g, iced.b, iced.a], color.components());
+    }
+
+    #[test]
+    fn animation_uses_oklab_components() {
+        let start = Color::from_rgb(0.1, 0.2, 0.3);
+        let end = Color::from_rgb(0.8, 0.7, 0.6);
+        let mut interpolated = start;
+
+        interpolated.lerp(&start, &end, 0.5);
+
+        assert_srgba_approx_eq(interpolated, start.mix_oklab(end, 0.5));
+        assert_eq!(
+            start.distance_to(&end).len(),
+            <Color as Animate>::components()
         );
     }
 

@@ -361,8 +361,10 @@ fn linearize(channel: f32) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proptest::prelude::*;
 
     const EPSILON: f32 = 0.000_01;
+    const PROPERTY_EPSILON: f32 = 0.000_2;
 
     fn assert_approx_eq(actual: f32, expected: f32) {
         assert!(
@@ -375,6 +377,37 @@ mod tests {
         for (actual, expected) in actual.components().into_iter().zip(expected.components()) {
             assert_approx_eq(actual, expected);
         }
+    }
+
+    fn color() -> impl Strategy<Value = Color> {
+        (0.0f32..1.0, 0.0f32..1.0, 0.0f32..1.0, 0.0f32..1.0)
+            .prop_map(|(red, green, blue, alpha)| Color::new(red, green, blue, alpha))
+    }
+
+    fn visible_color() -> impl Strategy<Value = Color> {
+        (0.0f32..1.0, 0.0f32..1.0, 0.0f32..1.0, 0.001f32..1.0)
+            .prop_map(|(red, green, blue, alpha)| Color::new(red, green, blue, alpha))
+    }
+
+    fn opaque_color() -> impl Strategy<Value = Color> {
+        (0.0f32..1.0, 0.0f32..1.0, 0.0f32..1.0)
+            .prop_map(|(red, green, blue)| Color::new(red, green, blue, 1.0))
+    }
+
+    fn opaque_backgrounds() -> impl Strategy<Value = Vec<Color>> {
+        prop::collection::vec(opaque_color(), 1..5)
+    }
+
+    fn circular_hue_difference(first: f32, second: f32) -> f32 {
+        let difference = (first - second).abs();
+        difference.min(360.0 - difference)
+    }
+
+    fn components_are_valid(color: Color) -> bool {
+        color
+            .components()
+            .into_iter()
+            .all(|component| component.is_finite() && (0.0..=1.0).contains(&component))
     }
 
     #[test]
@@ -535,5 +568,148 @@ mod tests {
         let solid = Color::new(0.5, 0.5, 0.5, 1.0);
 
         assert_eq!(adjust_semantic_solid(solid, 21.0), None);
+    }
+
+    proptest! {
+        #[test]
+        fn transparent_foreground_preserves_visible_background(
+            foreground in opaque_color(),
+            background in visible_color(),
+        ) {
+            let [red, green, blue, ..] = foreground.components();
+            let foreground = Color::new(red, green, blue, 0.0);
+            let result = composite(foreground, background);
+
+            for (actual, expected) in result.components().into_iter().zip(background.components()) {
+                prop_assert!((actual - expected).abs() <= PROPERTY_EPSILON);
+            }
+        }
+
+        #[test]
+        fn opaque_foreground_replaces_background(foreground in opaque_color(), background in color()) {
+            let result = composite(foreground, background);
+
+            prop_assert_eq!(result, foreground);
+        }
+
+        #[test]
+        fn compositing_arbitrary_colors_produces_bounded_components(
+            foreground in color(),
+            background in color(),
+        ) {
+            prop_assert!(components_are_valid(composite(foreground, background)));
+        }
+
+        #[test]
+        fn compositing_over_opaque_background_is_opaque_and_bounded(
+            foreground in color(),
+            background in opaque_color(),
+        ) {
+            let result = composite(foreground, background);
+
+            prop_assert!((result.components()[3] - 1.0).abs() <= PROPERTY_EPSILON);
+            prop_assert!(components_are_valid(result));
+        }
+
+        #[test]
+        fn opaque_contrast_is_symmetric(first in opaque_color(), second in opaque_color()) {
+            let forward = contrast_ratio(first, second);
+            let reverse = contrast_ratio(second, first);
+
+            prop_assert!((forward - reverse).abs() <= PROPERTY_EPSILON);
+        }
+
+        #[test]
+        fn contrast_ratio_is_bounded(foreground in color(), background in opaque_color()) {
+            let ratio = contrast_ratio(foreground, background);
+
+            prop_assert!(ratio.is_finite());
+            prop_assert!((1.0..=21.0).contains(&ratio));
+        }
+
+        #[test]
+        fn opaque_color_has_unit_contrast_with_itself(value in opaque_color()) {
+            prop_assert!((contrast_ratio(value, value) - 1.0).abs() <= PROPERTY_EPSILON);
+        }
+
+        #[test]
+        fn foreground_adjustment_satisfies_its_postconditions(
+            foreground in opaque_color(),
+            backgrounds in opaque_backgrounds(),
+            minimum_ratio in 1.0f32..7.0,
+        ) {
+            if let Some(adjusted) = adjust_foreground(foreground, &backgrounds, minimum_ratio) {
+                let [_, original_chroma, original_hue, original_alpha] =
+                    Oklch::from(foreground).components();
+                let [adjusted_lightness, adjusted_chroma, adjusted_hue, adjusted_alpha] =
+                    Oklch::from(adjusted).components();
+
+                prop_assert!(backgrounds.iter().all(|background|
+                    contrast_ratio(adjusted, *background) + PROPERTY_EPSILON >= minimum_ratio
+                ));
+                prop_assert!((adjusted_alpha - original_alpha).abs() <= PROPERTY_EPSILON);
+                prop_assert!(adjusted_chroma <= original_chroma + PROPERTY_EPSILON);
+                if original_chroma > PROPERTY_EPSILON && adjusted_chroma > PROPERTY_EPSILON {
+                    prop_assert!(circular_hue_difference(adjusted_hue, original_hue) <= 0.01);
+                }
+                prop_assert!((0.0..=1.0).contains(&adjusted_lightness));
+                prop_assert_eq!(adjust_foreground(adjusted, &backgrounds, minimum_ratio), Some(adjusted));
+            }
+        }
+
+        #[test]
+        fn passing_foreground_is_not_adjusted(
+            foreground in opaque_color(),
+            backgrounds in opaque_backgrounds(),
+            fraction in 0.0f32..1.0,
+        ) {
+            let available_ratio = backgrounds
+                .iter()
+                .map(|background| contrast_ratio(foreground, *background))
+                .fold(f32::INFINITY, f32::min);
+            let minimum_ratio = 1.0 + (available_ratio - 1.0) * fraction;
+
+            prop_assert_eq!(
+                adjust_foreground(foreground, &backgrounds, minimum_ratio),
+                Some(foreground)
+            );
+        }
+
+        #[test]
+        fn on_color_selects_the_higher_contrast_candidate(background in opaque_color()) {
+            let selected = on_color_foreground(background);
+            let dark_ratio = contrast_ratio(on_color(DARK_ON_COLOR_LIGHTNESS), background);
+            let light_ratio = contrast_ratio(on_color(LIGHT_ON_COLOR_LIGHTNESS), background);
+
+            prop_assert!(contrast_ratio(selected, background) + PROPERTY_EPSILON >= dark_ratio);
+            prop_assert!(contrast_ratio(selected, background) + PROPERTY_EPSILON >= light_ratio);
+        }
+
+        #[test]
+        fn semantic_solid_adjustment_satisfies_its_postconditions(
+            solid in opaque_color(),
+            minimum_ratio in 1.0f32..10.0,
+        ) {
+            let original_contrast = maximum_on_color_contrast(solid);
+
+            if let Some(adjusted) = adjust_semantic_solid(solid, minimum_ratio) {
+                let [_, original_chroma, original_hue, original_alpha] =
+                    Oklch::from(solid).components();
+                let [_, adjusted_chroma, adjusted_hue, adjusted_alpha] =
+                    Oklch::from(adjusted).components();
+
+                prop_assert!(
+                    maximum_on_color_contrast(adjusted) + PROPERTY_EPSILON >= minimum_ratio
+                );
+                prop_assert!((adjusted_alpha - original_alpha).abs() <= PROPERTY_EPSILON);
+                prop_assert!(adjusted_chroma <= original_chroma + PROPERTY_EPSILON);
+                if original_chroma > PROPERTY_EPSILON && adjusted_chroma > PROPERTY_EPSILON {
+                    prop_assert!(circular_hue_difference(adjusted_hue, original_hue) <= 0.01);
+                }
+                if original_contrast >= minimum_ratio {
+                    prop_assert_eq!(adjusted, solid);
+                }
+            }
+        }
     }
 }

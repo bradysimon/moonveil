@@ -356,8 +356,10 @@ fn linear_to_srgb(channel: f32) -> f32 {
 mod tests {
     use super::*;
     use iced_anim::Animate;
+    use proptest::prelude::*;
 
     const EPSILON: f32 = 0.000_01;
+    const PROPERTY_EPSILON: f32 = 0.000_2;
 
     fn assert_approx_eq(actual: f32, expected: f32) {
         assert!(
@@ -380,6 +382,28 @@ mod tests {
         assert_approx_eq(actual.green, expected.green);
         assert_approx_eq(actual.blue, expected.blue);
         assert_approx_eq(actual.alpha, expected.alpha);
+    }
+
+    fn color() -> impl Strategy<Value = Color> {
+        (0.0f32..1.0, 0.0f32..1.0, 0.0f32..1.0, 0.0f32..1.0)
+            .prop_map(|(red, green, blue, alpha)| Color::new(red, green, blue, alpha))
+    }
+
+    fn oklch() -> impl Strategy<Value = Oklch> {
+        (0.001f32..0.999, 0.0f32..1.0, 0.0f32..360.0, 0.0f32..1.0)
+            .prop_map(|(lightness, chroma, hue, alpha)| Oklch::new(lightness, chroma, hue, alpha))
+    }
+
+    fn circular_hue_difference(first: f32, second: f32) -> f32 {
+        let difference = (first - second).abs();
+        difference.min(360.0 - difference)
+    }
+
+    fn components_are_valid(color: Color) -> bool {
+        color
+            .components()
+            .into_iter()
+            .all(|component| component.is_finite() && (0.0..=1.0).contains(&component))
     }
 
     #[test]
@@ -507,5 +531,96 @@ mod tests {
     #[should_panic]
     fn color_rejects_out_of_range_components() {
         Color::new(1.1, 0.0, 0.0, 1.0);
+    }
+
+    proptest! {
+        #[test]
+        fn arbitrary_srgb_oklab_roundtrip_preserves_color(expected in color()) {
+            let actual = Color::from(Oklab::from(expected));
+
+            for (actual, expected) in actual.components().into_iter().zip(expected.components()) {
+                prop_assert!((actual - expected).abs() <= PROPERTY_EPSILON);
+            }
+            prop_assert!(components_are_valid(actual));
+        }
+
+        #[test]
+        fn arbitrary_srgb_oklch_roundtrip_preserves_color(expected in color()) {
+            let actual = Color::from(Oklch::from(expected));
+
+            for (actual, expected) in actual.components().into_iter().zip(expected.components()) {
+                prop_assert!((actual - expected).abs() <= PROPERTY_EPSILON);
+            }
+            prop_assert!(components_are_valid(actual));
+        }
+
+        #[test]
+        fn mixing_a_color_with_itself_preserves_it(value in color(), amount in 0.0f32..1.0) {
+            let mixed = value.mix_oklab(value, amount);
+
+            for (actual, expected) in mixed.components().into_iter().zip(value.components()) {
+                prop_assert!((actual - expected).abs() <= PROPERTY_EPSILON);
+            }
+        }
+
+        #[test]
+        fn oklab_mixing_preserves_arbitrary_endpoints(first in color(), second in color()) {
+            let start = first.mix_oklab(second, 0.0);
+            let end = first.mix_oklab(second, 1.0);
+
+            for (actual, expected) in start.components().into_iter().zip(first.components()) {
+                prop_assert!((actual - expected).abs() <= PROPERTY_EPSILON);
+            }
+            for (actual, expected) in end.components().into_iter().zip(second.components()) {
+                prop_assert!((actual - expected).abs() <= PROPERTY_EPSILON);
+            }
+        }
+
+        #[test]
+        fn oklab_mixing_is_reversible(
+            first in color(),
+            second in color(),
+            amount in 0.0f32..1.0,
+        ) {
+            let forward = first.mix_oklab(second, amount);
+            let reverse = second.mix_oklab(first, 1.0 - amount);
+
+            for (forward, reverse) in forward.components().into_iter().zip(reverse.components()) {
+                prop_assert!((forward - reverse).abs() <= PROPERTY_EPSILON);
+            }
+            prop_assert!(components_are_valid(forward));
+        }
+
+        #[test]
+        fn gamut_mapping_preserves_oklch_intent(source in oklch()) {
+            let mapped = Color::from(source);
+            let result = Oklch::from(mapped);
+            let [source_lightness, source_chroma, source_hue, source_alpha] = source.components();
+            let [lightness, chroma, hue, alpha] = result.components();
+
+            prop_assert!(components_are_valid(mapped));
+            prop_assert!((lightness - source_lightness).abs() <= PROPERTY_EPSILON);
+            prop_assert!((alpha - source_alpha).abs() <= PROPERTY_EPSILON);
+            prop_assert!(chroma <= source_chroma + PROPERTY_EPSILON);
+            if chroma > PROPERTY_EPSILON {
+                prop_assert!(circular_hue_difference(hue, source_hue) <= 0.01);
+            }
+        }
+
+        #[test]
+        fn maximum_chroma_is_respected(value in color(), maximum in 0.0f32..1.0) {
+            let original = Oklch::from(value);
+            let limited = Oklch::from(value.with_max_chroma(maximum));
+            let [original_lightness, original_chroma, original_hue, original_alpha] = original.components();
+            let [lightness, chroma, hue, alpha] = limited.components();
+
+            prop_assert!(chroma <= maximum + PROPERTY_EPSILON);
+            prop_assert!(chroma <= original_chroma + PROPERTY_EPSILON);
+            prop_assert!((lightness - original_lightness).abs() <= PROPERTY_EPSILON);
+            prop_assert!((alpha - original_alpha).abs() <= PROPERTY_EPSILON);
+            if chroma > PROPERTY_EPSILON {
+                prop_assert!(circular_hue_difference(hue, original_hue) <= 0.01);
+            }
+        }
     }
 }

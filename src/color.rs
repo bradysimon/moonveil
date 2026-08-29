@@ -74,7 +74,7 @@ impl Color {
         [self.red, self.green, self.blue, self.alpha]
     }
 
-    /// Mixes two [`Srgb`] colors in the [`Oklab`] color space.
+    /// Mixes two sRGB colors in the [`Oklab`] color space.
     /// Clamps `amount` to the range [0.0, 1.0].
     pub(crate) fn mix_oklab(self, other: Self, amount: f32) -> Self {
         let amount = amount.clamp(0.0, 1.0);
@@ -91,7 +91,18 @@ impl Color {
         .into()
     }
 
-    /// Attempts to convert an [`Oklab`] color to [`Srgb`].
+    /// Reduces [`Oklch`] chroma to `maximum` while preserving lightness and hue.
+    pub(crate) fn with_max_chroma(self, maximum: f32) -> Self {
+        let [lightness, chroma, hue, alpha] = Oklch::from(self).components();
+
+        if chroma <= maximum {
+            self
+        } else {
+            Oklch::new(lightness, maximum, hue, alpha).into()
+        }
+    }
+
+    /// Attempts to convert an [`Oklab`] color to sRGB.
     /// Returns `None` if the color is out of the sRGB gamut.
     fn try_from(color: Oklab) -> Option<Self> {
         let lightness = color.lightness + 0.396_337_78 * color.a + 0.215_803_76 * color.b;

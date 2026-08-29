@@ -1,8 +1,8 @@
 //! Non-color appearance values and resolved effects.
 
 use crate::{Color, Polarity, theme::Definition};
-use iced::Vector;
 use iced_anim::Animate;
+use iced_core::Vector;
 
 /// Non-layout presentation values that may be consumed by widget styles.
 #[non_exhaustive]
@@ -58,7 +58,7 @@ pub struct Shadow {
     pub blur_radius: f32,
 }
 
-impl From<Shadow> for iced::Shadow {
+impl From<Shadow> for iced_core::Shadow {
     fn from(shadow: Shadow) -> Self {
         Self {
             color: shadow.color.into(),

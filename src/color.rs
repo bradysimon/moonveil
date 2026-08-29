@@ -132,7 +132,7 @@ impl Color {
     }
 }
 
-impl From<Color> for iced::Color {
+impl From<Color> for iced_core::Color {
     fn from(color: Color) -> Self {
         let [red, green, blue, alpha] = color.components();
         Self::from_rgba(red, green, blue, alpha)
@@ -495,7 +495,7 @@ mod tests {
     #[test]
     fn converts_to_iced_color() {
         let color = Color::from_rgba(0.1, 0.2, 0.3, 0.4);
-        let iced = iced::Color::from(color);
+        let iced = iced_core::Color::from(color);
 
         assert_eq!([iced.r, iced.g, iced.b, iced.a], color.components());
     }

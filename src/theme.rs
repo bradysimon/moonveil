@@ -168,35 +168,35 @@ impl Theme {
     }
 }
 
-impl iced::theme::Base for Theme {
-    fn default(preference: iced::theme::Mode) -> Self {
+impl iced_core::theme::Base for Theme {
+    fn default(preference: iced_core::theme::Mode) -> Self {
         let polarity = match preference {
-            iced::theme::Mode::Dark => Polarity::Dark,
-            iced::theme::Mode::None | iced::theme::Mode::Light => Polarity::Light,
+            iced_core::theme::Mode::Dark => Polarity::Dark,
+            iced_core::theme::Mode::None | iced_core::theme::Mode::Light => Polarity::Light,
         };
 
         Self::new(Definition::default_for(polarity))
             .expect("Built-in theme definitions must resolve")
     }
 
-    fn mode(&self) -> iced::theme::Mode {
+    fn mode(&self) -> iced_core::theme::Mode {
         match self.definition().polarity {
-            Polarity::Dark => iced::theme::Mode::Dark,
-            Polarity::Light => iced::theme::Mode::Light,
+            Polarity::Dark => iced_core::theme::Mode::Dark,
+            Polarity::Light => iced_core::theme::Mode::Light,
         }
     }
 
-    fn base(&self) -> iced::theme::Style {
-        iced::theme::Style {
+    fn base(&self) -> iced_core::theme::Style {
+        iced_core::theme::Style {
             background_color: self.colors().surfaces.surface.into(),
             text_color: self.colors().content.primary.into(),
         }
     }
 
-    fn seed(&self) -> Option<iced::theme::palette::Seed> {
+    fn seed(&self) -> Option<iced_core::theme::palette::Seed> {
         let seed = self.definition().seed;
 
-        Some(iced::theme::palette::Seed {
+        Some(iced_core::theme::palette::Seed {
             background: seed.background.into(),
             text: seed.foreground.into(),
             primary: seed.accent.into(),
@@ -260,7 +260,7 @@ impl iced_anim::Animate for Theme {
 mod tests {
     use super::*;
     use crate::{Polarity, Seed};
-    use iced::theme::{Base, Mode};
+    use iced_core::theme::{Base, Mode};
 
     fn definition() -> Definition {
         Definition::new(

@@ -7,6 +7,7 @@ mod color;
 mod contrast;
 mod theme;
 pub mod token;
+pub mod widget;
 
 pub use color::Color;
 pub use contrast::{Profile, Targets};
@@ -14,3 +15,7 @@ pub use theme::{
     Appearance, BorderWidths, Definition, Metadata, Polarity, Radii, Seed, Shadow, Shadows, Theme,
 };
 pub use token::ResolveError;
+
+/// A generic Iced element using Moonveil's concrete [`Theme`].
+pub type Element<'a, Message, Renderer = iced_widget::Renderer> =
+    iced_core::Element<'a, Message, Theme, Renderer>;

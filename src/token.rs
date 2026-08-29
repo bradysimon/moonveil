@@ -31,10 +31,10 @@ pub enum BorderRole {
     Selected,
 }
 
-/// The semantic meaning carried by a semantic color family.
+/// The meaning carried by a color family.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
-pub enum SemanticIntent {
+pub enum Intent {
     Accent,
     Success,
     Warning,
@@ -59,7 +59,7 @@ pub enum SemanticRole {
 pub enum TokenRole {
     Content(ContentRole),
     Border(BorderRole),
-    Semantic(SemanticIntent, SemanticRole),
+    Semantic(Intent, SemanticRole),
 }
 
 impl fmt::Display for ContentRole {
@@ -87,7 +87,7 @@ impl fmt::Display for BorderRole {
     }
 }
 
-impl fmt::Display for SemanticIntent {
+impl fmt::Display for Intent {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str(match self {
             Self::Accent => "accent",

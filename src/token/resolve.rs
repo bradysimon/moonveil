@@ -6,8 +6,8 @@ use crate::{
 };
 
 use super::{
-    BorderRole, Borders, Colors, Content, ContentRole, Interaction, ResolveError, SemanticIntent,
-    Surfaces, TokenRole, semantic::Resolver as SemanticResolver,
+    BorderRole, Borders, Colors, Content, ContentRole, Intent, Interaction, ResolveError, Surfaces,
+    TokenRole, semantic::Resolver as SemanticResolver,
 };
 
 const MINIMUM_SURFACE_LIGHTNESS_DELTA: f32 = 0.01;
@@ -155,13 +155,11 @@ impl Colors {
             high_emphasis,
         );
 
-        let accent = semantic_resolver.resolve(SemanticIntent::Accent, definition.seed.accent)?;
-        let success =
-            semantic_resolver.resolve(SemanticIntent::Success, definition.seed.success)?;
-        let warning =
-            semantic_resolver.resolve(SemanticIntent::Warning, definition.seed.warning)?;
-        let danger = semantic_resolver.resolve(SemanticIntent::Danger, definition.seed.danger)?;
-        let info = semantic_resolver.resolve(SemanticIntent::Info, definition.seed.info)?;
+        let accent = semantic_resolver.resolve(Intent::Accent, definition.seed.accent)?;
+        let success = semantic_resolver.resolve(Intent::Success, definition.seed.success)?;
+        let warning = semantic_resolver.resolve(Intent::Warning, definition.seed.warning)?;
+        let danger = semantic_resolver.resolve(Intent::Danger, definition.seed.danger)?;
+        let info = semantic_resolver.resolve(Intent::Info, definition.seed.info)?;
 
         let interaction = Interaction {
             hover,
@@ -267,11 +265,11 @@ impl Colors {
         )?;
 
         for (intent, semantic) in [
-            (SemanticIntent::Accent, self.accent),
-            (SemanticIntent::Success, self.success),
-            (SemanticIntent::Warning, self.warning),
-            (SemanticIntent::Danger, self.danger),
-            (SemanticIntent::Info, self.info),
+            (Intent::Accent, self.accent),
+            (Intent::Success, self.success),
+            (Intent::Warning, self.warning),
+            (Intent::Danger, self.danger),
+            (Intent::Info, self.info),
         ] {
             super::semantic::validate(
                 intent,
@@ -646,7 +644,7 @@ mod tests {
         assert!(matches!(
             error,
             ResolveError::ContrastViolation {
-                token: TokenRole::Semantic(SemanticIntent::Danger, SemanticRole::Soft),
+                token: TokenRole::Semantic(Intent::Danger, SemanticRole::Soft),
                 background: "hovered fill",
                 ..
             }

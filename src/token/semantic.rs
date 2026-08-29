@@ -5,7 +5,7 @@ use crate::{
 };
 
 use super::{
-    Fill, Pair, ResolveError, Semantic, SemanticIntent, SemanticRole, TokenRole,
+    Fill, Intent, Pair, ResolveError, Semantic, SemanticRole, TokenRole,
     resolve::{require_foreground, validate_contrast, with_alpha},
 };
 
@@ -37,11 +37,7 @@ impl<'a> Resolver<'a> {
         }
     }
 
-    pub(super) fn resolve(
-        &self,
-        intent: SemanticIntent,
-        seed: Color,
-    ) -> Result<Semantic, ResolveError> {
+    pub(super) fn resolve(&self, intent: Intent, seed: Color) -> Result<Semantic, ResolveError> {
         let solid_token = token(intent, SemanticRole::Solid);
         let solid_color = adjust_semantic_solid(seed, self.text_target).ok_or(
             ResolveError::UnsatisfiableContrast {
@@ -129,7 +125,7 @@ impl<'a> Resolver<'a> {
 }
 
 pub(super) fn validate(
-    intent: SemanticIntent,
+    intent: Intent,
     semantic: Semantic,
     interactive: &[(&'static str, Color)],
     neutral: &[(&'static str, Color)],
@@ -177,7 +173,7 @@ fn validate_fill(fill: Fill, token: TokenRole, minimum_ratio: f32) -> Result<(),
     Ok(())
 }
 
-const fn token(intent: SemanticIntent, role: SemanticRole) -> TokenRole {
+const fn token(intent: Intent, role: SemanticRole) -> TokenRole {
     TokenRole::Semantic(intent, role)
 }
 
@@ -192,7 +188,7 @@ mod tests {
         let backgrounds = [surface];
         let resolver = Resolver::new(surface, &backgrounds, &backgrounds, 7.0, 3.0, true);
 
-        let semantic = resolver.resolve(SemanticIntent::Accent, seed).unwrap();
+        let semantic = resolver.resolve(Intent::Accent, seed).unwrap();
 
         assert_eq!(semantic.indicator, seed);
         assert_eq!(semantic.border, seed);

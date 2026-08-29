@@ -5,6 +5,10 @@ use std::{fmt::Display, sync::Arc};
 use crate::{Color, Profile, ResolveError, token::Colors};
 use iced_anim::Animate;
 
+mod appearance;
+
+pub use appearance::{Appearance, BorderWidths, Radii, Shadow, Shadows};
+
 /// Human-readable information about a theme.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Metadata {
@@ -129,15 +133,22 @@ struct Data {
     definition: Definition,
     /// The resolved color tokens derived from the definition.
     colors: Colors,
+    /// The resolved non-layout appearance values.
+    appearance: Appearance,
 }
 
 impl Theme {
     /// Validates and resolves an authored theme definition.
     pub fn new(definition: Definition) -> Result<Self, ResolveError> {
         let colors = Colors::resolve(&definition)?;
+        let appearance = Appearance::resolve(&definition);
 
         Ok(Self {
-            data: Arc::new(Data { definition, colors }),
+            data: Arc::new(Data {
+                definition,
+                colors,
+                appearance,
+            }),
         })
     }
 
@@ -149,6 +160,11 @@ impl Theme {
     /// Returns the theme's resolved color tokens.
     pub fn colors(&self) -> &Colors {
         &self.data.colors
+    }
+
+    /// Returns the theme's resolved non-layout appearance values.
+    pub fn appearance(&self) -> &Appearance {
+        &self.data.appearance
     }
 }
 
@@ -197,21 +213,26 @@ impl iced::theme::Base for Theme {
 
 impl iced_anim::Animate for Theme {
     fn components() -> usize {
-        <Colors as iced_anim::Animate>::components()
+        <Colors as Animate>::components() + <Appearance as Animate>::components()
     }
 
     fn update(&mut self, components: &mut impl Iterator<Item = f32>) {
         let mut colors = *self.colors();
-        iced_anim::Animate::update(&mut colors, components);
+        let mut appearance = *self.appearance();
+        colors.update(components);
+        appearance.update(components);
 
         self.data = Arc::new(Data {
             definition: self.definition().clone(),
             colors,
+            appearance,
         });
     }
 
     fn distance_to(&self, end: &Self) -> Vec<f32> {
-        iced_anim::Animate::distance_to(self.colors(), end.colors())
+        let mut distance = self.colors().distance_to(end.colors());
+        distance.extend(self.appearance().distance_to(end.appearance()));
+        distance
     }
 
     fn lerp(&mut self, start: &Self, end: &Self, progress: f32) {
@@ -222,10 +243,16 @@ impl iced_anim::Animate for Theme {
             end.definition().clone()
         };
         let mut colors = *start.colors();
+        let mut appearance = *start.appearance();
 
-        iced_anim::Animate::lerp(&mut colors, start.colors(), end.colors(), progress);
+        colors.lerp(start.colors(), end.colors(), progress);
+        appearance.lerp(start.appearance(), end.appearance(), progress);
 
-        self.data = Arc::new(Data { definition, colors });
+        self.data = Arc::new(Data {
+            definition,
+            colors,
+            appearance,
+        });
     }
 }
 
@@ -283,6 +310,7 @@ mod tests {
 
         assert_eq!(theme.definition(), &definition);
         assert_eq!(theme.colors().surfaces.surface, expected_background);
+        assert_eq!(theme.appearance().radius.md, 8.0);
     }
 
     #[test]
@@ -353,6 +381,7 @@ mod tests {
         let mut end_definition = start.definition().clone();
         end_definition.metadata.name = "Moonveil Blue".into();
         end_definition.seed.accent = Color::from_rgb(0.361, 0.761, 0.733);
+        end_definition.seed.shade = Color::from_rgb(0.080, 0.030, 0.050);
         let end = Theme::new(end_definition).unwrap();
         let mut theme = start.clone();
 
@@ -369,6 +398,13 @@ mod tests {
             0.5,
         );
         assert_eq!(theme.colors().surfaces.surface, expected_surface);
+        let mut expected_shadow = start.appearance().shadow.popover.color;
+        expected_shadow.lerp(
+            &start.appearance().shadow.popover.color,
+            &end.appearance().shadow.popover.color,
+            0.5,
+        );
+        assert_eq!(theme.appearance().shadow.popover.color, expected_shadow);
 
         theme.lerp(&start, &end, 1.0);
         assert_eq!(theme, end);

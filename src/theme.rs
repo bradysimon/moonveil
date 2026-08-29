@@ -59,7 +59,10 @@ impl Definition {
         }
     }
 
-    pub fn default_for_polarity(polarity: Polarity) -> Self {
+    /// Returns the default theme [`Definition`] for the given [`Polarity`].
+    ///
+    /// This returns either "Moonveil Dark" or "Moonveil Light".
+    pub fn default_for(polarity: Polarity) -> Self {
         match polarity {
             Polarity::Dark => Definition::new(
                 Metadata {
@@ -156,7 +159,7 @@ impl iced::theme::Base for Theme {
             iced::theme::Mode::None | iced::theme::Mode::Light => Polarity::Light,
         };
 
-        Self::new(Definition::default_for_polarity(polarity))
+        Self::new(Definition::default_for(polarity))
             .expect("Built-in theme definitions must resolve")
     }
 
@@ -252,6 +255,24 @@ mod tests {
                 info: Color::from_rgb(0.361, 0.761, 0.733),
             },
         )
+    }
+
+    /// The default light theme should be constructible without error.
+    #[test]
+    fn default_light_theme_is_valid() {
+        let definition = Definition::default_for(Polarity::Light);
+        let theme = Theme::new(definition.clone()).unwrap();
+        assert_eq!(theme.definition(), &definition);
+        assert_eq!(theme.name(), "Moonveil Light");
+    }
+
+    /// The default dark theme should be constructible without error.
+    #[test]
+    fn default_dark_theme_is_valid() {
+        let definition = Definition::default_for(Polarity::Dark);
+        let theme = Theme::new(definition.clone()).unwrap();
+        assert_eq!(theme.definition(), &definition);
+        assert_eq!(theme.name(), "Moonveil Dark");
     }
 
     #[test]

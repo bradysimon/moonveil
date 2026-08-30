@@ -108,6 +108,32 @@ impl Definition {
             ),
         }
     }
+
+    /// Returns the built-in Moonveil High Contrast theme definition.
+    pub fn high_contrast() -> Self {
+        Definition::new(
+            Metadata {
+                name: "Moonveil High Contrast".into(),
+                description: Some(
+                    "A deliberately sharp palette for strong text, boundaries, and interaction feedback."
+                        .into(),
+                ),
+            },
+            Polarity::Dark,
+            Profile::High,
+            Seed {
+                background: Color::from_rgb8(0x09, 0x0a, 0x0c),
+                foreground: Color::from_rgb8(0xff, 0xff, 0xff),
+                tint: Color::from_rgb8(0xff, 0xff, 0xff),
+                shade: Color::from_rgb8(0x00, 0x00, 0x00),
+                accent: Color::from_rgb8(0x8d, 0xd2, 0xff),
+                success: Color::from_rgb8(0xa6, 0xe8, 0x9a),
+                warning: Color::from_rgb8(0xff, 0xd2, 0x7a),
+                danger: Color::from_rgb8(0xff, 0x90, 0x9b),
+                info: Color::from_rgb8(0x8c, 0xdb, 0xef),
+            },
+        )
+    }
 }
 
 /// A validated theme with fully resolved color tokens.
@@ -300,6 +326,24 @@ mod tests {
         let theme = Theme::new(definition.clone()).unwrap();
         assert_eq!(theme.definition(), &definition);
         assert_eq!(theme.name(), "Moonveil Dark");
+    }
+
+    #[test]
+    fn high_contrast_theme_is_valid() {
+        let definition = Definition::high_contrast();
+        let theme = Theme::new(definition.clone()).unwrap();
+
+        assert_eq!(theme.definition(), &definition);
+        assert_eq!(theme.name(), "Moonveil High Contrast");
+        assert_eq!(theme.definition().profile, Profile::High);
+        assert_eq!(
+            theme.definition().seed.background,
+            Color::from_rgb8(0x09, 0x0a, 0x0c)
+        );
+        assert_eq!(
+            theme.definition().seed.accent,
+            Color::from_rgb8(0x8d, 0xd2, 0xff)
+        );
     }
 
     #[test]

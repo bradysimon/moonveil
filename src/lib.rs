@@ -10,7 +10,7 @@ pub mod token;
 pub mod widget;
 
 pub use color::Color;
-pub use contrast::{Profile, Targets};
+pub use contrast::{Contrast, Targets};
 pub use theme::{
     Appearance, BorderWidths, Definition, Metadata, Polarity, Radii, Seed, Shadow, Shadows, Theme,
 };

@@ -2,7 +2,7 @@
 
 use std::{fmt::Display, sync::Arc};
 
-use crate::{Color, Profile, ResolveError, token::Colors};
+use crate::{Color, Contrast, ResolveError, token::Colors};
 use iced_anim::Animate;
 
 mod appearance;
@@ -47,14 +47,14 @@ pub struct Definition {
     /// The polarity of the theme, either dark or light.
     pub polarity: Polarity,
     /// The contrast profile used to derive resolved tokens.
-    pub profile: Profile,
+    pub profile: Contrast,
     /// The seed colors that derive resolved tokens.
     pub seed: Seed,
 }
 
 impl Definition {
     /// Creates a theme definition.
-    pub fn new(metadata: Metadata, polarity: Polarity, profile: Profile, seed: Seed) -> Self {
+    pub fn new(metadata: Metadata, polarity: Polarity, profile: Contrast, seed: Seed) -> Self {
         Self {
             metadata,
             polarity,
@@ -74,7 +74,7 @@ impl Definition {
                     description: None,
                 },
                 Polarity::Dark,
-                Profile::Standard,
+                Contrast::Standard,
                 Seed {
                     background: Color::from_rgb(0.098, 0.106, 0.125),
                     foreground: Color::from_rgb(0.902, 0.882, 0.835),
@@ -93,7 +93,7 @@ impl Definition {
                     description: None,
                 },
                 Polarity::Light,
-                Profile::Standard,
+                Contrast::Standard,
                 Seed {
                     background: Color::from_rgb(0.945, 0.933, 0.902),
                     foreground: Color::from_rgb(0.125, 0.118, 0.106),
@@ -120,7 +120,7 @@ impl Definition {
                 ),
             },
             Polarity::Dark,
-            Profile::High,
+            Contrast::High,
             Seed {
                 background: Color::from_rgb8(0x09, 0x0a, 0x0c),
                 foreground: Color::from_rgb8(0xff, 0xff, 0xff),
@@ -295,7 +295,7 @@ mod tests {
                 description: Some("Test theme".into()),
             },
             Polarity::Dark,
-            Profile::Standard,
+            Contrast::Standard,
             Seed {
                 background: Color::from_rgb(0.098, 0.106, 0.125),
                 foreground: Color::from_rgb(0.902, 0.882, 0.835),
@@ -335,7 +335,7 @@ mod tests {
 
         assert_eq!(theme.definition(), &definition);
         assert_eq!(theme.name(), "Moonveil High Contrast");
-        assert_eq!(theme.definition().profile, Profile::High);
+        assert_eq!(theme.definition().profile, Contrast::High);
         assert_eq!(
             theme.definition().seed.background,
             Color::from_rgb8(0x09, 0x0a, 0x0c)

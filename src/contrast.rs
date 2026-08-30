@@ -6,6 +6,28 @@ const SEARCH_ITERATIONS: usize = 24;
 const DARK_ON_COLOR_LIGHTNESS: f32 = 0.03;
 const LIGHT_ON_COLOR_LIGHTNESS: f32 = 0.99;
 
+/// The contrast policy used to resolve a theme.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Contrast {
+    /// Standard WCAG targets.
+    Standard,
+    /// Stricter high-contrast targets.
+    High,
+    /// User-supplied contrast targets.
+    Custom(Targets),
+}
+
+impl Contrast {
+    /// Returns the concrete targets for this profile.
+    pub const fn targets(self) -> Targets {
+        match self {
+            Self::Standard => Targets::STANDARD,
+            Self::High => Targets::HIGH,
+            Self::Custom(targets) => targets,
+        }
+    }
+}
+
 /// Contrast ratios used while resolving accessible tokens.
 ///
 /// Higher contrast ratios are more accessible and may be required by some users,
@@ -38,28 +60,6 @@ impl Targets {
         boundary: 4.5,
         decorative: 3.0,
     };
-}
-
-/// The contrast policy used to resolve a theme.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum Profile {
-    /// Standard WCAG targets.
-    Standard,
-    /// Stricter high-contrast targets.
-    High,
-    /// User-supplied contrast targets.
-    Custom(Targets),
-}
-
-impl Profile {
-    /// Returns the concrete targets for this profile.
-    pub const fn targets(self) -> Targets {
-        match self {
-            Self::Standard => Targets::STANDARD,
-            Self::High => Targets::HIGH,
-            Self::Custom(targets) => targets,
-        }
-    }
 }
 
 /// Composites `foreground` over `background` using source-over alpha blending.

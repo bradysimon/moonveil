@@ -64,6 +64,16 @@ impl Color {
         }
     }
 
+    /// Creates an opaque color from sRGB components.
+    pub const fn from_rgb8(red: u8, green: u8, blue: u8) -> Self {
+        Self::from_rgba(
+            red as f32 / 255.0,
+            green as f32 / 255.0,
+            blue as f32 / 255.0,
+            1.0,
+        )
+    }
+
     /// Creates a new [`Color`].
     pub(crate) fn new(red: f32, green: f32, blue: f32, alpha: f32) -> Self {
         Self::from_rgba(red, green, blue, alpha)

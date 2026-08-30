@@ -47,11 +47,11 @@ pub enum Variant {
     /// The primary action, mapped to accent solid tokens.
     #[default]
     Primary,
-    /// A lower-emphasis action, mapped to accent soft tokens.
+    /// A lower-emphasis neutral action on the raised surface.
     Secondary,
-    /// An accent action with a persistent border and no resting fill.
+    /// A neutral action with a persistent strong border and no resting fill.
     Outline,
-    /// An accent action without a persistent border or resting fill.
+    /// A neutral action without a persistent border or resting fill.
     Ghost,
     /// An action carrying explicit semantic intent and treatment.
     Semantic {
@@ -99,16 +99,16 @@ impl Catalog for Theme {
 
     fn style(&self, class: &Self::Class<'_>, status: Status) -> Style {
         match class {
-            Class::Variant(variant) => appearance(self, *variant, status),
+            Class::Variant(variant) => appearance(self, status, *variant),
             Class::Custom(style) => style(self, status),
         }
     }
 }
 
 /// Returns the resolved style for a built-in button variant and status.
-pub fn appearance(theme: &Theme, variant: Variant, status: Status) -> Style {
+pub fn appearance(theme: &Theme, status: Status, variant: Variant) -> Style {
     if status == Status::Disabled {
-        return disabled(theme, has_border(variant));
+        return disabled(theme);
     }
 
     match variant {
@@ -116,21 +116,41 @@ pub fn appearance(theme: &Theme, variant: Variant, status: Status) -> Style {
             let semantic = theme.colors().accent;
             filled(theme, semantic.solid, semantic.border, status)
         }
-        Variant::Secondary | Variant::IconSelected => {
+        Variant::Secondary => neutral_filled(theme, status),
+        Variant::IconSelected => {
             let semantic = theme.colors().accent;
             filled(theme, semantic.soft, semantic.border, status)
         }
         Variant::Outline => outlined(
             theme,
-            theme.colors().accent.foreground,
-            Some(theme.colors().accent.border),
+            theme.colors().content.primary,
+            Some(theme.colors().borders.strong),
             status,
         ),
-        Variant::Ghost => outlined(theme, theme.colors().accent.foreground, None, status),
+        Variant::Ghost => outlined(theme, theme.colors().content.secondary, None, status),
         Variant::Semantic { intent, style } => {
             semantic_appearance(theme, semantic(theme, intent), style, status)
         }
         Variant::Icon => outlined(theme, theme.colors().content.secondary, None, status),
+    }
+}
+
+fn neutral_filled(theme: &Theme, status: Status) -> Style {
+    let background = match status {
+        Status::Active | Status::Disabled => theme.colors().surfaces.raised,
+        Status::Hovered => theme.colors().interaction.hover_on_raised,
+        Status::Pressed => theme.colors().interaction.pressed_on_raised,
+    };
+
+    Style {
+        background: Some(Background::Color(background.into())),
+        text_color: theme.colors().content.primary.into(),
+        border: control_border(
+            theme,
+            theme.colors().borders.standard,
+            theme.appearance().border.control,
+        ),
+        ..Style::default()
     }
 }
 
@@ -179,8 +199,12 @@ fn outlined(
 ) -> Style {
     let background = match status {
         Status::Active | Status::Disabled => None,
-        Status::Hovered => Some(Background::Color(theme.colors().interaction.hover.into())),
-        Status::Pressed => Some(Background::Color(theme.colors().interaction.pressed.into())),
+        Status::Hovered => Some(Background::Color(
+            theme.colors().interaction.hover_on_surface.into(),
+        )),
+        Status::Pressed => Some(Background::Color(
+            theme.colors().interaction.pressed_on_surface.into(),
+        )),
     };
     let (border_color, border_width) = border_color
         .map_or((iced_core::Color::TRANSPARENT, 0.0), |color| {
@@ -199,38 +223,15 @@ fn outlined(
     }
 }
 
-fn disabled(theme: &Theme, has_border: bool) -> Style {
+fn disabled(theme: &Theme) -> Style {
     Style {
         text_color: theme.colors().content.disabled.into(),
         border: control_border(
             theme,
             theme.colors().borders.subtle,
-            if has_border {
-                theme.appearance().border.hairline
-            } else {
-                0.0
-            },
+            theme.appearance().border.hairline,
         ),
         ..Style::default()
-    }
-}
-
-fn has_border(variant: Variant) -> bool {
-    match variant {
-        Variant::Primary
-        | Variant::Secondary
-        | Variant::Outline
-        | Variant::IconSelected
-        | Variant::Semantic {
-            style: SemanticStyle::Solid | SemanticStyle::Soft | SemanticStyle::Outline,
-            ..
-        } => true,
-        Variant::Ghost
-        | Variant::Icon
-        | Variant::Semantic {
-            style: SemanticStyle::Ghost,
-            ..
-        } => false,
     }
 }
 

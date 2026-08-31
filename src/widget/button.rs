@@ -2,7 +2,7 @@
 
 use crate::{
     Color, Element, Theme,
-    token::{Fill, Pair, Semantic},
+    token::{Fill, Interaction, Pair, Semantic, Surface},
 };
 use iced_core::{Background, Border};
 
@@ -137,9 +137,9 @@ pub fn appearance(theme: &Theme, status: Status, variant: Variant) -> Style {
 
 fn neutral_filled(theme: &Theme, status: Status) -> Style {
     let background = match status {
-        Status::Active | Status::Disabled => theme.colors().surfaces.raised,
-        Status::Hovered => theme.colors().interaction.hover_on_raised,
-        Status::Pressed => theme.colors().interaction.pressed_on_raised,
+        Status::Active | Status::Disabled => theme.surface(Surface::Raised),
+        Status::Hovered => theme.interaction_on(Surface::Raised, Interaction::Hover),
+        Status::Pressed => theme.interaction_on(Surface::Raised, Interaction::Pressed),
     };
 
     Style {
@@ -199,12 +199,8 @@ fn outlined(
 ) -> Style {
     let background = match status {
         Status::Active | Status::Disabled => None,
-        Status::Hovered => Some(Background::Color(
-            theme.colors().interaction.hover_on_surface.into(),
-        )),
-        Status::Pressed => Some(Background::Color(
-            theme.colors().interaction.pressed_on_surface.into(),
-        )),
+        Status::Hovered => Some(Background::Color(theme.colors().interaction.hover.into())),
+        Status::Pressed => Some(Background::Color(theme.colors().interaction.pressed.into())),
     };
     let (border_color, border_width) = border_color
         .map_or((iced_core::Color::TRANSPARENT, 0.0), |color| {

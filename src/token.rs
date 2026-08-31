@@ -31,6 +31,44 @@ pub enum BorderRole {
     Selected,
 }
 
+/// An opaque neutral plane used to establish visual depth and grouping.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum Surface {
+    /// Recessed content such as code wells and terminal output.
+    Sunken,
+    /// Receding application chrome such as sidebars.
+    Canvas,
+    /// Local recesses such as tracks and segmented-control backgrounds.
+    Inset,
+    /// The primary content plane.
+    Surface,
+    /// Inline panels and grouped content without an implied shadow.
+    Raised,
+    /// Menus, popovers, and other content placed above another plane.
+    Overlay,
+    /// Editable content and dense data planes.
+    Field,
+}
+
+/// A generic interaction overlay state.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum Interaction {
+    /// A pointer is hovering over an interactive region.
+    Hover,
+    /// An interactive region is being pressed.
+    Pressed,
+    /// Content is persistently selected.
+    Selected,
+    /// Selected content is being hovered.
+    SelectedHover,
+    /// Content is currently being dragged.
+    Dragged,
+    /// A region is a valid drop destination.
+    DropTarget,
+}
+
 /// The meaning carried by a color family.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
@@ -250,6 +288,21 @@ pub struct Surfaces {
     pub scrim: Color,
 }
 
+impl Surfaces {
+    /// Returns the resolved color for an opaque neutral surface.
+    pub const fn get(&self, surface: Surface) -> Color {
+        match surface {
+            Surface::Sunken => self.sunken,
+            Surface::Canvas => self.canvas,
+            Surface::Inset => self.inset,
+            Surface::Surface => self.surface,
+            Surface::Raised => self.raised,
+            Surface::Overlay => self.overlay,
+            Surface::Field => self.field,
+        }
+    }
+}
+
 /// Foregrounds grouped by content emphasis.
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Animate)]
@@ -284,10 +337,10 @@ pub struct Borders {
     pub selected: Color,
 }
 
-/// Temporary overlays for interaction states.
+/// Partially translucent color overlays to put over a base color for interaction states.
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Animate)]
-pub struct Interaction {
+pub struct Interactions {
     /// Overlay applied while a pointer hovers over an interactive region.
     pub hover: Color,
     /// Overlay applied while an interactive region is pressed.
@@ -300,6 +353,20 @@ pub struct Interaction {
     pub dragged: Color,
     /// Overlay identifying a valid drop destination.
     pub drop_target: Color,
+}
+
+impl Interactions {
+    /// Returns the resolved overlay for an interaction state.
+    pub const fn get(&self, state: Interaction) -> Color {
+        match state {
+            Interaction::Hover => self.hover,
+            Interaction::Pressed => self.pressed,
+            Interaction::Selected => self.selected,
+            Interaction::SelectedHover => self.selected_hover,
+            Interaction::Dragged => self.dragged,
+            Interaction::DropTarget => self.drop_target,
+        }
+    }
 }
 
 /// A fill and the text or icon color guaranteed against it.
@@ -350,7 +417,7 @@ pub struct Colors {
     /// Decorative, control, focus, and selection boundaries.
     pub borders: Borders,
     /// Temporary and persistent interaction overlays.
-    pub interaction: Interaction,
+    pub interaction: Interactions,
     /// Accent and primary-action roles.
     pub accent: Semantic,
     /// Successful and positive-state roles.

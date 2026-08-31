@@ -6,8 +6,8 @@ use crate::{
 };
 
 use super::{
-    BorderRole, Borders, Colors, Content, ContentRole, Intent, Interaction, ResolveError, Surfaces,
-    TokenRole, semantic::Resolver as SemanticResolver,
+    BorderRole, Borders, Colors, Content, ContentRole, Intent, Interactions, ResolveError,
+    Surfaces, TokenRole, semantic::Resolver as SemanticResolver,
 };
 
 const MINIMUM_SURFACE_LIGHTNESS_DELTA: f32 = 0.01;
@@ -161,7 +161,7 @@ impl Colors {
         let danger = semantic_resolver.resolve(Intent::Danger, definition.seed.danger)?;
         let info = semantic_resolver.resolve(Intent::Info, definition.seed.info)?;
 
-        let interaction = Interaction {
+        let interaction = Interactions {
             hover,
             pressed,
             selected: with_alpha(
@@ -475,9 +475,9 @@ const fn border(role: BorderRole) -> TokenRole {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Metadata, Profile, Seed, Targets, token::SemanticRole};
+    use crate::{Contrast, Metadata, Seed, Targets, token::SemanticRole};
 
-    fn definition(polarity: Polarity, profile: Profile) -> Definition {
+    fn definition(polarity: Polarity, profile: Contrast) -> Definition {
         let (background, foreground, tint, shade) = match polarity {
             Polarity::Dark => (
                 Color::from_rgb(0.098, 0.106, 0.125),
@@ -515,18 +515,18 @@ mod tests {
 
     #[test]
     fn resolves_and_validates_standard_dark_tokens() {
-        Colors::resolve(&definition(Polarity::Dark, Profile::Standard)).unwrap();
+        Colors::resolve(&definition(Polarity::Dark, Contrast::Standard)).unwrap();
     }
 
     #[test]
     fn resolves_and_validates_high_contrast_light_tokens() {
-        Colors::resolve(&definition(Polarity::Light, Profile::High)).unwrap();
+        Colors::resolve(&definition(Polarity::Light, Contrast::High)).unwrap();
     }
 
     #[test]
     fn resolves_every_builtin_polarity_and_profile_combination() {
         for polarity in [Polarity::Dark, Polarity::Light] {
-            for profile in [Profile::Standard, Profile::High] {
+            for profile in [Contrast::Standard, Contrast::High] {
                 Colors::resolve(&definition(polarity, profile)).unwrap();
             }
         }
@@ -534,7 +534,7 @@ mod tests {
 
     #[test]
     fn rejects_surfaces_without_perceptible_separation() {
-        let mut definition = definition(Polarity::Light, Profile::Standard);
+        let mut definition = definition(Polarity::Light, Contrast::Standard);
         definition.seed.tint = Color::from_rgb(0.95, 0.954, 0.946);
 
         assert!(matches!(
@@ -551,7 +551,7 @@ mod tests {
     #[test]
     fn readable_content_passes_over_supported_interaction_states() {
         for polarity in [Polarity::Dark, Polarity::Light] {
-            let definition = definition(polarity, Profile::Standard);
+            let definition = definition(polarity, Contrast::Standard);
             let colors = Colors::resolve(&definition).unwrap();
             let neutral = neutral_backgrounds(&colors.surfaces);
             let interactive = interactive_backgrounds(
@@ -580,7 +580,7 @@ mod tests {
     fn reports_the_token_for_an_unsatisfiable_contrast_contract() {
         let definition = definition(
             Polarity::Dark,
-            Profile::Custom(Targets {
+            Contrast::Custom(Targets {
                 normal_text: 21.0,
                 large_text: 4.5,
                 boundary: 4.5,
@@ -601,7 +601,7 @@ mod tests {
 
     #[test]
     fn rejects_translucent_seeds_with_context() {
-        let mut definition = definition(Polarity::Dark, Profile::Standard);
+        let mut definition = definition(Polarity::Dark, Contrast::Standard);
         definition.seed.warning = Color::from_rgba(0.8, 0.6, 0.2, 0.5);
 
         assert_eq!(
@@ -617,7 +617,7 @@ mod tests {
     fn rejects_invalid_custom_targets_before_derivation() {
         let definition = definition(
             Polarity::Dark,
-            Profile::Custom(Targets {
+            Contrast::Custom(Targets {
                 normal_text: 22.0,
                 large_text: 4.5,
                 boundary: 3.0,
@@ -636,7 +636,7 @@ mod tests {
 
     #[test]
     fn final_validation_identifies_a_failing_semantic_state_pair() {
-        let definition = definition(Polarity::Dark, Profile::Standard);
+        let definition = definition(Polarity::Dark, Contrast::Standard);
         let mut colors = Colors::resolve(&definition).unwrap();
         colors.danger.soft.hovered.text = colors.danger.soft.hovered.color;
 

@@ -1,8 +1,15 @@
 //! Authored theme definitions and resolved runtime themes.
 
-use std::{fmt::Display, sync::Arc};
+use std::{
+    fmt::Display,
+    sync::{Arc, LazyLock},
+};
 
-use crate::{Color, Contrast, ResolveError, token::Colors};
+use crate::{
+    Color, Contrast, ResolveError,
+    contrast::composite,
+    token::{Colors, Interaction, Surface},
+};
 use iced_anim::Animate;
 
 mod appearance;
@@ -163,6 +170,23 @@ struct Data {
     appearance: Appearance,
 }
 
+/// The default Moonveil light theme.
+static DEFAULT_LIGHT: LazyLock<Theme> = LazyLock::new(|| {
+    Theme::new(Definition::default_for(Polarity::Light))
+        .expect("the built-in light theme must resolve")
+});
+
+/// The default Moonveil dark theme.
+static DEFAULT_DARK: LazyLock<Theme> = LazyLock::new(|| {
+    Theme::new(Definition::default_for(Polarity::Dark))
+        .expect("the built-in dark theme must resolve")
+});
+
+/// The default Moonveil high-contrast dark theme.
+static DEFAULT_HIGH_CONTRAST: LazyLock<Theme> = LazyLock::new(|| {
+    Theme::new(Definition::high_contrast()).expect("the built-in high-contrast theme must resolve")
+});
+
 impl Theme {
     /// Validates and resolves an authored theme definition.
     pub fn new(definition: Definition) -> Result<Self, ResolveError> {
@@ -176,6 +200,21 @@ impl Theme {
                 appearance,
             }),
         })
+    }
+
+    /// Returns the built-in Moonveil Light theme.
+    pub fn default_light() -> Self {
+        LazyLock::force(&DEFAULT_LIGHT).clone()
+    }
+
+    /// Returns the built-in Moonveil Dark theme.
+    pub fn default_dark() -> Self {
+        LazyLock::force(&DEFAULT_DARK).clone()
+    }
+
+    /// Returns the built-in Moonveil High Contrast theme.
+    pub fn default_high_contrast() -> Self {
+        LazyLock::force(&DEFAULT_HIGH_CONTRAST).clone()
     }
 
     /// Returns the authored definition used to create this theme.
@@ -192,17 +231,27 @@ impl Theme {
     pub fn appearance(&self) -> &Appearance {
         &self.data.appearance
     }
+
+    /// Returns the resolved color for an opaque neutral surface.
+    pub fn surface(&self, surface: Surface) -> Color {
+        self.colors().surfaces.get(surface)
+    }
+
+    /// Composites an interaction overlay over an opaque neutral surface.
+    ///
+    /// Useful for getting pressed/hovered colors for a widget's background
+    /// depending on the widget's surface.
+    pub fn interaction_on(&self, surface: Surface, state: Interaction) -> Color {
+        composite(self.colors().interaction.get(state), self.surface(surface))
+    }
 }
 
 impl iced_core::theme::Base for Theme {
     fn default(preference: iced_core::theme::Mode) -> Self {
-        let polarity = match preference {
-            iced_core::theme::Mode::Dark => Polarity::Dark,
-            iced_core::theme::Mode::None | iced_core::theme::Mode::Light => Polarity::Light,
-        };
-
-        Self::new(Definition::default_for(polarity))
-            .expect("Built-in theme definitions must resolve")
+        match preference {
+            iced_core::theme::Mode::Dark => Self::default_dark(),
+            iced_core::theme::Mode::None | iced_core::theme::Mode::Light => Self::default_light(),
+        }
     }
 
     fn mode(&self) -> iced_core::theme::Mode {
@@ -314,7 +363,7 @@ mod tests {
     #[test]
     fn default_light_theme_is_valid() {
         let definition = Definition::default_for(Polarity::Light);
-        let theme = Theme::new(definition.clone()).unwrap();
+        let theme = Theme::default_light();
         assert_eq!(theme.definition(), &definition);
         assert_eq!(theme.name(), "Moonveil Light");
     }
@@ -323,7 +372,7 @@ mod tests {
     #[test]
     fn default_dark_theme_is_valid() {
         let definition = Definition::default_for(Polarity::Dark);
-        let theme = Theme::new(definition.clone()).unwrap();
+        let theme = Theme::default_dark();
         assert_eq!(theme.definition(), &definition);
         assert_eq!(theme.name(), "Moonveil Dark");
     }
@@ -331,7 +380,7 @@ mod tests {
     #[test]
     fn high_contrast_theme_is_valid() {
         let definition = Definition::high_contrast();
-        let theme = Theme::new(definition.clone()).unwrap();
+        let theme = Theme::default_high_contrast();
 
         assert_eq!(theme.definition(), &definition);
         assert_eq!(theme.name(), "Moonveil High Contrast");
@@ -355,6 +404,23 @@ mod tests {
         assert_eq!(theme.definition(), &definition);
         assert_eq!(theme.colors().surfaces.surface, expected_background);
         assert_eq!(theme.appearance().radius.md, 8.0);
+    }
+
+    #[test]
+    fn interaction_on_composites_over_selected_surface() {
+        let theme = Theme::new(definition()).unwrap();
+
+        assert_eq!(
+            theme.surface(Surface::Raised),
+            theme.colors().surfaces.raised
+        );
+        assert_eq!(
+            theme.interaction_on(Surface::Raised, Interaction::Hover),
+            composite(
+                theme.colors().interaction.hover,
+                theme.colors().surfaces.raised,
+            )
+        );
     }
 
     #[test]

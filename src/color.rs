@@ -369,6 +369,7 @@ mod tests {
     use proptest::prelude::*;
 
     const EPSILON: f32 = 0.000_01;
+    const HUE_ERROR_EPSILON: f32 = 0.000_01;
     const PROPERTY_EPSILON: f32 = 0.000_2;
 
     fn assert_approx_eq(actual: f32, expected: f32) {
@@ -407,6 +408,11 @@ mod tests {
     fn circular_hue_difference(first: f32, second: f32) -> f32 {
         let difference = (first - second).abs();
         difference.min(360.0 - difference)
+    }
+
+    fn oklab_hue_error(chroma: f32, first: f32, second: f32) -> f32 {
+        let radians = circular_hue_difference(first, second).to_radians();
+        2.0 * chroma * (radians / 2.0).sin()
     }
 
     fn components_are_valid(color: Color) -> bool {
@@ -612,9 +618,7 @@ mod tests {
             prop_assert!((lightness - source_lightness).abs() <= PROPERTY_EPSILON);
             prop_assert!((alpha - source_alpha).abs() <= PROPERTY_EPSILON);
             prop_assert!(chroma <= source_chroma + PROPERTY_EPSILON);
-            if chroma > PROPERTY_EPSILON {
-                prop_assert!(circular_hue_difference(hue, source_hue) <= 0.01);
-            }
+            prop_assert!(oklab_hue_error(chroma, hue, source_hue) <= HUE_ERROR_EPSILON);
         }
 
         #[test]
@@ -628,9 +632,7 @@ mod tests {
             prop_assert!(chroma <= original_chroma + PROPERTY_EPSILON);
             prop_assert!((lightness - original_lightness).abs() <= PROPERTY_EPSILON);
             prop_assert!((alpha - original_alpha).abs() <= PROPERTY_EPSILON);
-            if chroma > PROPERTY_EPSILON {
-                prop_assert!(circular_hue_difference(hue, original_hue) <= 0.01);
-            }
+            prop_assert!(oklab_hue_error(chroma, hue, original_hue) <= HUE_ERROR_EPSILON);
         }
     }
 }

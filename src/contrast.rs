@@ -364,6 +364,7 @@ mod tests {
     use proptest::prelude::*;
 
     const EPSILON: f32 = 0.000_01;
+    const HUE_ERROR_EPSILON: f32 = 0.000_01;
     const PROPERTY_EPSILON: f32 = 0.000_2;
 
     fn assert_approx_eq(actual: f32, expected: f32) {
@@ -401,6 +402,11 @@ mod tests {
     fn circular_hue_difference(first: f32, second: f32) -> f32 {
         let difference = (first - second).abs();
         difference.min(360.0 - difference)
+    }
+
+    fn oklab_hue_error(chroma: f32, first: f32, second: f32) -> f32 {
+        let radians = circular_hue_difference(first, second).to_radians();
+        2.0 * chroma * (radians / 2.0).sin()
     }
 
     fn components_are_valid(color: Color) -> bool {
@@ -516,6 +522,23 @@ mod tests {
             backgrounds
                 .into_iter()
                 .all(|background| contrast_ratio(adjusted, background) >= 4.5)
+        );
+    }
+
+    #[test]
+    fn foreground_adjustment_preserves_hue_after_gamut_mapping() {
+        let foreground = Color::new(0.0, 0.649_028_9, 0.875_334_26, 1.0);
+        let background = Color::new(0.835_592_4, 0.241_298_7, 0.227_970_02, 1.0);
+        let adjusted = adjust_foreground(foreground, &[background], 4.581_033_7).unwrap();
+        let original = Oklch::from(foreground);
+        let adjusted = Oklch::from(adjusted);
+        let original_hue = original.components()[2];
+        let adjusted_hue = adjusted.components()[2];
+        let hue_error = oklab_hue_error(adjusted.components()[1], adjusted_hue, original_hue);
+
+        assert!(
+            hue_error <= HUE_ERROR_EPSILON,
+            "expected Oklab hue error <= {HUE_ERROR_EPSILON}, got {hue_error} ({original:?} -> {adjusted:?})"
         );
     }
 
@@ -649,9 +672,7 @@ mod tests {
                 ));
                 prop_assert!((adjusted_alpha - original_alpha).abs() <= PROPERTY_EPSILON);
                 prop_assert!(adjusted_chroma <= original_chroma + PROPERTY_EPSILON);
-                if original_chroma > PROPERTY_EPSILON && adjusted_chroma > PROPERTY_EPSILON {
-                    prop_assert!(circular_hue_difference(adjusted_hue, original_hue) <= 0.01);
-                }
+                prop_assert!(oklab_hue_error(adjusted_chroma, adjusted_hue, original_hue) <= HUE_ERROR_EPSILON);
                 prop_assert!((0.0..=1.0).contains(&adjusted_lightness));
                 prop_assert_eq!(adjust_foreground(adjusted, &backgrounds, minimum_ratio), Some(adjusted));
             }
@@ -703,9 +724,7 @@ mod tests {
                 );
                 prop_assert!((adjusted_alpha - original_alpha).abs() <= PROPERTY_EPSILON);
                 prop_assert!(adjusted_chroma <= original_chroma + PROPERTY_EPSILON);
-                if original_chroma > PROPERTY_EPSILON && adjusted_chroma > PROPERTY_EPSILON {
-                    prop_assert!(circular_hue_difference(adjusted_hue, original_hue) <= 0.01);
-                }
+                prop_assert!(oklab_hue_error(adjusted_chroma, adjusted_hue, original_hue) <= HUE_ERROR_EPSILON);
                 if original_contrast >= minimum_ratio {
                     prop_assert_eq!(adjusted, solid);
                 }

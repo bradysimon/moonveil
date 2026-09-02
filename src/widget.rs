@@ -9,6 +9,8 @@ pub mod row;
 pub mod rule;
 pub mod text;
 pub mod toggler;
+#[cfg(feature = "svg")]
+pub mod svg;
 
 pub use button::{Button, button};
 pub use checkbox::{Checkbox, checkbox};
@@ -19,3 +21,5 @@ pub use row::{Row, row};
 pub use rule::Rule;
 pub use text::{Text, text};
 pub use toggler::{Toggler, toggler};
+#[cfg(feature = "svg")]
+pub use svg::{Svg, svg};

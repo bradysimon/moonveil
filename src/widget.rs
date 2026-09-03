@@ -5,6 +5,7 @@ pub mod checkbox;
 pub mod column;
 pub mod container;
 pub mod overlay;
+mod field;
 pub mod pick_list;
 pub mod progress_bar;
 pub mod radio;
@@ -16,6 +17,8 @@ pub mod text;
 pub mod toggler;
 #[cfg(feature = "svg")]
 pub mod svg;
+pub mod text_editor;
+pub mod text_input;
 
 pub use button::{Button, button};
 pub use checkbox::{Checkbox, checkbox};
@@ -29,6 +32,8 @@ pub use rule::Rule;
 pub use scrollable::{Scrollable, scrollable, scrollbar};
 pub use slider::{Slider, slider};
 pub use text::{Text, text};
+pub use text_editor::{TextEditor, text_editor};
+pub use text_input::{TextInput, text_input};
 pub use toggler::{Toggler, toggler};
 #[cfg(feature = "svg")]
 pub use svg::{Svg, svg};

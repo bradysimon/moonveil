@@ -9,6 +9,8 @@ pub mod progress_bar;
 pub mod radio;
 pub mod row;
 pub mod rule;
+pub mod scrollable;
+pub mod slider;
 pub mod text;
 pub mod toggler;
 #[cfg(feature = "svg")]
@@ -23,6 +25,8 @@ pub use progress_bar::{ProgressBar, progress_bar};
 pub use radio::{Radio, radio};
 pub use row::{Row, row};
 pub use rule::Rule;
+pub use scrollable::{Scrollable, scrollable, scrollbar};
+pub use slider::{Slider, slider};
 pub use text::{Text, text};
 pub use toggler::{Toggler, toggler};
 #[cfg(feature = "svg")]

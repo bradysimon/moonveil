@@ -6,6 +6,22 @@ pub use iced_widget::text::{
     Alignment, Catalog, Ellipsis, IntoFragment, LineHeight, Position, Shaping, Style, Wrapping,
 };
 
+/// Text sizes measured in logical pixels.
+pub mod size {
+    /// Compact annotations, table headers, and incidental metadata.
+    pub const CAPTION: f32 = 11.0;
+    /// Control labels and secondary interface copy.
+    pub const LABEL: f32 = 12.0;
+    /// Default body copy and control text.
+    pub const BODY: f32 = 14.0;
+    /// Compact section and panel titles.
+    pub const TITLE: f32 = 16.0;
+    /// Page and major section headings.
+    pub const HEADING: f32 = 20.0;
+    /// Reserved for the largest title in a view.
+    pub const DISPLAY: f32 = 24.0;
+}
+
 /// A custom text style function using Moonveil's concrete theme.
 pub type StyleFn<'a> = iced_widget::text::StyleFn<'a, Theme>;
 
@@ -17,7 +33,7 @@ pub fn text<'a, Renderer>(content: impl IntoFragment<'a>) -> Text<'a, Renderer>
 where
     Renderer: iced_core::text::Renderer,
 {
-    Text::new(content)
+    Text::new(content).size(size::BODY)
 }
 
 /// Adds Moonveil's named variants to Iced text.

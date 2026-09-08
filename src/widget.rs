@@ -15,7 +15,6 @@ pub mod scrollable;
 pub mod slider;
 pub mod text;
 pub mod toggler;
-#[cfg(feature = "svg")]
 pub mod svg;
 pub mod text_editor;
 pub mod text_input;
@@ -35,5 +34,4 @@ pub use text::{Text, text};
 pub use text_editor::{TextEditor, text_editor};
 pub use text_input::{TextInput, text_input};
 pub use toggler::{Toggler, toggler};
-#[cfg(feature = "svg")]
 pub use svg::{Svg, svg};

@@ -5,6 +5,7 @@
 //! a real version once iced 0.15 is released.
 mod color;
 mod contrast;
+pub mod icon;
 pub mod spacing;
 mod theme;
 pub mod token;

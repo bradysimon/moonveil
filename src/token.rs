@@ -63,6 +63,8 @@ pub enum Interaction {
     Selected,
     /// Selected content is being hovered.
     SelectedHover,
+    /// Text is selected in an editable field.
+    Selection,
     /// Content is currently being dragged.
     Dragged,
     /// A region is a valid drop destination.
@@ -349,6 +351,8 @@ pub struct Interactions {
     pub selected: Color,
     /// Hover overlay for selected content.
     pub selected_hover: Color,
+    /// Overlay used to highlight selected text in an editable field.
+    pub selection: Color,
     /// Overlay for content currently being dragged.
     pub dragged: Color,
     /// Overlay identifying a valid drop destination.
@@ -363,6 +367,7 @@ impl Interactions {
             Interaction::Pressed => self.pressed,
             Interaction::Selected => self.selected,
             Interaction::SelectedHover => self.selected_hover,
+            Interaction::Selection => self.selection,
             Interaction::Dragged => self.dragged,
             Interaction::DropTarget => self.drop_target,
         }

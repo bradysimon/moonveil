@@ -172,6 +172,10 @@ impl Colors {
                 accent.solid.active.color,
                 if high_emphasis { 0.34 } else { 0.24 },
             ),
+            selection: with_alpha(
+                accent.solid.active.color,
+                if high_emphasis { 0.34 } else { 0.24 },
+            ),
             dragged: with_alpha(
                 accent.solid.active.color,
                 if high_emphasis { 0.38 } else { 0.30 },

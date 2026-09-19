@@ -1,0 +1,15 @@
+pub(super) const DEFAULT_WIDTH: f32 = 220.0;
+pub(super) const MIN_WIDTH: f32 = 140.0;
+pub(super) const MAX_HEIGHT: f32 = 340.0;
+pub(super) const EDGE_PADDING: f32 = 6.0;
+pub(super) const MENU_PADDING: f32 = 4.0;
+pub(super) const ITEM_HEIGHT: f32 = 28.0;
+pub(super) const SECTION_HEIGHT: f32 = 24.0;
+pub(super) const SEPARATOR_HEIGHT: f32 = 9.0;
+pub(super) const ITEM_HORIZONTAL_PADDING: f32 = 10.0;
+pub(super) const LEADING_SIZE: f32 = 16.0;
+pub(super) const LEADING_GAP: f32 = 8.0;
+pub(super) const SCROLL_LINE_HEIGHT: f32 = 60.0;
+pub(super) const SCROLLBAR_WIDTH: f32 = 4.0;
+pub(super) const SCROLLBAR_EDGE_PADDING: f32 = 4.0;
+pub(super) const SCROLLBAR_HIT_PADDING: f32 = 6.0;

@@ -25,6 +25,7 @@ pub mod text;
 pub mod text_editor;
 pub mod text_input;
 pub mod toggler;
+pub mod tooltip;
 
 pub use iced_widget::{Space, space};
 
@@ -51,3 +52,4 @@ pub use text::{Text, text};
 pub use text_editor::{TextEditor, text_editor};
 pub use text_input::{TextInput, text_input};
 pub use toggler::{Toggler, toggler};
+pub use tooltip::{Tooltip, tooltip};

@@ -8,10 +8,8 @@ use iced_core::{Background, Border};
 
 pub use iced_widget::checkbox::{Catalog, Icon, Status, Style};
 
-/// A custom checkbox style function using Moonveil's concrete theme.
 pub type StyleFn<'a> = iced_widget::checkbox::StyleFn<'a, Theme>;
 
-/// An Iced checkbox using Moonveil's concrete theme.
 pub type Checkbox<'a, Message, Renderer = iced_widget::Renderer> =
     iced_widget::Checkbox<'a, Message, Theme, Renderer>;
 

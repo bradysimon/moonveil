@@ -8,10 +8,8 @@ use iced_core::{Background, Border};
 
 pub use iced_widget::container::{Catalog, Style};
 
-/// A custom container style function using Moonveil's concrete theme.
 pub type StyleFn<'a> = iced_widget::container::StyleFn<'a, Theme>;
 
-/// An Iced container using Moonveil's concrete theme.
 pub type Container<'a, Message, Renderer = iced_widget::Renderer> =
     iced_widget::Container<'a, Message, Theme, Renderer>;
 

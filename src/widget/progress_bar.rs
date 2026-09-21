@@ -1,4 +1,5 @@
-//! Progress bars using Moonveil's concrete theme and resolved indicator tokens.
+//! Progress bars visualize the progression of an extended computer operation,
+//! such as a download, file transfer, or installation.
 
 use std::ops::RangeInclusive;
 
@@ -10,10 +11,8 @@ use iced_core::{Background, Border};
 
 pub use iced_widget::progress_bar::{Catalog, Style};
 
-/// A custom progress bar style function using Moonveil's concrete theme.
 pub type StyleFn<'a> = iced_widget::progress_bar::StyleFn<'a, Theme>;
 
-/// An Iced progress bar using Moonveil's concrete theme.
 pub type ProgressBar<'a> = iced_widget::ProgressBar<'a, Theme>;
 
 /// Creates a progress bar using Moonveil's concrete theme.

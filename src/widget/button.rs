@@ -9,10 +9,8 @@ use iced_core::{Background, Border};
 pub use crate::token::Intent;
 pub use iced_widget::button::{Catalog, Status, Style};
 
-/// A custom button style function using Moonveil's concrete theme.
 pub type StyleFn<'a> = iced_widget::button::StyleFn<'a, Theme>;
 
-/// An Iced button using Moonveil's concrete theme.
 pub type Button<'a, Message, Renderer = iced_widget::Renderer> =
     iced_widget::Button<'a, Message, Theme, Renderer>;
 

@@ -11,10 +11,8 @@ use iced_core::{Background, Border};
 
 pub use iced_widget::pick_list::{Catalog, Handle, Status, Style};
 
-/// A custom pick list style function using Moonveil's concrete theme.
 pub type StyleFn<'a> = iced_widget::pick_list::StyleFn<'a, Theme>;
 
-/// An Iced pick list using Moonveil's concrete theme.
 pub type PickList<'a, Item, Options, Selected, Message, Renderer = iced_widget::Renderer> =
     iced_widget::PickList<'a, Item, Options, Selected, Message, Theme, Renderer>;
 

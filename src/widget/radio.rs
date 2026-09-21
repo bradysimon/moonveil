@@ -1,4 +1,4 @@
-//! Radio buttons using Moonveil's concrete theme and resolved control tokens.
+//! Radio buttons let users choose a single option from a bunch of options.
 
 use crate::{
     Theme,
@@ -8,10 +8,8 @@ use iced_core::Background;
 
 pub use iced_widget::radio::{Catalog, Status, Style};
 
-/// A custom radio style function using Moonveil's concrete theme.
 pub type StyleFn<'a> = iced_widget::radio::StyleFn<'a, Theme>;
 
-/// An Iced radio button using Moonveil's concrete theme.
 pub type Radio<'a, Message, Renderer = iced_widget::Renderer> =
     iced_widget::Radio<'a, Message, Theme, Renderer>;
 

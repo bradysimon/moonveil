@@ -1,13 +1,11 @@
-//! Rules using Moonveil's concrete theme and resolved border tokens.
+//! Rules divide space horizontally or vertically.
 
 use crate::{Theme, token::Intent};
 
 pub use iced_widget::rule::{Catalog, FillMode, Style};
 
-/// A custom rule style function using Moonveil's concrete theme.
 pub type StyleFn<'a> = iced_widget::rule::StyleFn<'a, Theme>;
 
-/// An Iced rule using Moonveil's concrete theme.
 pub type Rule<'a> = iced_widget::Rule<'a, Theme>;
 
 /// Creates a horizontal rule using Moonveil's concrete theme.

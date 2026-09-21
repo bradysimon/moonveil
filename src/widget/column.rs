@@ -2,7 +2,6 @@
 
 use crate::{Element, Theme};
 
-/// An Iced column containing elements that use Moonveil's concrete theme.
 pub type Column<'a, Message, Renderer = iced_widget::Renderer> =
     iced_widget::Column<'a, Message, Theme, Renderer>;
 

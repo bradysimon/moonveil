@@ -57,12 +57,12 @@ pub struct Labeled<'a, Message, Renderer = iced_widget::Renderer>
 where
     Renderer: iced_core::text::Renderer,
 {
-    label: Text<'a, Renderer>,
+    label: Text<'a>,
     content: Element<'a, Message, Renderer>,
     required: bool,
     trailing: Option<Element<'a, Message, Renderer>>,
-    hint: Option<Text<'a, Renderer>>,
-    message: Option<Text<'a, Renderer>>,
+    hint: Option<Text<'a>>,
+    message: Option<Text<'a>>,
     reserve_message: bool,
 }
 
@@ -137,10 +137,7 @@ where
     }
 }
 
-fn supporting<'a, Renderer>(content: impl IntoFragment<'a>, variant: Variant) -> Text<'a, Renderer>
-where
-    Renderer: iced_core::text::Renderer,
-{
+fn supporting<'a>(content: impl IntoFragment<'a>, variant: Variant) -> Text<'a> {
     text::text(content).size(text::size::CAPTION).class(variant)
 }
 
@@ -255,11 +252,8 @@ mod tests {
         tree.diff(element.as_widget_mut());
         let limits = Limits::new(Size::ZERO, Size::new(800.0, 600.0));
 
-        element
-            .as_widget_mut()
-            .layout(&mut tree, &(), &limits)
-            .size()
-            .width
+        element.as_widget_mut().layout(&mut tree, &(), &limits);
+        tree.size.width
     }
 
     #[test]

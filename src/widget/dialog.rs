@@ -12,7 +12,7 @@ use iced_core::{
     Alignment, Animation, Color, Event, Length, Rectangle, Size, Vector,
     alignment::Horizontal::Right,
     animation, keyboard,
-    layout::{Limits, Node},
+    layout::{Layout, Limits},
     mouse, overlay,
     renderer::{self, Quad},
     time::{Duration, Instant},
@@ -658,32 +658,36 @@ where
         self.base.as_widget().size()
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &Limits) -> Node {
-        let base = self
-            .base
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &Limits) {
+        self.base
             .as_widget_mut()
             .layout(&mut tree.children[0], renderer, limits);
-        let size = base.size();
+        let size = tree.children[0].size;
         let overlay_limits = Limits::new(Size::ZERO, size);
-        let backdrop = self.backdrop_target.as_widget_mut().layout(
+        self.backdrop_target.as_widget_mut().layout(
             &mut tree.children[1],
             renderer,
             &overlay_limits.width(Length::Fill).height(Length::Fill),
         );
-        let mut panel =
-            self.panel
-                .as_widget_mut()
-                .layout(&mut tree.children[2], renderer, &overlay_limits);
-        panel.align_mut(Alignment::Center, Alignment::Center, size);
+        self.panel
+            .as_widget_mut()
+            .layout(&mut tree.children[2], renderer, &overlay_limits);
 
-        Node::with_children(size, vec![base, backdrop, panel])
+        let panel = tree.children[2].size;
+        tree.size = size;
+        tree.children[0].translation = Vector::ZERO;
+        tree.children[1].translation = Vector::ZERO;
+        tree.children[2].translation = Vector::new(
+            (size.width - panel.width) / 2.0,
+            (size.height - panel.height) / 2.0,
+        );
     }
 
     fn update(
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: iced_core::Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut iced_core::Shell<'_, Message>,
@@ -735,7 +739,7 @@ where
             state.opened_emitted = false;
         }
 
-        let mut children = layout.children();
+        let mut children = layout.iter(&tree.children).map(|(layout, _)| layout);
         let Some(base_layout) = children.next() else {
             return;
         };
@@ -745,6 +749,7 @@ where
         let Some(panel_layout) = children.next() else {
             return;
         };
+        drop(children);
 
         if self.is_showing(state) {
             let is_transitioning = self.is_transitioning(state);
@@ -825,12 +830,12 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         style: &renderer::Style,
-        layout: iced_core::Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
         let state = tree.state.downcast_ref::<WidgetState>();
-        let mut children = layout.children();
+        let mut children = layout.iter(&tree.children).map(|(layout, _)| layout);
         let Some(base_layout) = children.next() else {
             return;
         };
@@ -885,13 +890,13 @@ where
     fn mouse_interaction(
         &self,
         tree: &Tree,
-        layout: iced_core::Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         let state = tree.state.downcast_ref::<WidgetState>();
-        let mut children = layout.children();
+        let mut children = layout.iter(&tree.children).map(|(layout, _)| layout);
         let Some(base_layout) = children.next() else {
             return mouse::Interaction::None;
         };
@@ -940,34 +945,38 @@ where
     fn operate(
         &mut self,
         tree: &mut Tree,
-        layout: iced_core::Layout<'_>,
+        layout: Layout,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
-        let mut children = layout.children();
+        let mut children = layout.iter_mut(&mut tree.children);
 
-        if let Some(base_layout) = children.next() {
+        if let Some((base_layout, base_tree)) = children.next() {
             self.base.as_widget_mut().operate(
-                &mut tree.children[0],
+                base_tree,
                 base_layout,
+                viewport,
                 renderer,
                 operation,
             );
         }
 
-        if let Some(backdrop_layout) = children.next() {
+        if let Some((backdrop_layout, backdrop_tree)) = children.next() {
             self.backdrop_target.as_widget_mut().operate(
-                &mut tree.children[1],
+                backdrop_tree,
                 backdrop_layout,
+                viewport,
                 renderer,
                 operation,
             );
         }
 
-        if let Some(panel_layout) = children.next() {
+        if let Some((panel_layout, panel_tree)) = children.next() {
             self.panel.as_widget_mut().operate(
-                &mut tree.children[2],
+                panel_tree,
                 panel_layout,
+                viewport,
                 renderer,
                 operation,
             );
@@ -977,49 +986,45 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: iced_core::Layout<'b>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
-        let mut children = layout.children();
-        let base_layout = children.next()?;
-        let _backdrop_layout = children.next()?;
-        let panel_layout = children.next()?;
-
+        window: Size,
+    ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let show_panel_overlay = {
             let state = tree.state.downcast_ref::<WidgetState>();
             self.is_showing(state) && !self.is_transitioning(state)
         };
 
-        let (base_and_backdrop, panel_tree) = tree.children.split_at_mut(2);
-        let base_tree = &mut base_and_backdrop[0];
-        let panel_tree = &mut panel_tree[0];
-        let mut overlays = Vec::new();
+        let mut children = layout.iter_mut(&mut tree.children);
+        let (Some((base_layout, base_tree)), Some(_), Some((panel_layout, panel_tree))) =
+            (children.next(), children.next(), children.next())
+        else {
+            return Vec::new();
+        };
 
-        if let Some(base_overlay) = self.base.as_widget_mut().overlay(
+        let mut overlays = self.base.as_widget_mut().overlay(
             base_tree,
             base_layout,
             renderer,
             viewport,
             translation,
-        ) {
-            overlays.push(base_overlay);
-        }
+            window,
+        );
 
-        if show_panel_overlay
-            && let Some(panel_overlay) = self.panel.as_widget_mut().overlay(
+        if show_panel_overlay {
+            overlays.extend(self.panel.as_widget_mut().overlay(
                 panel_tree,
                 panel_layout,
                 renderer,
                 viewport,
                 translation,
-            )
-        {
-            overlays.push(panel_overlay);
+                window,
+            ));
         }
 
-        (!overlays.is_empty()).then(|| overlay::Group::with_children(overlays).overlay())
+        overlays
     }
 }
 

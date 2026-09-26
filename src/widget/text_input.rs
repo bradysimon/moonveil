@@ -9,17 +9,15 @@ pub use iced_widget::text_input::{Catalog, Status, Style};
 pub type StyleFn<'a> = iced_widget::text_input::StyleFn<'a, Theme>;
 
 /// An Iced text input using Moonveil's concrete theme.
-pub type TextInput<'a, Message, Renderer = iced_widget::Renderer> =
-    iced_widget::TextInput<'a, Message, Theme, Renderer>;
+pub type TextInput<'a, Message> = iced_widget::TextInput<'a, Message, Theme>;
 
 /// Creates a text input using Moonveil's concrete theme.
-pub fn text_input<'a, Message, Renderer>(
+pub fn text_input<'a, Message>(
     placeholder: impl iced_core::text::IntoFragment<'a>,
     value: impl iced_core::text::IntoFragment<'a>,
-) -> TextInput<'a, Message, Renderer>
+) -> TextInput<'a, Message>
 where
     Message: Clone,
-    Renderer: iced_core::text::Renderer,
 {
     TextInput::new(placeholder, value)
 }

@@ -14,8 +14,8 @@ use crate::{
 };
 use defaults::*;
 use iced_core::{
-    Background, Border, Color, Event, Layout, Length, Padding, Pixels, Point, Rectangle, Shadow,
-    Shell, Size, Vector, Widget,
+    Background, Border, Color, Event, Font, Layout, Length, Padding, Pixels, Point, Rectangle,
+    Shadow, Shell, Size, Vector, Widget,
     keyboard::{self, key},
     layout::{self},
     mouse, overlay,
@@ -39,7 +39,7 @@ pub const PADDING: Padding = Padding {
 /// Creates a dropdown around a base element and menu items.
 pub fn dropdown<'a, Message, Renderer>(
     base: impl Into<Element<'a, Message, Renderer>>,
-    items: impl IntoIterator<Item = Item<'a, Message, Renderer::Font>>,
+    items: impl IntoIterator<Item = Item<'a, Message>>,
 ) -> Dropdown<'a, Message, Renderer>
 where
     Message: Clone + 'a,
@@ -84,7 +84,7 @@ where
     Renderer: text::Renderer + 'a,
 {
     base: Element<'a, Message, Renderer>,
-    items: Vec<Item<'a, Message, Renderer::Font>>,
+    items: Vec<Item<'a, Message>>,
     padding: Padding,
     width: Option<f32>,
     max_height: f32,
@@ -106,7 +106,7 @@ where
     /// Creates a dropdown around a base element and menu items.
     pub fn new(
         base: impl Into<Element<'a, Message, Renderer>>,
-        items: impl IntoIterator<Item = Item<'a, Message, Renderer::Font>>,
+        items: impl IntoIterator<Item = Item<'a, Message>>,
     ) -> Self {
         Self {
             base: base.into(),
@@ -276,12 +276,7 @@ where
     fn size(&self) -> Size<Length> {
         self.base.as_widget().size()
     }
-    fn layout(
-        &mut self,
-        tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
         if let Some(open) = self.is_open {
             let state = tree.state.downcast_mut::<State>();
             if open && !state.is_open {
@@ -290,17 +285,23 @@ where
                 state.close();
             }
         }
-        layout::padded(limits, Length::Fit, Length::Fit, self.padding, |limits| {
-            self.base
-                .as_widget_mut()
-                .layout(&mut tree.children[0], renderer, limits)
-        })
+        layout::padded(
+            tree,
+            limits,
+            Length::Fit,
+            Length::Fit,
+            self.padding,
+            |tree, limits| {
+                self.base.as_widget_mut().layout(tree, renderer, limits);
+                tree.size
+            },
+        );
     }
     fn update(
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -337,13 +338,15 @@ where
                 shell.publish(message.clone());
             }
             shell.capture_event();
+            shell.invalidate_overlay();
             shell.request_redraw();
             return;
         }
+        let (child_layout, child_tree) = layout.iter_mut(&mut tree.children).next().unwrap();
         self.base.as_widget_mut().update(
-            &mut tree.children[0],
+            child_tree,
             event,
-            layout.children().next().unwrap(),
+            child_layout,
             cursor,
             renderer,
             shell,
@@ -356,7 +359,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         _style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
@@ -380,14 +383,15 @@ where
             },
             appearance.background,
         );
+        let (child_layout, child_tree) = layout.iter(&tree.children).next().unwrap();
         self.base.as_widget().draw(
-            &tree.children[0],
+            child_tree,
             renderer,
             theme,
             &renderer::Style {
                 text_color: appearance.text_color,
             },
-            layout.children().next().unwrap(),
+            child_layout,
             cursor,
             viewport,
         );
@@ -395,7 +399,7 @@ where
     fn mouse_interaction(
         &self,
         tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
@@ -403,9 +407,10 @@ where
         if !self.disabled && cursor.is_over(layout.bounds()) {
             mouse::Interaction::Pointer
         } else {
+            let (child_layout, child_tree) = layout.iter(&tree.children).next().unwrap();
             self.base.as_widget().mouse_interaction(
-                &tree.children[0],
-                layout.children().next().unwrap(),
+                child_tree,
+                child_layout,
                 cursor,
                 viewport,
                 renderer,
@@ -415,59 +420,51 @@ where
     fn operate(
         &mut self,
         tree: &mut Tree,
-        layout: Layout<'_>,
+        layout: Layout,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
-        self.base.as_widget_mut().operate(
-            &mut tree.children[0],
-            layout.children().next().unwrap(),
-            renderer,
-            operation,
-        );
+        let (child_layout, child_tree) = layout.iter_mut(&mut tree.children).next().unwrap();
+        self.base
+            .as_widget_mut()
+            .operate(child_tree, child_layout, viewport, renderer, operation);
     }
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'b>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+        window: Size,
+    ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let state = tree.state.downcast_mut::<State>();
-        let base_overlay = if state.is_open {
-            None
-        } else {
-            self.base.as_widget_mut().overlay(
-                &mut tree.children[0],
-                layout.children().next().unwrap(),
+        if !state.is_open {
+            let (child_layout, child_tree) = layout.iter_mut(&mut tree.children).next().unwrap();
+            return self.base.as_widget_mut().overlay(
+                child_tree,
+                child_layout,
                 renderer,
                 viewport,
                 translation,
-            )
-        };
-        let menu_overlay = state.is_open.then(|| {
-            overlay::Element::new(Box::new(DropdownOverlay {
-                state,
-                items: &self.items,
-                width: self.width,
-                max_height: self.max_height,
-                offset: self.offset,
-                trigger: layout.bounds() + translation,
-                on_close: self.on_close.as_ref(),
-                class: &self.menu_class,
-            }))
-        });
-        if base_overlay.is_some() || menu_overlay.is_some() {
-            Some(
-                overlay::Group::with_children(
-                    base_overlay.into_iter().chain(menu_overlay).collect(),
-                )
-                .overlay(),
-            )
-        } else {
-            None
+                window,
+            );
         }
+        let overlay = DropdownOverlay {
+            state,
+            items: &self.items,
+            width: self.width,
+            max_height: self.max_height,
+            offset: self.offset,
+            trigger: layout.bounds() + translation,
+            on_close: self.on_close.as_ref(),
+            class: &self.menu_class,
+            window,
+        };
+        let menu = overlay.menu();
+        menu::clamp_scroll_offset(&mut overlay.state.scroll_offset, &menu);
+        vec![overlay::Element::new(Box::new(overlay))]
     }
 }
 
@@ -481,53 +478,40 @@ where
     }
 }
 
-struct DropdownOverlay<'a, 'b, Message, Font> {
+struct DropdownOverlay<'a, 'b, Message> {
     state: &'b mut State,
-    items: &'b [Item<'a, Message, Font>],
+    items: &'b [Item<'a, Message>],
     width: Option<f32>,
     max_height: f32,
     offset: f32,
     trigger: Rectangle,
     on_close: Option<&'b Message>,
     class: &'b <Theme as menu::Catalog>::Class<'a>,
+    window: Size,
 }
 
-impl<Message, Renderer> overlay::Overlay<Message, Theme, Renderer>
-    for DropdownOverlay<'_, '_, Message, Renderer::Font>
-where
-    Message: Clone,
-    Renderer: text::Renderer,
-{
-    fn layout(&mut self, _renderer: &Renderer, bounds: Size) -> layout::Node {
-        let menu = menu::layout(
+impl<Message> DropdownOverlay<'_, '_, Message> {
+    fn menu(&self) -> menu::Layout {
+        menu::layout(
             self.items,
             self.state.scroll_offset,
             self.trigger,
             self.width,
             self.max_height,
             self.offset,
-            Rectangle::with_size(bounds),
-        );
-        menu::clamp_scroll_offset(&mut self.state.scroll_offset, &menu);
-        layout::Node::new(bounds)
+            Rectangle::with_size(self.window),
+        )
     }
-    fn update(
+}
+
+impl<Message: Clone> DropdownOverlay<'_, '_, Message> {
+    fn handle_event(
         &mut self,
         event: &Event,
-        layout: Layout<'_>,
         cursor: mouse::Cursor,
-        _renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
     ) {
-        let menu = menu::layout(
-            self.items,
-            self.state.scroll_offset,
-            self.trigger,
-            self.width,
-            self.max_height,
-            self.offset,
-            layout.bounds(),
-        );
+        let menu = self.menu();
         let position = cursor.land().position();
         match event {
             Event::Mouse(mouse::Event::CursorMoved { .. }) => {
@@ -656,21 +640,29 @@ where
             _ => {}
         }
     }
-    fn mouse_interaction(
-        &self,
-        layout: Layout<'_>,
+}
+
+impl<Message, Renderer> overlay::Overlay<Message, Theme, Renderer>
+    for DropdownOverlay<'_, '_, Message>
+where
+    Message: Clone,
+    Renderer: text::Renderer,
+{
+    fn update(
+        &mut self,
+        event: &Event,
         cursor: mouse::Cursor,
         _renderer: &Renderer,
-    ) -> mouse::Interaction {
-        let menu = menu::layout(
-            self.items,
-            self.state.scroll_offset,
-            self.trigger,
-            self.width,
-            self.max_height,
-            self.offset,
-            layout.bounds(),
-        );
+        shell: &mut Shell<'_, Message>,
+    ) {
+        let was_open = self.state.is_open;
+        self.handle_event(event, cursor, shell);
+        if self.state.is_open != was_open {
+            shell.invalidate_overlay();
+        }
+    }
+    fn mouse_interaction(&self, cursor: mouse::Cursor, _renderer: &Renderer) -> mouse::Interaction {
+        let menu = self.menu();
         if self.state.scroll_drag.is_some() {
             return mouse::Interaction::Grabbing;
         }
@@ -691,27 +683,20 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         _defaults: &renderer::Style,
-        layout: Layout<'_>,
         cursor: mouse::Cursor,
     ) {
         let style = <Theme as menu::Catalog>::style(theme, self.class);
-        let menu = menu::layout(
-            self.items,
-            self.state.scroll_offset,
-            self.trigger,
-            self.width,
-            self.max_height,
-            self.offset,
-            layout.bounds(),
-        );
-        draw_menu(
-            renderer,
-            &style,
-            self.items,
-            &menu,
-            self.state.active_index,
-            cursor,
-        );
+        let menu = self.menu();
+        renderer.with_layer(Rectangle::with_size(self.window), |renderer| {
+            draw_menu(
+                renderer,
+                &style,
+                self.items,
+                &menu,
+                self.state.active_index,
+                cursor,
+            );
+        });
     }
 }
 
@@ -747,7 +732,7 @@ fn ensure_active_visible<Message, Font>(
 fn draw_menu<Message, Renderer: text::Renderer>(
     renderer: &mut Renderer,
     style: &menu::Style,
-    items: &[Item<'_, Message, Renderer::Font>],
+    items: &[Item<'_, Message>],
     menu: &menu::Layout,
     active_index: Option<usize>,
     cursor: mouse::Cursor,
@@ -780,12 +765,12 @@ fn draw_menu<Message, Renderer: text::Renderer>(
 fn draw_items<Message, Renderer: text::Renderer>(
     renderer: &mut Renderer,
     style: &menu::Style,
-    items: &[Item<'_, Message, Renderer::Font>],
+    items: &[Item<'_, Message>],
     menu: &menu::Layout,
     active_index: Option<usize>,
     viewport: Rectangle,
 ) {
-    let font = renderer.default_font();
+    let font = renderer.font();
     for (index, item) in items.iter().enumerate() {
         let bounds = menu::item_bounds(items, index, menu);
         let Some(visible) = bounds.intersection(&viewport) else {
@@ -897,7 +882,7 @@ fn draw_items<Message, Renderer: text::Renderer>(
 
 fn draw_leading<Renderer: text::Renderer>(
     renderer: &mut Renderer,
-    leading: &Leading<Renderer::Font>,
+    leading: &Leading<Font>,
     bounds: Rectangle,
     color: Color,
     viewport: Rectangle,

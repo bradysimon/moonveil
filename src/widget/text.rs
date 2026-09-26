@@ -26,13 +26,10 @@ pub mod size {
 pub type StyleFn<'a> = iced_widget::text::StyleFn<'a, Theme>;
 
 /// Iced text using Moonveil's concrete theme.
-pub type Text<'a, Renderer = iced_widget::Renderer> = iced_widget::Text<'a, Theme, Renderer>;
+pub type Text<'a> = iced_widget::Text<'a, Theme>;
 
 /// Creates text using Moonveil's concrete theme.
-pub fn text<'a, Renderer>(content: impl IntoFragment<'a>) -> Text<'a, Renderer>
-where
-    Renderer: iced_core::text::Renderer,
-{
+pub fn text<'a>(content: impl IntoFragment<'a>) -> Text<'a> {
     Text::new(content).size(size::BODY)
 }
 
@@ -42,10 +39,7 @@ pub trait TextExt: Sized {
     fn class(self, variant: Variant) -> Self;
 }
 
-impl<Renderer> TextExt for Text<'_, Renderer>
-where
-    Renderer: iced_core::text::Renderer,
-{
+impl TextExt for Text<'_> {
     fn class(self, variant: Variant) -> Self {
         self.style(move |theme| appearance(theme, variant))
     }

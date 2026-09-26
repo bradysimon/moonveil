@@ -13,7 +13,7 @@ pub type StyleFn<'a> = iced_widget::text_editor::StyleFn<'a, Theme>;
 
 /// An Iced plain-text editor using Moonveil's concrete theme.
 pub type TextEditor<'a, Message, Renderer = iced_widget::Renderer> =
-    iced_widget::TextEditor<'a, iced_core::text::highlighter::PlainText, Message, Theme, Renderer>;
+    iced_widget::TextEditor<'a, iced_core::text::parser::PlainText, Message, Theme, Renderer>;
 
 /// Creates a plain-text editor using Moonveil's concrete theme.
 pub fn text_editor<'a, Message, Renderer>(

@@ -14,7 +14,7 @@ use iced_core::{
     Alignment, Animation, Background, Border, Color, Event,
     Length::{Fill, Fit, Shrink},
     Rectangle, Size, Vector, animation,
-    layout::{Limits, Node},
+    layout::{Layout, Limits},
     mouse, overlay,
     renderer::{self, Quad},
     time::{Duration, Instant},
@@ -688,17 +688,18 @@ where
         self.content.as_widget().size()
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &Limits) -> Node {
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &Limits) {
         self.content
             .as_widget_mut()
-            .layout(&mut tree.children[0], renderer, limits)
+            .layout(&mut tree.children[0], renderer, limits);
+        tree.size = tree.children[0].size;
     }
 
     fn update(
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: iced_core::Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut iced_core::Shell<'_, Message>,
@@ -746,7 +747,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         style: &renderer::Style,
-        layout: iced_core::Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
@@ -776,7 +777,7 @@ where
     fn mouse_interaction(
         &self,
         tree: &Tree,
-        layout: iced_core::Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
@@ -793,29 +794,36 @@ where
     fn operate(
         &mut self,
         tree: &mut Tree,
-        layout: iced_core::Layout<'_>,
+        layout: Layout,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
-        self.content
-            .as_widget_mut()
-            .operate(&mut tree.children[0], layout, renderer, operation);
+        self.content.as_widget_mut().operate(
+            &mut tree.children[0],
+            layout,
+            viewport,
+            renderer,
+            operation,
+        );
     }
 
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: iced_core::Layout<'b>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+        window: Size,
+    ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         self.content.as_widget_mut().overlay(
             &mut tree.children[0],
             layout,
             renderer,
             viewport,
             translation,
+            window,
         )
     }
 }
@@ -868,17 +876,18 @@ where
         self.content.as_widget().size()
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &Limits) -> Node {
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &Limits) {
         self.content
             .as_widget_mut()
-            .layout(&mut tree.children[0], renderer, limits)
+            .layout(&mut tree.children[0], renderer, limits);
+        tree.size = tree.children[0].size;
     }
 
     fn update(
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: iced_core::Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut iced_core::Shell<'_, Message>,
@@ -901,7 +910,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         style: &renderer::Style,
-        layout: iced_core::Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
@@ -948,7 +957,7 @@ where
     fn mouse_interaction(
         &self,
         tree: &Tree,
-        layout: iced_core::Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
@@ -965,29 +974,36 @@ where
     fn operate(
         &mut self,
         tree: &mut Tree,
-        layout: iced_core::Layout<'_>,
+        layout: Layout,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
-        self.content
-            .as_widget_mut()
-            .operate(&mut tree.children[0], layout, renderer, operation);
+        self.content.as_widget_mut().operate(
+            &mut tree.children[0],
+            layout,
+            viewport,
+            renderer,
+            operation,
+        );
     }
 
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: iced_core::Layout<'b>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+        window: Size,
+    ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         self.content.as_widget_mut().overlay(
             &mut tree.children[0],
             layout,
             renderer,
             viewport,
             translation,
+            window,
         )
     }
 }
@@ -1092,40 +1108,39 @@ where
         self.base.as_widget().size()
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &Limits) -> Node {
-        let base = self
-            .base
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &Limits) {
+        self.base
             .as_widget_mut()
             .layout(&mut tree.children[0], renderer, limits);
-        let size = base.size();
+        let size = tree.children[0].size;
         let overlay_limits = Limits::new(Size::ZERO, size);
-        let mut stack =
-            self.stack
-                .as_widget_mut()
-                .layout(&mut tree.children[1], renderer, &overlay_limits);
-        let position = self.stack_position(size, stack.size());
-        stack = stack.move_to((position.x, position.y));
+        self.stack
+            .as_widget_mut()
+            .layout(&mut tree.children[1], renderer, &overlay_limits);
 
-        Node::with_children(size, vec![base, stack])
+        tree.size = size;
+        tree.children[0].translation = Vector::ZERO;
+        tree.children[1].translation = self.stack_position(size, tree.children[1].size);
     }
 
     fn update(
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: iced_core::Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut iced_core::Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        let mut children = layout.children();
+        let mut children = layout.iter(&tree.children).map(|(layout, _)| layout);
         let Some(base_layout) = children.next() else {
             return;
         };
         let Some(stack_layout) = children.next() else {
             return;
         };
+        drop(children);
 
         if self.has_entries {
             self.stack.as_widget_mut().update(
@@ -1174,11 +1189,11 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         style: &renderer::Style,
-        layout: iced_core::Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        let mut children = layout.children();
+        let mut children = layout.iter(&tree.children).map(|(layout, _)| layout);
         let Some(base_layout) = children.next() else {
             return;
         };
@@ -1221,12 +1236,12 @@ where
     fn mouse_interaction(
         &self,
         tree: &Tree,
-        layout: iced_core::Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        let mut children = layout.children();
+        let mut children = layout.iter(&tree.children).map(|(layout, _)| layout);
         let Some(base_layout) = children.next() else {
             return mouse::Interaction::None;
         };
@@ -1265,25 +1280,28 @@ where
     fn operate(
         &mut self,
         tree: &mut Tree,
-        layout: iced_core::Layout<'_>,
+        layout: Layout,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
-        let mut children = layout.children();
+        let mut children = layout.iter_mut(&mut tree.children);
 
-        if let Some(base_layout) = children.next() {
+        if let Some((base_layout, base_tree)) = children.next() {
             self.base.as_widget_mut().operate(
-                &mut tree.children[0],
+                base_tree,
                 base_layout,
+                viewport,
                 renderer,
                 operation,
             );
         }
 
-        if let Some(stack_layout) = children.next() {
+        if let Some((stack_layout, stack_tree)) = children.next() {
             self.stack.as_widget_mut().operate(
-                &mut tree.children[1],
+                stack_tree,
                 stack_layout,
+                viewport,
                 renderer,
                 operation,
             );
@@ -1293,43 +1311,40 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: iced_core::Layout<'b>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
-        let mut children = layout.children();
-        let base_layout = children.next()?;
-        let stack_layout = children.next()?;
+        window: Size,
+    ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
+        let mut children = layout.iter_mut(&mut tree.children);
+        let (Some((base_layout, base_tree)), Some((stack_layout, stack_tree))) =
+            (children.next(), children.next())
+        else {
+            return Vec::new();
+        };
 
-        let (base_tree, stack_tree) = tree.children.split_at_mut(1);
-        let base_tree = &mut base_tree[0];
-        let stack_tree = &mut stack_tree[0];
-        let mut overlays = Vec::new();
-
-        if let Some(base_overlay) = self.base.as_widget_mut().overlay(
+        let mut overlays = self.base.as_widget_mut().overlay(
             base_tree,
             base_layout,
             renderer,
             viewport,
             translation,
-        ) {
-            overlays.push(base_overlay);
-        }
+            window,
+        );
 
-        if self.has_entries
-            && let Some(stack_overlay) = self.stack.as_widget_mut().overlay(
+        if self.has_entries {
+            overlays.extend(self.stack.as_widget_mut().overlay(
                 stack_tree,
                 stack_layout,
                 renderer,
                 viewport,
                 translation,
-            )
-        {
-            overlays.push(stack_overlay);
+                window,
+            ));
         }
 
-        (!overlays.is_empty()).then(|| overlay::Group::with_children(overlays).overlay())
+        overlays
     }
 }
 

@@ -21,17 +21,20 @@ pub type Tooltip<'a, Message, Renderer = iced_widget::Renderer> =
     iced_widget::Tooltip<'a, Message, Theme, Renderer>;
 
 /// Creates a tooltip using Moonveil's floating surface treatment.
-pub fn tooltip<'a, Message, Renderer>(
+pub fn tooltip<'a, Message: 'a, Renderer>(
     content: impl Into<Element<'a, Message, Renderer>>,
     tooltip: impl Into<Element<'a, Message, Renderer>>,
     position: Position,
 ) -> Tooltip<'a, Message, Renderer>
 where
-    Renderer: text::Renderer,
+    Renderer: text::Renderer + 'a,
 {
-    Tooltip::new(content, tooltip, position)
-        .class(container::Variant::Popover)
-        .gap(DEFAULT_GAP)
-        .padding(DEFAULT_PADDING)
-        .delay(DEFAULT_DELAY)
+    Tooltip::new(
+        content,
+        container::Container::new(tooltip).padding(DEFAULT_PADDING),
+        position,
+    )
+    .class(container::Variant::Popover)
+    .gap(DEFAULT_GAP)
+    .delay(DEFAULT_DELAY)
 }

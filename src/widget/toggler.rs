@@ -12,8 +12,7 @@ pub use iced_widget::toggler::{Catalog, Status, Style};
 pub type StyleFn<'a> = iced_widget::toggler::StyleFn<'a, Theme>;
 
 /// An Iced toggler using Moonveil's concrete theme.
-pub type Toggler<'a, Message, Renderer = iced_widget::Renderer> =
-    iced_widget::Toggler<'a, Message, Theme, Renderer>;
+pub type Toggler<'a, Message> = iced_widget::Toggler<'a, Message, Theme>;
 
 /// Recommended toggler sizes measured in logical pixels.
 pub mod size {
@@ -24,10 +23,7 @@ pub mod size {
 }
 
 /// Creates a toggler using Moonveil's concrete theme.
-pub fn toggler<'a, Message, Renderer>(is_toggled: bool) -> Toggler<'a, Message, Renderer>
-where
-    Renderer: iced_core::text::Renderer,
-{
+pub fn toggler<'a, Message>(is_toggled: bool) -> Toggler<'a, Message> {
     Toggler::new(is_toggled).size(size::DEFAULT)
 }
 

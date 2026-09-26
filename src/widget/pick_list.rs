@@ -13,21 +13,20 @@ pub use iced_widget::pick_list::{Catalog, Handle, Status, Style};
 
 pub type StyleFn<'a> = iced_widget::pick_list::StyleFn<'a, Theme>;
 
-pub type PickList<'a, Item, Options, Selected, Message, Renderer = iced_widget::Renderer> =
-    iced_widget::PickList<'a, Item, Options, Selected, Message, Theme, Renderer>;
+pub type PickList<'a, Item, Options, Selected, Message> =
+    iced_widget::PickList<'a, Item, Options, Selected, Message, Theme>;
 
 /// Creates a pick list using Moonveil's concrete theme.
-pub fn pick_list<'a, Item, Options, Selected, Message, Renderer>(
+pub fn pick_list<'a, Item, Options, Selected, Message>(
     selected: Option<Selected>,
     options: Options,
     to_string: impl Fn(&Item) -> String + 'a,
-) -> PickList<'a, Item, Options, Selected, Message, Renderer>
+) -> PickList<'a, Item, Options, Selected, Message>
 where
     Item: PartialEq + Clone + 'a,
     Options: Borrow<[Item]> + 'a,
     Selected: Borrow<Item> + 'a,
     Message: Clone,
-    Renderer: iced_core::text::Renderer,
 {
     PickList::new(selected, options, to_string)
 }

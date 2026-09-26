@@ -296,22 +296,18 @@ where
         self.base.as_widget().size()
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
         self.base
             .as_widget_mut()
-            .layout(&mut tree.children[0], renderer, limits)
+            .layout(&mut tree.children[0], renderer, limits);
+        tree.size = tree.children[0].size;
     }
 
     fn update(
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -342,6 +338,7 @@ where
                         .downcast_mut::<State>()
                         .open(position, &self.items);
                     shell.capture_event();
+                    shell.invalidate_overlay();
                     shell.request_redraw();
                 }
             }
@@ -361,7 +358,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
@@ -379,7 +376,7 @@ where
     fn mouse_interaction(
         &self,
         tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
@@ -396,59 +393,59 @@ where
     fn operate(
         &mut self,
         tree: &mut Tree,
-        layout: Layout<'_>,
+        layout: Layout,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
-        self.base
-            .as_widget_mut()
-            .operate(&mut tree.children[0], layout, renderer, operation);
+        self.base.as_widget_mut().operate(
+            &mut tree.children[0],
+            layout,
+            viewport,
+            renderer,
+            operation,
+        );
     }
 
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'b>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+        window: Size,
+    ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let state = tree.state.downcast_mut::<State>();
 
-        let base_overlay = if state.is_open() {
-            None
-        } else {
-            self.base.as_widget_mut().overlay(
+        if !state.is_open() {
+            return self.base.as_widget_mut().overlay(
                 &mut tree.children[0],
                 layout,
                 renderer,
                 viewport,
                 translation,
-            )
-        };
-
-        let menu_overlay = state.is_open().then(|| {
-            overlay::Element::new(Box::new(ContextMenuOverlay {
-                state,
-                items: &self.items,
-                width: self.width,
-                max_height: self.max_height,
-                translation,
-                trigger: layout.bounds() + translation,
-                class: &self.class,
-            }))
-        });
-
-        if base_overlay.is_some() || menu_overlay.is_some() {
-            Some(
-                overlay::Group::with_children(
-                    base_overlay.into_iter().chain(menu_overlay).collect(),
-                )
-                .overlay(),
-            )
-        } else {
-            None
+                window,
+            );
         }
+
+        let overlay = ContextMenuOverlay {
+            state,
+            items: &self.items,
+            width: self.width,
+            max_height: self.max_height,
+            translation,
+            trigger: layout.bounds() + translation,
+            class: &self.class,
+            window,
+        };
+        let _ = menu::stack_mut(
+            overlay.items,
+            overlay.state,
+            &overlay.metrics(Rectangle::with_size(window)),
+        );
+
+        vec![overlay::Element::new(Box::new(overlay))]
     }
 }
 
@@ -472,6 +469,7 @@ struct ContextMenuOverlay<'a, 'b, Message> {
     /// The base widget bounds in overlay coordinates.
     trigger: Rectangle,
     class: &'b <Theme as Catalog>::Class<'a>,
+    window: Size,
 }
 
 impl<Message> ContextMenuOverlay<'_, '_, Message> {
@@ -483,31 +481,21 @@ impl<Message> ContextMenuOverlay<'_, '_, Message> {
             translation: self.translation,
         }
     }
+
+    fn viewport(&self) -> Rectangle {
+        Rectangle::with_size(self.window)
+    }
 }
 
-impl<Message, Renderer> overlay::Overlay<Message, Theme, Renderer>
-    for ContextMenuOverlay<'_, '_, Message>
-where
-    Message: Clone,
-    Renderer: text::Renderer + svg::Renderer,
-{
-    fn layout(&mut self, _renderer: &Renderer, bounds: Size) -> layout::Node {
-        let metrics = self.metrics(Rectangle::with_size(bounds));
-        let _ = menu::stack_mut(self.items, self.state, &metrics);
-
-        layout::Node::new(bounds)
-    }
-
-    fn update(
+impl<Message: Clone> ContextMenuOverlay<'_, '_, Message> {
+    fn handle_event(
         &mut self,
         event: &Event,
-        layout: Layout<'_>,
         cursor: mouse::Cursor,
-        _renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
     ) {
-        let metrics = self.metrics(layout.bounds());
-        let menus = menu::stack(self.items, self.state, &metrics);
+        let metrics = self.metrics(self.viewport());
+        let menus = menu::stack_mut(self.items, self.state, &metrics);
         let position = cursor.land().position();
 
         match event {
@@ -664,13 +652,30 @@ where
             _ => {}
         }
     }
+}
 
-    fn mouse_interaction(
-        &self,
-        layout: Layout<'_>,
+impl<Message, Renderer> overlay::Overlay<Message, Theme, Renderer>
+    for ContextMenuOverlay<'_, '_, Message>
+where
+    Message: Clone,
+    Renderer: text::Renderer + svg::Renderer,
+{
+    fn update(
+        &mut self,
+        event: &Event,
         cursor: mouse::Cursor,
         _renderer: &Renderer,
-    ) -> mouse::Interaction {
+        shell: &mut Shell<'_, Message>,
+    ) {
+        let was_open = self.state.is_open();
+        self.handle_event(event, cursor, shell);
+
+        if self.state.is_open() != was_open {
+            shell.invalidate_overlay();
+        }
+    }
+
+    fn mouse_interaction(&self, cursor: mouse::Cursor, _renderer: &Renderer) -> mouse::Interaction {
         if self.state.scroll_drag.is_some() {
             return mouse::Interaction::Grabbing;
         }
@@ -679,7 +684,7 @@ where
             return mouse::Interaction::default();
         };
 
-        let menus = menu::stack(self.items, self.state, &self.metrics(layout.bounds()));
+        let menus = menu::stack(self.items, self.state, &self.metrics(self.viewport()));
 
         if menu::scrollbar_thumb_at_position(&menus, position).is_some() {
             mouse::Interaction::Grab
@@ -699,20 +704,22 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         _defaults: &renderer::Style,
-        layout: Layout<'_>,
         _cursor: mouse::Cursor,
     ) {
         let style = <Theme as Catalog>::style(theme, self.class);
-        let menus = menu::stack(self.items, self.state, &self.metrics(layout.bounds()));
+        let viewport = self.viewport();
+        let menus = menu::stack(self.items, self.state, &self.metrics(viewport));
 
-        for (level, menu) in menus.iter().enumerate() {
-            draw_menu(
-                renderer,
-                &style,
-                menu,
-                self.state.active_path.get(level).copied(),
-            );
-        }
+        renderer.with_layer(viewport, |renderer| {
+            for (level, menu) in menus.iter().enumerate() {
+                draw_menu(
+                    renderer,
+                    &style,
+                    menu,
+                    self.state.active_path.get(level).copied(),
+                );
+            }
+        });
     }
 }
 
@@ -768,7 +775,7 @@ fn draw_items<Message, Renderer>(
 ) where
     Renderer: text::Renderer + svg::Renderer,
 {
-    let font = renderer.default_font();
+    let font = renderer.font();
     let line_height = text::LineHeight::Relative(1.2);
 
     for (index, item) in menu.items.iter().enumerate() {

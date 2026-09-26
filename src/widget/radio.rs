@@ -10,19 +10,17 @@ pub use iced_widget::radio::{Catalog, Status, Style};
 
 pub type StyleFn<'a> = iced_widget::radio::StyleFn<'a, Theme>;
 
-pub type Radio<'a, Message, Renderer = iced_widget::Renderer> =
-    iced_widget::Radio<'a, Message, Theme, Renderer>;
+pub type Radio<'a, Message> = iced_widget::Radio<'a, Message, Theme>;
 
 /// Creates a radio button using Moonveil's concrete theme.
-pub fn radio<'a, Message, Renderer, Value>(
+pub fn radio<'a, Message, Value>(
     label: impl Into<String>,
     value: Value,
     selected: Option<Value>,
     on_click: impl FnOnce(Value) -> Message,
-) -> Radio<'a, Message, Renderer>
+) -> Radio<'a, Message>
 where
     Message: Clone,
-    Renderer: iced_core::text::Renderer,
     Value: Copy + Eq,
 {
     Radio::new(label, value, selected, on_click)

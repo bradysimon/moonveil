@@ -157,3 +157,14 @@ fn scroll_offset_is_clamped_to_content() {
         max_scroll_offset(menu.content_height, menu.bounds.height)
     );
 }
+
+#[test]
+fn menu_corners_are_concentric_with_control_corners() {
+    let theme = Theme::default_dark();
+    let style = menu::appearance(&theme, menu::Variant::Standard);
+
+    assert_eq!(
+        style.border.radius.top_left,
+        theme.appearance().radius.sm + MENU_PADDING
+    );
+}

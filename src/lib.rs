@@ -14,7 +14,8 @@ pub mod widget;
 pub use color::Color;
 pub use contrast::{Contrast, Targets};
 pub use theme::{
-    Appearance, BorderWidths, Definition, Metadata, Polarity, Radii, Seed, Shadow, Shadows, Theme,
+    Appearance, BorderWidths, Definition, Depth, Elevation, Metadata, Polarity, Radii, Seed,
+    Shadow, Shadows, Theme,
 };
 pub use token::ResolveError;
 

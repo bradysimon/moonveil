@@ -166,7 +166,7 @@ fn style(
         foreground_border_width: 0.0,
         foreground_border_color: iced_core::Color::TRANSPARENT,
         text_color: Some(text.into()),
-        border_radius: None,
+        border_radius: Some(theme.appearance().radius.full.into()),
         padding_ratio: 0.12,
     }
 }

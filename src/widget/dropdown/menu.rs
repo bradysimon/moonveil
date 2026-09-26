@@ -2,7 +2,7 @@ use iced_core::{Background, Border, Color, Point, Rectangle, Shadow, Size, mouse
 
 use super::{Item, defaults::*};
 use crate::{
-    Theme,
+    Radii, Theme,
     token::{Interaction, Surface},
 };
 
@@ -91,7 +91,7 @@ pub fn appearance(theme: &Theme, variant: Variant) -> Style {
         border: Border {
             color: border.into(),
             width: theme.appearance().border.hairline,
-            radius: theme.appearance().radius.sm.into(),
+            radius: Radii::around(theme.appearance().radius.sm, MENU_PADDING).into(),
         },
         text_color: theme.colors().content.primary.into(),
         disabled_text_color: theme.colors().content.disabled.into(),

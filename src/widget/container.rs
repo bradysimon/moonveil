@@ -122,11 +122,14 @@ pub fn appearance(theme: &Theme, variant: Variant) -> Style {
             Some(theme.colors().borders.subtle),
         ),
         Variant::Surface => surface(theme, theme.surface(Surface::Surface), None),
-        Variant::Raised => surface(
-            theme,
-            theme.surface(Surface::Raised),
-            Some(theme.colors().borders.standard),
-        ),
+        Variant::Raised => Style {
+            shadow: theme.appearance().shadow.raised.into(),
+            ..surface(
+                theme,
+                theme.surface(Surface::Raised),
+                Some(theme.colors().borders.standard),
+            )
+        },
         Variant::Overlay => surface(
             theme,
             theme.surface(Surface::Overlay),

@@ -14,7 +14,7 @@ use iced_anim::Animate;
 
 mod appearance;
 
-pub use appearance::{Appearance, BorderWidths, Radii, Shadow, Shadows};
+pub use appearance::{Appearance, BorderWidths, Depth, Elevation, Radii, Shadow, Shadows};
 
 /// Human-readable information about a theme.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -57,17 +57,45 @@ pub struct Definition {
     pub profile: Contrast,
     /// The seed colors that derive resolved tokens.
     pub seed: Seed,
+    /// Corner radii used by controls and surfaces.
+    pub radius: Radii,
+    /// Border widths used by decoration, controls, and focus indicators.
+    pub border: BorderWidths,
+    /// Shadows for content placed above another plane.
+    pub elevation: Elevation,
 }
 
 impl Definition {
-    /// Creates a theme definition.
+    /// Creates a theme definition with Moonveil's standard radii, borders, and
+    /// shadows for the given [`Polarity`].
     pub fn new(metadata: Metadata, polarity: Polarity, profile: Contrast, seed: Seed) -> Self {
         Self {
             metadata,
             polarity,
             profile,
             seed,
+            radius: Radii::STANDARD,
+            border: BorderWidths::STANDARD,
+            elevation: Elevation::standard(polarity),
         }
+    }
+
+    /// Sets the corner radii.
+    pub fn with_radius(mut self, radius: Radii) -> Self {
+        self.radius = radius;
+        self
+    }
+
+    /// Sets the border widths.
+    pub fn with_border(mut self, border: BorderWidths) -> Self {
+        self.border = border;
+        self
+    }
+
+    /// Sets the shadows.
+    pub fn with_elevation(mut self, elevation: Elevation) -> Self {
+        self.elevation = elevation;
+        self
     }
 
     /// Returns the default theme [`Definition`] for the given [`Polarity`].
@@ -140,6 +168,7 @@ impl Definition {
                 info: Color::from_rgb8(0x8c, 0xdb, 0xef),
             },
         )
+        .with_border(BorderWidths::STRONG)
     }
 }
 
@@ -393,6 +422,8 @@ mod tests {
             theme.definition().seed.accent,
             Color::from_rgb8(0x8d, 0xd2, 0xff)
         );
+        assert_eq!(theme.appearance().border, BorderWidths::STRONG);
+        assert_eq!(theme.appearance().radius, Radii::STANDARD);
     }
 
     #[test]

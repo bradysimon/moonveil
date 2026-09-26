@@ -9,7 +9,7 @@ mod tests;
 use std::borrow::Cow;
 
 use crate::{
-    Element, Theme,
+    Element, Radii, Theme,
     token::{Interaction, Surface},
 };
 use defaults::*;
@@ -753,7 +753,9 @@ fn draw_menu<Message, Renderer: text::Renderer>(
     cursor: mouse::Cursor,
 ) {
     renderer.with_layer(
-        menu.bounds.expand(style.shadow.blur_radius + 4.0),
+        menu.bounds.expand(
+            style.shadow.blur_radius + style.shadow.offset.x.abs().max(style.shadow.offset.y.abs()),
+        ),
         |renderer| {
             renderer.fill_quad(
                 Quad {
@@ -830,7 +832,8 @@ fn draw_items<Message, Renderer: text::Renderer>(
                     renderer.fill_quad(
                         Quad {
                             bounds: visible,
-                            border: Border::default().rounded(4.0),
+                            border: Border::default()
+                                .rounded(Radii::within(style.border.radius.top_left, MENU_PADDING)),
                             ..Quad::default()
                         },
                         style.hover_background,
@@ -931,7 +934,8 @@ fn draw_scroll_indicator<Renderer: renderer::Renderer>(
         renderer.fill_quad(
             Quad {
                 bounds: thumb,
-                border: Border::default().rounded(SCROLLBAR_WIDTH / 2.0),
+                border: Border::default()
+                    .rounded(style.border.radius.top_left.min(SCROLLBAR_WIDTH / 2.0)),
                 ..Quad::default()
             },
             style.scrollbar_color,

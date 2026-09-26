@@ -39,7 +39,7 @@ pub(super) fn appearance(theme: &Theme, status: Status, variant: Variant) -> App
             ),
             placeholder: theme.colors().content.disabled.into(),
             value: theme.colors().content.disabled.into(),
-            selection: theme.colors().interaction.selection.into(),
+            selection: theme.colors().interaction.text_selection.into(),
         };
     }
 
@@ -80,7 +80,7 @@ pub(super) fn appearance(theme: &Theme, status: Status, variant: Variant) -> App
         border: border(theme, border_color, border_width),
         placeholder: theme.colors().content.muted.into(),
         value: theme.colors().content.primary.into(),
-        selection: theme.colors().interaction.selection.into(),
+        selection: theme.colors().interaction.text_selection.into(),
     }
 }
 

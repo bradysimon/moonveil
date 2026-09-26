@@ -352,7 +352,7 @@ pub struct Interactions {
     /// Hover overlay for selected content.
     pub selected_hover: Color,
     /// Overlay used to highlight selected text in an editable field.
-    pub selection: Color,
+    pub text_selection: Color,
     /// Overlay for content currently being dragged.
     pub dragged: Color,
     /// Overlay identifying a valid drop destination.
@@ -367,7 +367,7 @@ impl Interactions {
             Interaction::Pressed => self.pressed,
             Interaction::Selected => self.selected,
             Interaction::SelectedHover => self.selected_hover,
-            Interaction::Selection => self.selection,
+            Interaction::Selection => self.text_selection,
             Interaction::Dragged => self.dragged,
             Interaction::DropTarget => self.drop_target,
         }

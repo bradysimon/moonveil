@@ -158,6 +158,51 @@ fn scroll_offset_is_clamped_to_content() {
     );
 }
 
+/// We don't want the scrollbar to overlap with the selected item background.
+#[test]
+fn scrollable_rows_leave_a_gap_before_the_scrollbar() {
+    let items = (0..20)
+        .map(|index| item(format!("Item {index}"), Message::One))
+        .collect::<Vec<_>>();
+    let trigger = Rectangle::new(Point::new(10.0, 10.0), Size::new(120.0, 30.0));
+    let menu = layout(
+        &items,
+        0.0,
+        trigger,
+        Some(DEFAULT_WIDTH),
+        120.0,
+        4.0,
+        Rectangle::with_size(Size::new(800.0, 600.0)),
+    );
+    let track = scrollbar_track_bounds(&menu).expect("scrollbar track");
+    let row = item_bounds(&items, 0, &menu);
+
+    assert!(row.x + row.width + SCROLLBAR_GAP <= track.x + f32::EPSILON);
+}
+
+/// If there's nothing to scroll, don't reserve room for the scrollbar.
+#[test]
+fn non_scrollable_rows_use_symmetric_padding() {
+    let items = menu();
+    let trigger = Rectangle::new(Point::new(10.0, 10.0), Size::new(120.0, 30.0));
+    let menu = layout(
+        &items,
+        0.0,
+        trigger,
+        Some(DEFAULT_WIDTH),
+        MAX_HEIGHT,
+        4.0,
+        Rectangle::with_size(Size::new(800.0, 600.0)),
+    );
+    let row = item_bounds(&items, 1, &menu);
+
+    assert_eq!(row.x - menu.bounds.x, MENU_PADDING);
+    assert_eq!(
+        menu.bounds.x + menu.bounds.width - (row.x + row.width),
+        MENU_PADDING
+    );
+}
+
 #[test]
 fn menu_corners_are_concentric_with_control_corners() {
     let theme = Theme::default_dark();

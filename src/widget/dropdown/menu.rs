@@ -197,16 +197,31 @@ pub fn item_bounds<Message, Font>(
 ) -> Rectangle {
     let y = menu.bounds.y + MENU_PADDING - menu.scroll_offset
         + items.iter().take(index).map(item_height).sum::<f32>();
+    row_bounds(menu, y, item_height(&items[index]))
+}
+
+/// Places a row horizontally, keeping it clear of the scrollbar when the menu scrolls.
+fn row_bounds(menu: &Layout, y: f32, height: f32) -> Rectangle {
+    let right_inset = if is_scrollable(menu) {
+        SCROLLBAR_EDGE_PADDING + SCROLLBAR_WIDTH + SCROLLBAR_GAP
+    } else {
+        MENU_PADDING
+    };
+
     Rectangle {
         x: menu.bounds.x + MENU_PADDING,
         y,
-        width: menu.bounds.width - MENU_PADDING * 2.0,
-        height: item_height(&items[index]),
+        width: menu.bounds.width - MENU_PADDING - right_inset,
+        height,
     }
 }
 
+fn is_scrollable(menu: &Layout) -> bool {
+    menu.content_height > menu.bounds.height
+}
+
 pub fn scrollbar_track_bounds(menu: &Layout) -> Option<Rectangle> {
-    (menu.content_height > menu.bounds.height).then(|| Rectangle {
+    is_scrollable(menu).then(|| Rectangle {
         x: menu.bounds.x + menu.bounds.width - SCROLLBAR_EDGE_PADDING - SCROLLBAR_WIDTH,
         y: menu.bounds.y + SCROLLBAR_EDGE_PADDING,
         width: SCROLLBAR_WIDTH,
@@ -276,12 +291,7 @@ pub fn hit_test<Message, Font>(
     let mut y = menu.bounds.y + MENU_PADDING - menu.scroll_offset;
     for (index, item) in items.iter().enumerate() {
         let height = item_height(item);
-        let bounds = Rectangle {
-            x: menu.bounds.x + MENU_PADDING,
-            y,
-            width: menu.bounds.width - MENU_PADDING * 2.0,
-            height,
-        };
+        let bounds = row_bounds(menu, y, height);
         if bounds
             .intersection(&content_bounds)
             .is_some_and(|visible| visible.contains(position))

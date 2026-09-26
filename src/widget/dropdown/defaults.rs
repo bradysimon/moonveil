@@ -11,5 +11,7 @@ pub(super) const LEADING_SIZE: f32 = 16.0;
 pub(super) const LEADING_GAP: f32 = 8.0;
 pub(super) const SCROLL_LINE_HEIGHT: f32 = 60.0;
 pub(super) const SCROLLBAR_WIDTH: f32 = 4.0;
-pub(super) const SCROLLBAR_EDGE_PADDING: f32 = 4.0;
+pub(super) const SCROLLBAR_EDGE_PADDING: f32 = 3.0;
+/// The space between a scrollable menu's rows and its scrollbar.
+pub(super) const SCROLLBAR_GAP: f32 = 3.0;
 pub(super) const SCROLLBAR_HIT_PADDING: f32 = 6.0;

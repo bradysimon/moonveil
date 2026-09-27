@@ -6,7 +6,7 @@
 use std::rc::Rc;
 
 use crate::{
-    Element, Theme, icon,
+    Element, Theme, icon, spacing,
     token::{Intent, Surface},
     widget::{button, column, container, row, scrollable, svg, text},
 };
@@ -477,9 +477,13 @@ where
         )
     });
 
-    container(scrollable(keyed_column(cards).spacing(STACK_SPACING)).width(max_width))
-        .height(Fit.max(MAX_STACK_HEIGHT))
-        .into()
+    container(
+        scrollable(keyed_column(cards).spacing(STACK_SPACING))
+            .spacing(spacing::XS)
+            .width(max_width),
+    )
+    .height(Fit.max(MAX_STACK_HEIGHT))
+    .into()
 }
 
 fn snackbar_card<'a, Message, Renderer>(

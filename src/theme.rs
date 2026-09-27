@@ -2,7 +2,10 @@
 
 use std::{
     fmt::Display,
-    sync::{Arc, LazyLock},
+    sync::{
+        Arc, LazyLock,
+        atomic::{AtomicU64, Ordering},
+    },
 };
 
 use crate::{
@@ -189,14 +192,38 @@ impl Display for Theme {
 }
 
 /// The internal representation of a [`Theme`].
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 struct Data {
+    /// Unique per resolution, so identity-keyed style caches see rebuilt and
+    /// animated themes as distinct even when their names match.
+    id: String,
     /// The authored definition used to create this theme.
     definition: Definition,
     /// The resolved color tokens derived from the definition.
     colors: Colors,
     /// The resolved non-layout appearance values.
     appearance: Appearance,
+}
+
+impl Data {
+    fn new(definition: Definition, colors: Colors, appearance: Appearance) -> Self {
+        static NEXT_ID: AtomicU64 = AtomicU64::new(0);
+
+        Self {
+            id: format!("moonveil-{}", NEXT_ID.fetch_add(1, Ordering::Relaxed)),
+            definition,
+            colors,
+            appearance,
+        }
+    }
+}
+
+impl PartialEq for Data {
+    fn eq(&self, other: &Self) -> bool {
+        self.definition == other.definition
+            && self.colors == other.colors
+            && self.appearance == other.appearance
+    }
 }
 
 /// The default Moonveil light theme.
@@ -223,11 +250,7 @@ impl Theme {
         let appearance = Appearance::resolve(&definition);
 
         Ok(Self {
-            data: Arc::new(Data {
-                definition,
-                colors,
-                appearance,
-            }),
+            data: Arc::new(Data::new(definition, colors, appearance)),
         })
     }
 
@@ -272,6 +295,14 @@ impl Theme {
     /// depending on the widget's surface.
     pub fn interaction_on(&self, surface: Surface, state: Interaction) -> Color {
         composite(self.colors().interaction.get(state), self.surface(surface))
+    }
+
+    /// Returns an identifier unique to this resolved theme and its clones.
+    ///
+    /// Unlike the theme name, it changes whenever the theme is rebuilt or
+    /// animated, which makes it suitable for invalidating cached styles.
+    pub fn id(&self) -> &str {
+        &self.data.id
     }
 }
 
@@ -326,11 +357,7 @@ impl iced_anim::Animate for Theme {
         colors.update(components);
         appearance.update(components);
 
-        self.data = Arc::new(Data {
-            definition: self.definition().clone(),
-            colors,
-            appearance,
-        });
+        self.data = Arc::new(Data::new(self.definition().clone(), colors, appearance));
     }
 
     fn distance_to(&self, end: &Self) -> Vec<f32> {
@@ -352,11 +379,7 @@ impl iced_anim::Animate for Theme {
         colors.lerp(start.colors(), end.colors(), progress);
         appearance.lerp(start.appearance(), end.appearance(), progress);
 
-        self.data = Arc::new(Data {
-            definition,
-            colors,
-            appearance,
-        });
+        self.data = Arc::new(Data::new(definition, colors, appearance));
     }
 }
 
@@ -459,6 +482,29 @@ mod tests {
         let theme = Theme::new(definition()).unwrap();
         let cloned = theme.clone();
         assert!(Arc::ptr_eq(&theme.data, &cloned.data));
+    }
+
+    #[test]
+    fn id_is_shared_by_clones_and_distinct_across_resolutions() {
+        let theme = Theme::new(definition()).unwrap();
+        let rebuilt = Theme::new(definition()).unwrap();
+
+        assert_eq!(theme.id(), theme.clone().id());
+        assert_ne!(theme.id(), rebuilt.id());
+        assert_eq!(theme, rebuilt);
+    }
+
+    #[test]
+    fn animation_produces_a_new_id() {
+        let start = Theme::default_dark();
+        let end = Theme::default_light();
+        let mut theme = start.clone();
+
+        theme.lerp(&start, &end, 1.0);
+
+        assert_eq!(theme, end);
+        assert_ne!(theme.id(), start.id());
+        assert_ne!(theme.id(), end.id());
     }
 
     #[test]

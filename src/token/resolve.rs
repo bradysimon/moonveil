@@ -7,11 +7,13 @@ use crate::{
 
 use super::{
     BorderRole, Borders, Colors, Content, ContentRole, Intent, Interactions, ResolveError,
-    Surfaces, TokenRole, semantic::Resolver as SemanticResolver,
+    Surfaces, Syntax, SyntaxRole, TokenRole, semantic::Resolver as SemanticResolver,
 };
 
 const MINIMUM_SURFACE_LIGHTNESS_DELTA: f32 = 0.01;
 const CONTRAST_EPSILON: f32 = 0.000_1;
+/// Oklch chroma requested for hued syntax roles before sRGB gamut mapping.
+const SYNTAX_CHROMA: f32 = 0.18;
 
 impl Colors {
     /// Derives and validates all color tokens for an authored theme definition.
@@ -161,6 +163,30 @@ impl Colors {
         let danger = semantic_resolver.resolve(Intent::Danger, definition.seed.danger)?;
         let info = semantic_resolver.resolve(Intent::Info, definition.seed.info)?;
 
+        let syntax_foreground = |role, seed| {
+            require_foreground(
+                TokenRole::Syntax(role),
+                vivid(seed, &neutral_colors, targets.normal_text),
+                &neutral_colors,
+                "all opaque neutral surfaces",
+                targets.normal_text,
+            )
+        };
+        let syntax = Syntax {
+            keyword: syntax_foreground(SyntaxRole::Keyword, definition.seed.accent)?,
+            type_name: syntax_foreground(SyntaxRole::TypeName, definition.seed.warning)?,
+            function: syntax_foreground(SyntaxRole::Function, definition.seed.info)?,
+            string: syntax_foreground(SyntaxRole::String, definition.seed.success)?,
+            constant: syntax_foreground(SyntaxRole::Constant, definition.seed.danger)?,
+            comment: require_foreground(
+                TokenRole::Syntax(SyntaxRole::Comment),
+                faded(muted_alpha),
+                &neutral_colors,
+                "all opaque neutral surfaces",
+                targets.normal_text,
+            )?,
+        };
+
         let interaction = Interactions {
             hover,
             pressed,
@@ -196,6 +222,7 @@ impl Colors {
             warning,
             danger,
             info,
+            syntax,
         };
         colors.validate(definition)?;
 
@@ -267,14 +294,8 @@ impl Colors {
             &neutral,
             targets.boundary,
         )?;
-
-        for (intent, semantic) in [
-            (Intent::Accent, self.accent),
-            (Intent::Success, self.success),
-            (Intent::Warning, self.warning),
-            (Intent::Danger, self.danger),
-            (Intent::Info, self.info),
-        ] {
+        for intent in Intent::ALL {
+            let semantic = self.semantic(intent);
             super::semantic::validate(
                 intent,
                 semantic,
@@ -282,6 +303,16 @@ impl Colors {
                 &neutral,
                 targets.normal_text,
                 targets.boundary,
+            )?;
+        }
+
+        for role in SyntaxRole::ALL {
+            let foreground = self.syntax.color(role);
+            validate_contrast(
+                TokenRole::Syntax(role),
+                foreground,
+                &neutral,
+                targets.normal_text,
             )?;
         }
 
@@ -379,6 +410,20 @@ fn validate_surfaces(surfaces: &Surfaces, polarity: Polarity) -> Result<(), Reso
     }
 
     Ok(())
+}
+
+/// Raises a seed's chroma toward [`SYNTAX_CHROMA`] at the lightness where it
+/// meets `minimum_ratio`, since the sRGB gamut's chroma limit depends on lightness.
+fn vivid(seed: Color, backgrounds: &[Color], minimum_ratio: f32) -> Color {
+    let [lightness, chroma, hue, alpha] = Oklch::from(seed).components();
+    let chroma = chroma.max(SYNTAX_CHROMA);
+    let saturated = Color::from(Oklch::new(lightness, chroma, hue, alpha));
+    let Some(adjusted) = adjust_foreground(saturated, backgrounds, minimum_ratio) else {
+        return seed;
+    };
+    let lightness = Oklch::from(adjusted).components()[0];
+
+    Color::from(Oklch::new(lightness, chroma, hue, alpha))
 }
 
 pub(super) fn require_foreground(
@@ -515,6 +560,23 @@ mod tests {
                 info: Color::from_rgb(0.361, 0.761, 0.733),
             },
         )
+    }
+
+    #[test]
+    fn syntax_tokens_are_more_saturated_than_semantic_foregrounds() {
+        for polarity in [Polarity::Dark, Polarity::Light] {
+            let colors = Colors::resolve(&Definition::default_for(polarity)).unwrap();
+            let chroma = |color: Color| Oklch::from(color).components()[1];
+
+            for (syntax, semantic) in [
+                (colors.syntax.keyword, colors.accent.foreground),
+                (colors.syntax.type_name, colors.warning.foreground),
+                (colors.syntax.function, colors.info.foreground),
+                (colors.syntax.string, colors.success.foreground),
+            ] {
+                assert!(chroma(syntax) > chroma(semantic) + 0.005);
+            }
+        }
     }
 
     #[test]

@@ -2,13 +2,14 @@ use iced::Length::Fill;
 use iced::widget::{column, row};
 use iced::{Alignment, Color as IcedColor, Length};
 use moonveil::widget::text::TextExt as _;
+use moonveil::widget::text_editor::TextEditorExt as _;
 use moonveil::{
-    Color, Element, Radii, Theme, spacing,
+    Color, Element, Radii, Theme, highlighter, spacing,
     token::Intent,
     widget::{
-        Column, Labeled, Space, button, checkbox, container, context_menu, dialog, dropdown,
-        labeled, pick_list, progress_bar, radio, rule, scrollable, slider, snackbar, svg, tab_bar,
-        text, text_editor, text_input, toggler, tooltip,
+        Column, Labeled, Row, Space, button, checkbox, container, context_menu, dialog, dropdown,
+        labeled, markdown, pick_list, progress_bar, radio, rule, scrollable, slider, snackbar, svg,
+        tab_bar, text, text_editor, text_input, toggler, tooltip,
     },
 };
 
@@ -40,6 +41,8 @@ struct Gallery {
     endpoint: String,
     code_value: String,
     notes: text_editor::Content,
+    markdown_source: text_editor::Content,
+    markdown: markdown::Content,
     snackbars: snackbar::State<Message>,
     dialog: dialog::State,
 }
@@ -72,6 +75,8 @@ fn boot() -> Gallery {
         notes: text_editor::Content::with_text(
             "[deploy]\nregion = \"us-east-1\"\nstrategy = \"rolling\"",
         ),
+        markdown_source: text_editor::Content::with_text(MARKDOWN_SAMPLE),
+        markdown: markdown::Content::parse(MARKDOWN_SAMPLE),
         snackbars: snackbar::State::default(),
         dialog: dialog::State::default(),
     }
@@ -98,6 +103,8 @@ enum Message {
     AlertThresholdChanged(f32),
     EditField(Field, String),
     EditNotes(text_editor::Action),
+    EditMarkdown(text_editor::Action),
+    OpenLink(markdown::Uri),
 }
 
 fn update(gallery: &mut Gallery, message: Message) {
@@ -145,6 +152,19 @@ fn update(gallery: &mut Gallery, message: Message) {
             Field::CodeValue => gallery.code_value = value,
         },
         Message::EditNotes(action) => gallery.notes.perform(action),
+        Message::EditMarkdown(action) => {
+            let is_edit = action.is_edit();
+            gallery.markdown_source.perform(action);
+
+            if is_edit {
+                gallery.markdown = markdown::Content::parse(&gallery.markdown_source.text());
+            }
+        }
+        Message::OpenLink(url) => {
+            gallery
+                .snackbars
+                .push(snackbar::Entry::new("Link clicked").description(url));
+        }
     }
 }
 
@@ -324,10 +344,11 @@ enum Section {
     Choice,
     Surfaces,
     Overlays,
+    Markdown,
 }
 
 impl Section {
-    const ALL: [Self; 8] = [
+    const ALL: [Self; 9] = [
         Self::Overview,
         Self::Actions,
         Self::Indicators,
@@ -336,6 +357,7 @@ impl Section {
         Self::Choice,
         Self::Surfaces,
         Self::Overlays,
+        Self::Markdown,
     ];
 
     fn label(self) -> &'static str {
@@ -348,6 +370,7 @@ impl Section {
             Self::Choice => "Choice & scrolling",
             Self::Surfaces => "Surfaces & type",
             Self::Overlays => "Overlays & menus",
+            Self::Markdown => "Markdown & code",
         }
     }
 }
@@ -463,6 +486,7 @@ fn section(gallery: &Gallery) -> Element<'_, Message> {
         Section::Choice => choice(gallery),
         Section::Surfaces => surfaces(),
         Section::Overlays => overlays(gallery),
+        Section::Markdown => markdown_section(gallery),
     }
 }
 
@@ -2346,6 +2370,160 @@ fn tooltip_button(
         text(hint).size(text::size::LABEL),
         position,
     )
+    .into()
+}
+
+const MARKDOWN_SAMPLE: &str = r#"# Release notes
+
+Moonveil renders **Markdown** with the active theme. Links such as
+[the Iced repository](https://github.com/iced-rs/iced) use the accent token,
+and `inline code` sits in a sunken well.
+
+## Highlights
+
+- Syntax highlighting colored by theme tokens
+- Quotes, tables, and task lists
+- Styles that follow theme and rounding changes
+
+> Code colors come from contrast-validated foreground tokens, so they stay
+> readable on every surface.
+
+```rust
+/// Promotes a release once every check has passed.
+fn promote(release: &Release, target: Environment) -> Result<(), Error> {
+    let failed = release.checks().filter(|check| !check.passed()).count();
+
+    if failed > 0 {
+        return Err(Error::FailedChecks(failed));
+    }
+
+    deploy(release, target, "rolling")
+}
+```
+
+```toml
+[deploy]
+region = "us-east-1"
+replicas = 3
+canary = true
+```
+
+### Checklist
+
+- [x] Resolve theme tokens
+- [ ] Promote to production
+
+| Environment | Region | Status |
+| :--- | :--- | :---: |
+| Production | us-east-1 | Healthy |
+| Staging | eu-west-1 | Rolling |
+"#;
+
+fn markdown_section(gallery: &Gallery) -> Element<'_, Message> {
+    container(
+        column![
+            section_heading(
+                "DOCUMENT CATALOGS",
+                "Markdown and syntax highlighting",
+                "Edit the highlighted source to update the rendered preview. Code colors resolve from the active theme's syntax tokens.",
+            ),
+            row![markdown_source(gallery), markdown_preview(gallery)].spacing(spacing::XL),
+            syntax_legend(),
+        ]
+        .spacing(18),
+    )
+    .padding(28)
+    .width(Fill)
+    .height(Fill)
+    .into()
+}
+
+fn markdown_source(gallery: &Gallery) -> Element<'_, Message> {
+    column![
+        text("Source").class(text::Variant::Primary),
+        text("Text editor highlighted as Markdown")
+            .size(text::size::CAPTION)
+            .class(text::Variant::Muted),
+        text_editor(&gallery.markdown_source)
+            .on_action(Message::EditMarkdown)
+            .class(text_editor::Variant::Code)
+            .font(iced::Font::MONOSPACE)
+            .size(text::size::LABEL)
+            .height(520)
+            .padding(spacing::MD)
+            .highlight("md"),
+    ]
+    .spacing(9)
+    .width(Fill)
+    .into()
+}
+
+fn markdown_preview(gallery: &Gallery) -> Element<'_, Message> {
+    let preview = markdown::view(
+        gallery.markdown.items(),
+        markdown::settings(),
+        gallery.theme.clone(),
+    )
+    .map(Message::OpenLink);
+
+    column![
+        text("Preview").class(text::Variant::Primary),
+        text("Rendered with the Moonveil markdown catalog")
+            .size(text::size::CAPTION)
+            .class(text::Variant::Muted),
+        scrollable(container(preview).padding(iced::Padding {
+            right: spacing::MD,
+            ..iced::Padding::ZERO
+        }))
+        .height(520),
+    ]
+    .spacing(9)
+    .width(Fill)
+    .into()
+}
+
+fn syntax_legend() -> Element<'static, Message> {
+    let tokens = [
+        ("keyword", highlighter::Code::Keyword),
+        ("Type", highlighter::Code::Type),
+        ("function", highlighter::Code::Function),
+        ("\"string\"", highlighter::Code::String),
+        ("42", highlighter::Code::Constant),
+        ("// comment", highlighter::Code::Comment),
+        ("{ }", highlighter::Code::Punctuation),
+    ];
+
+    let swatches =
+        tokens
+            .into_iter()
+            .fold(Row::new().spacing(spacing::LG), |row, (sample, code)| {
+                row.push(
+                    text(sample)
+                        .font(iced::Font {
+                            style: if code == highlighter::Code::Comment {
+                                iced::font::Style::Italic
+                            } else {
+                                iced::font::Style::Normal
+                            },
+                            ..iced::Font::MONOSPACE
+                        })
+                        .size(13)
+                        .style(move |theme| text::Style {
+                            color: highlighter::highlight(code, theme).color,
+                        }),
+                )
+            });
+
+    container(
+        column![
+            text("SYNTAX TOKENS").size(10).class(text::Variant::Muted),
+            swatches,
+        ]
+        .spacing(spacing::SM),
+    )
+    .class(container::Variant::Sunken)
+    .padding(spacing::LG)
+    .width(Fill)
     .into()
 }
 

@@ -1,4 +1,4 @@
-//! Text editors using Moonveil's concrete theme and resolved field tokens.
+//! Text editors display a multi-line text input for text editing.
 
 use crate::{Theme, widget::field};
 
@@ -8,14 +8,14 @@ pub use iced_widget::text_editor::{
     Status, Style,
 };
 
-/// A custom text editor style function using Moonveil's concrete theme.
 pub type StyleFn<'a> = iced_widget::text_editor::StyleFn<'a, Theme>;
 
-/// An Iced plain-text editor using Moonveil's concrete theme.
 pub type TextEditor<'a, Message, Renderer = iced_widget::Renderer> =
     iced_widget::TextEditor<'a, iced_core::text::parser::PlainText, Message, Theme, Renderer>;
 
-/// Creates a plain-text editor using Moonveil's concrete theme.
+/// Creates a new [`TextEditor`].
+///
+/// Text editors display a multi-line text input for text editing.
 pub fn text_editor<'a, Message, Renderer>(
     content: &'a Content<Renderer>,
 ) -> TextEditor<'a, Message, Renderer>
@@ -24,6 +24,33 @@ where
     Renderer: iced_core::text::Renderer,
 {
     TextEditor::new(content)
+}
+
+#[cfg(feature = "highlighter")]
+pub type HighlightedTextEditor<'a, Message, Renderer = iced_widget::Renderer> =
+    iced_widget::TextEditor<'a, crate::highlighter::Parser, Message, Theme, Renderer>;
+
+#[cfg(feature = "highlighter")]
+pub trait TextEditorExt<'a, Message, Renderer: iced_core::text::Renderer> {
+    /// Highlights the content as the given syntax, identified by a file
+    /// extension or language name such as `"rs"` or `"toml"`.
+    fn highlight(self, syntax: &str) -> HighlightedTextEditor<'a, Message, Renderer>;
+}
+
+#[cfg(feature = "highlighter")]
+impl<'a, Message, Renderer> TextEditorExt<'a, Message, Renderer>
+    for TextEditor<'a, Message, Renderer>
+where
+    Renderer: iced_core::text::Renderer,
+{
+    fn highlight(self, syntax: &str) -> HighlightedTextEditor<'a, Message, Renderer> {
+        self.highlight_with(
+            crate::highlighter::Settings {
+                token: syntax.to_owned(),
+            },
+            crate::highlighter::highlight,
+        )
+    }
 }
 
 /// A built-in Moonveil text editor style.

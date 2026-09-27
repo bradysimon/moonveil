@@ -82,6 +82,16 @@ pub enum Intent {
     Info,
 }
 
+impl Intent {
+    pub const ALL: [Intent; 5] = [
+        Intent::Accent,
+        Intent::Success,
+        Intent::Warning,
+        Intent::Danger,
+        Intent::Info,
+    ];
+}
+
 /// A token within a semantic color family.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
@@ -93,6 +103,29 @@ pub enum SemanticRole {
     Border,
 }
 
+/// A syntax highlighting token identified in a resolution error.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum SyntaxRole {
+    Keyword,
+    TypeName,
+    Function,
+    String,
+    Constant,
+    Comment,
+}
+
+impl SyntaxRole {
+    pub const ALL: [SyntaxRole; 6] = [
+        SyntaxRole::Keyword,
+        SyntaxRole::TypeName,
+        SyntaxRole::Function,
+        SyntaxRole::String,
+        SyntaxRole::Constant,
+        SyntaxRole::Comment,
+    ];
+}
+
 /// A resolved token identified in a resolution error.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
@@ -100,6 +133,7 @@ pub enum TokenRole {
     Content(ContentRole),
     Border(BorderRole),
     Semantic(Intent, SemanticRole),
+    Syntax(SyntaxRole),
 }
 
 impl fmt::Display for ContentRole {
@@ -151,12 +185,26 @@ impl fmt::Display for SemanticRole {
     }
 }
 
+impl fmt::Display for SyntaxRole {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            Self::Keyword => "keyword",
+            Self::TypeName => "type_name",
+            Self::Function => "function",
+            Self::String => "string",
+            Self::Constant => "constant",
+            Self::Comment => "comment",
+        })
+    }
+}
+
 impl fmt::Display for TokenRole {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Content(role) => write!(formatter, "content.{role}"),
             Self::Border(role) => write!(formatter, "borders.{role}"),
             Self::Semantic(intent, role) => write!(formatter, "{intent}.{role}"),
+            Self::Syntax(role) => write!(formatter, "syntax.{role}"),
         }
     }
 }
@@ -411,6 +459,42 @@ pub struct Semantic {
     pub border: Color,
 }
 
+/// Syntax highlighting foregrounds for code shown on opaque neutral surfaces.
+///
+/// Hued roles keep their semantic seed's hue with boosted chroma. Unlike
+/// semantic foregrounds, they are not validated over interaction overlays,
+/// which leaves room for more saturated colors.
+#[non_exhaustive]
+#[derive(Debug, Clone, Copy, PartialEq, Animate)]
+pub struct Syntax {
+    /// Keywords and storage modifiers, derived from the accent seed.
+    pub keyword: Color,
+    /// Types, classes, and paths, derived from the warning seed.
+    pub type_name: Color,
+    /// Functions and built-ins, derived from the info seed.
+    pub function: Color,
+    /// String and character literals, derived from the success seed.
+    pub string: Color,
+    /// Numeric, boolean, and other constants, derived from the danger seed.
+    pub constant: Color,
+    /// Comments, validated against the same surfaces as the hued roles.
+    pub comment: Color,
+}
+
+impl Syntax {
+    /// Gets the matching color for the given [`SyntaxRole`].
+    pub fn color(&self, role: SyntaxRole) -> Color {
+        match role {
+            SyntaxRole::Keyword => self.keyword,
+            SyntaxRole::TypeName => self.type_name,
+            SyntaxRole::Function => self.function,
+            SyntaxRole::String => self.string,
+            SyntaxRole::Constant => self.constant,
+            SyntaxRole::Comment => self.comment,
+        }
+    }
+}
+
 /// All resolved color tokens for a theme.
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Animate)]
@@ -433,4 +517,19 @@ pub struct Colors {
     pub danger: Semantic,
     /// Informational and neutral-notice roles.
     pub info: Semantic,
+    /// Syntax highlighting foregrounds for code.
+    pub syntax: Syntax,
+}
+
+impl Colors {
+    /// Gets the matching [`Semantic`] colors for the given [`Intent`]
+    pub fn semantic(&self, intent: Intent) -> Semantic {
+        match intent {
+            Intent::Accent => self.accent,
+            Intent::Success => self.success,
+            Intent::Warning => self.warning,
+            Intent::Danger => self.danger,
+            Intent::Info => self.info,
+        }
+    }
 }

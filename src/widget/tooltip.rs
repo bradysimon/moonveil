@@ -4,7 +4,7 @@
 //! with [`Tooltip::delay`].
 
 use crate::{Element, Theme, spacing, widget::container};
-use iced_core::{Pixels, text, time::Duration};
+use iced_core::{Padding, Pixels, text, time::Duration};
 
 pub use iced_widget::tooltip::Position;
 
@@ -12,7 +12,12 @@ pub use iced_widget::tooltip::Position;
 pub const DEFAULT_GAP: Pixels = Pixels(spacing::XS);
 
 /// The default padding around tooltip content.
-pub const DEFAULT_PADDING: Pixels = Pixels(spacing::XS);
+pub const DEFAULT_PADDING: Padding = Padding {
+    top: spacing::XS,
+    bottom: spacing::XS,
+    left: spacing::SM,
+    right: spacing::SM,
+};
 
 /// The default delay before a tooltip appears.
 pub const DEFAULT_DELAY: Duration = Duration::from_millis(400);

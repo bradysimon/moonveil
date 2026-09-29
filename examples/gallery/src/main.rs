@@ -1,6 +1,6 @@
 use iced::Length::Fill;
 use iced::widget::{column, row};
-use iced::{Alignment, Color as IcedColor, Length};
+use iced::{Alignment, Color as IcedColor, Font, Length, font};
 use moonveil::widget::text::TextExt as _;
 use moonveil::widget::text_editor::TextEditorExt as _;
 use moonveil::{
@@ -450,9 +450,7 @@ fn toolbar(gallery: &Gallery) -> Element<'_, Message> {
                 text(gallery.section.label())
                     .size(text::size::HEADING)
                     .class(text::Variant::Primary),
-                text(gallery.theme.definition().metadata.name.as_str())
-                    .size(text::size::LABEL)
-                    .class(text::Variant::Muted),
+                text(&gallery.theme.definition().metadata.name).class(text::Variant::Muted),
             ]
             .spacing(3),
             Space::new().width(Fill),
@@ -493,12 +491,11 @@ fn section(gallery: &Gallery) -> Element<'_, Message> {
 fn overview(gallery: &Gallery) -> Element<'_, Message> {
     let definition = gallery.theme.definition();
     let seed = definition.seed;
-    let colors = gallery.theme.colors();
     let description = definition
         .metadata
         .description
         .as_deref()
-        .unwrap_or("A contrast-aware palette resolved seed colors.");
+        .unwrap_or("A contrast-aware palette from resolved seed colors.");
 
     container(
         column![
@@ -510,7 +507,9 @@ fn overview(gallery: &Gallery) -> Element<'_, Message> {
                     text(definition.metadata.name.as_str())
                         .size(34)
                         .class(text::Variant::Primary),
-                    text(description).size(14).class(text::Variant::Secondary),
+                    text(description)
+                        .size(text::size::TITLE)
+                        .class(text::Variant::Secondary),
                     row![
                         palette_bar(seed.accent),
                         palette_bar(seed.success),
@@ -532,46 +531,18 @@ fn overview(gallery: &Gallery) -> Element<'_, Message> {
                     color_swatch("Foreground", seed.foreground),
                     color_swatch("Tint", seed.tint),
                     color_swatch("Shade", seed.shade),
+                ]
+                .spacing(spacing::XS),
+                row![
                     color_swatch("Accent", seed.accent),
                     color_swatch("Success", seed.success),
                     color_swatch("Warning", seed.warning),
                     color_swatch("Danger", seed.danger),
                     color_swatch("Info", seed.info),
                 ]
-                .spacing(spacing::SM),
+                .spacing(spacing::XS),
             ]
-            .spacing(spacing::SM),
-            row![
-                column![
-                    palette_heading("SEMANTIC SIGNALS", "Resolved solid fills"),
-                    row![
-                        semantic_palette("Accent", Intent::Accent),
-                        semantic_palette("Success", Intent::Success),
-                        semantic_palette("Warning", Intent::Warning),
-                        semantic_palette("Danger", Intent::Danger),
-                        semantic_palette("Info", Intent::Info),
-                    ]
-                    .spacing(spacing::SM),
-                ]
-                .spacing(spacing::SM)
-                .width(Length::FillPortion(3)),
-                column![
-                    palette_heading("SURFACE SCALE", "Seven steps of depth"),
-                    row![
-                        surface_chip("Sunken", colors.surfaces.sunken),
-                        surface_chip("Canvas", colors.surfaces.canvas),
-                        surface_chip("Inset", colors.surfaces.inset),
-                        surface_chip("Surface", colors.surfaces.surface),
-                        surface_chip("Raised", colors.surfaces.raised),
-                        surface_chip("Overlay", colors.surfaces.overlay),
-                        surface_chip("Field", colors.surfaces.field),
-                    ]
-                    .spacing(spacing::XS),
-                ]
-                .spacing(spacing::SM)
-                .width(Length::FillPortion(2)),
-            ]
-            .spacing(spacing::LG),
+            .spacing(spacing::XS),
         ]
         .spacing(22),
     )
@@ -601,50 +572,16 @@ fn palette_bar(color: Color) -> Element<'static, Message> {
 }
 
 fn color_swatch(label: &'static str, color: Color) -> Element<'static, Message> {
-    container(
-        column![
-            Space::new().height(54),
-            text(label).size(10),
-            text(color_hex(color)).size(9),
-        ]
-        .spacing(3),
-    )
-    .style(move |theme| color_style(color, theme.appearance().radius.md))
-    .padding(10)
-    .width(Fill)
-    .height(112)
-    .into()
-}
-
-fn semantic_palette(label: &'static str, intent: Intent) -> Element<'static, Message> {
-    container(
-        column![
-            Space::new().height(38),
-            text(label).size(text::size::LABEL),
-            text("SOLID").size(9),
-        ]
-        .spacing(3),
-    )
-    .class(container::Variant::Semantic {
-        intent,
-        style: container::SemanticStyle::Solid,
-    })
-    .padding(10)
-    .width(Fill)
-    .height(94)
-    .into()
-}
-
-fn surface_chip(label: &'static str, color: Color) -> Element<'static, Message> {
-    container(column![Space::new().height(42), text(label).size(9),].spacing(3))
-        .style(move |theme| {
-            let mut style = color_style(color, 5.0);
-            style.text_color = Some(theme.colors().content.primary.into());
-            style
-        })
-        .padding(7)
+    let spacing = Space::new().height(54);
+    let title = text(label).font(Font {
+        weight: font::Weight::Semibold,
+        ..Default::default()
+    });
+    container(column![spacing, title, text(color_hex(color))])
+        .style(move |theme| color_style(color, theme.appearance().radius.md))
+        .padding(10)
         .width(Fill)
-        .height(78)
+        .height(112)
         .into()
 }
 
@@ -680,11 +617,7 @@ fn color_hex(color: Color) -> String {
 fn actions() -> Element<'static, Message> {
     container(
         column![
-            section_heading(
-                "BUTTON CATALOG",
-                "Actions and explicit states",
-                "Use the live controls, then compare the catalog output across states below.",
-            ),
+            section_heading("BUTTON CATALOG", "Actions and explicit states", None),
             live_actions(),
             matrix_heading(),
             variant_row("Primary", button::Variant::Primary),
@@ -725,36 +658,36 @@ fn live_actions() -> Element<'static, Message> {
     container(
         column![
             row![
-                button(text("Create request").size(13))
+                button(text("Primary"))
                     .class(button::Variant::Primary)
                     .on_press(Message::Action),
-                button(text("Save draft").size(13))
+                button(text("Secondary"))
                     .class(button::Variant::Secondary)
                     .on_press(Message::Action),
-                button(text("Compare").size(13))
+                button(text("Outline"))
                     .class(button::Variant::Outline)
                     .on_press(Message::Action),
-                button(text("Cancel").size(13))
+                button(text("Ghost"))
                     .class(button::Variant::Ghost)
                     .on_press(Message::Action),
-                button(text("Disabled").size(13)).class(button::Variant::Secondary),
+                button(text("Disabled")).class(button::Variant::Secondary),
             ]
             .spacing(spacing::SM)
             .align_y(Alignment::Center),
             row![
-                button(text("Run checks").size(13))
+                button(text("Success (solid)"))
                     .class(button::Variant::Semantic {
                         intent: Intent::Success,
                         style: button::SemanticStyle::Solid,
                     })
                     .on_press(Message::Action),
-                button(text("Delete").size(13))
+                button(text("Danger (soft)"))
                     .class(button::Variant::Semantic {
                         intent: Intent::Danger,
                         style: button::SemanticStyle::Soft,
                     })
                     .on_press(Message::Action),
-                button(text("Inspect info").size(13))
+                button(text("Info (outline)"))
                     .class(button::Variant::Semantic {
                         intent: Intent::Info,
                         style: button::SemanticStyle::Outline,
@@ -825,11 +758,7 @@ fn forced_button(
 fn indicators() -> Element<'static, Message> {
     container(
         column![
-            section_heading(
-                "CONTENT CATALOGS",
-                "Badges, separation, and progress",
-                "Badges label statuses and counts; rules organize related content; progress indicators use semantic colors only when the operation carries that meaning.",
-            ),
+            section_heading("CONTENT CATALOGS", "Badges, separation, and progress", None),
             row![badge_specimens(), badge_matrix()].spacing(spacing::MD),
             row![operation_progress(), quota_progress()].spacing(spacing::MD),
             progress_matrix(),
@@ -1165,11 +1094,7 @@ fn rule_specimens() -> Element<'static, Message> {
 fn selection(gallery: &Gallery) -> Element<'_, Message> {
     container(
         column![
-            section_heading(
-                "CONTROL CATALOGS",
-                "Controls and selection",
-                "Live controls exercise behavior; the compact matrices expose every style status supported by Iced.",
-            ),
+            section_heading("CONTROL CATALOGS", "Controls and selection", None),
             row![live_selection(gallery), svg_specimens()].spacing(spacing::MD),
             tab_bar_specimens(gallery),
             row![checkbox_matrix(), radio_matrix(), toggler_matrix()].spacing(spacing::MD),
@@ -1627,11 +1552,7 @@ fn forced_slider(value: f32, status: slider::Status) -> Element<'static, Message
 fn fields(gallery: &Gallery) -> Element<'_, Message> {
     container(
         column![
-            section_heading(
-                "FIELD CATALOGS",
-                "Structured input",
-                "Live values exercise editing while the matrix fixes equivalent single-line and multiline controls in every exposed state.",
-            ),
+            section_heading("FIELD CATALOGS", "Structured input", None),
             row![live_fields(gallery), live_editor(gallery)].spacing(spacing::MD),
             field_state_matrix(gallery),
         ]
@@ -1802,14 +1723,9 @@ fn field_state_row<'a>(
 fn choice(gallery: &Gallery) -> Element<'_, Message> {
     container(
         column![
-            section_heading(
-                "CHOICE & NAVIGATION",
-                "Menus and bounded regions",
-                "Open the environment field to inspect the menu overlay, then compare real overflow behavior across each supported scroll direction.",
-            ),
+            section_heading("CHOICE & NAVIGATION", "Menus and bounded regions", None),
             row![pick_list_specimens(gallery), pick_list_matrix()].spacing(spacing::MD),
             scrollable_specimens(),
-            scrollable_state_matrix(),
         ]
         .spacing(spacing::LG),
     )
@@ -2013,80 +1929,10 @@ fn metric(label: &'static str, value: &'static str) -> Element<'static, Message>
     .into()
 }
 
-fn scrollable_state_matrix() -> Element<'static, Message> {
-    container(
-        column![
-            text("Forced rail states")
-                .size(13)
-                .class(text::Variant::Primary),
-            row![
-                forced_scrollable(
-                    "Active",
-                    scrollable::Status::Active {
-                        is_horizontal_scrollbar_disabled: true,
-                        is_vertical_scrollbar_disabled: false,
-                    },
-                ),
-                forced_scrollable(
-                    "Hovered",
-                    scrollable::Status::Hovered {
-                        is_horizontal_scrollbar_hovered: false,
-                        is_vertical_scrollbar_hovered: true,
-                        is_horizontal_scrollbar_disabled: true,
-                        is_vertical_scrollbar_disabled: false,
-                    },
-                ),
-                forced_scrollable(
-                    "Dragged",
-                    scrollable::Status::Dragged {
-                        is_horizontal_scrollbar_dragged: false,
-                        is_vertical_scrollbar_dragged: true,
-                        is_horizontal_scrollbar_disabled: true,
-                        is_vertical_scrollbar_disabled: false,
-                    },
-                ),
-            ]
-            .spacing(10),
-        ]
-        .spacing(spacing::SM),
-    )
-    .class(container::Variant::Raised)
-    .padding(spacing::MD)
-    .width(Fill)
-    .into()
-}
-
-fn forced_scrollable(label: &'static str, status: scrollable::Status) -> Element<'static, Message> {
-    column![
-        text(label).size(9).class(text::Variant::Muted),
-        scrollable(
-            column![
-                text("Worker ready").size(10),
-                text("Build complete").size(10),
-                text("Checks passed").size(10),
-                text("Artifact uploaded").size(10),
-            ]
-            .spacing(6),
-        )
-        .style(move |theme, _| {
-            scrollable::appearance(theme, status, scrollable::Variant::Standard)
-        })
-        .height(52)
-        .width(Fill),
-    ]
-    .spacing(5)
-    .width(Fill)
-    .into()
-}
-
 fn surfaces() -> Element<'static, Message> {
     container(
         column![
-            section_heading(
-                "CONTENT FOUNDATIONS",
-                "Planes and readable roles",
-                "Depth comes from ordered surfaces and boundaries. Shadows are reserved for floating placement.",
-            ),
+            section_heading("CONTENT FOUNDATIONS", "Planes and readable roles", None),
             row![
                 surface_swatch("Sunken", "Code wells", container::Variant::Sunken),
                 surface_swatch("Canvas", "App chrome", container::Variant::Canvas),
@@ -2205,7 +2051,7 @@ fn overlays(gallery: &Gallery) -> Element<'_, Message> {
             section_heading(
                 "OVERLAY CATALOGS",
                 "Deployment controls",
-                "A focused release workspace for transient feedback, action menus, and modal confirmation.",
+                Some("A focused release workspace for transient feedback, action menus, and modal confirmation."),
             ),
             deployment_summary(gallery),
             row![
@@ -2561,7 +2407,7 @@ fn markdown_section(gallery: &Gallery) -> Element<'_, Message> {
             section_heading(
                 "DOCUMENT CATALOGS",
                 "Markdown and syntax highlighting",
-                "Edit the highlighted source to update the rendered preview. Code colors resolve from the active theme's syntax tokens.",
+                Some("Edit the highlighted source to update the rendered preview. Code colors resolve from the active theme's syntax tokens."),
             ),
             row![markdown_source(gallery), markdown_preview(gallery)].spacing(spacing::XL),
             syntax_legend(),
@@ -2666,14 +2512,16 @@ fn syntax_legend() -> Element<'static, Message> {
 fn section_heading(
     eyebrow: &'static str,
     title: &'static str,
-    detail: &'static str,
+    detail: Option<&'static str>,
 ) -> Element<'static, Message> {
     column![
         text(eyebrow)
             .size(text::size::CAPTION)
             .class(text::Variant::Decorative),
-        text(title).size(26).class(text::Variant::Primary),
-        text(detail).size(13).class(text::Variant::Secondary),
+        text(title)
+            .size(text::size::DISPLAY)
+            .class(text::Variant::Primary),
+        detail.map(|detail| text(detail).class(text::Variant::Secondary)),
     ]
     .spacing(5)
     .into()

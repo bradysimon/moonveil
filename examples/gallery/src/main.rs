@@ -7,9 +7,9 @@ use moonveil::{
     Color, Element, Radii, Theme, highlighter, spacing,
     token::Intent,
     widget::{
-        Column, Labeled, Row, Space, button, checkbox, container, context_menu, dialog, dropdown,
-        labeled, markdown, pick_list, progress_bar, radio, rule, scrollable, slider, snackbar, svg,
-        tab_bar, text, text_editor, text_input, toggler, tooltip,
+        Column, Labeled, Row, Space, badge, button, checkbox, container, context_menu, dialog,
+        dropdown, labeled, markdown, pick_list, progress_bar, radio, rule, scrollable, slider,
+        snackbar, svg, tab_bar, text, text_editor, text_input, toggler, tooltip,
     },
 };
 
@@ -364,7 +364,7 @@ impl Section {
         match self {
             Self::Overview => "Overview",
             Self::Actions => "Actions",
-            Self::Indicators => "Rules & progress",
+            Self::Indicators => "Badges & progress",
             Self::Selection => "Controls & selection",
             Self::Fields => "Fields & editor",
             Self::Choice => "Choice & scrolling",
@@ -827,9 +827,10 @@ fn indicators() -> Element<'static, Message> {
         column![
             section_heading(
                 "CONTENT CATALOGS",
-                "Separation and progress",
-                "Rules organize related content; progress indicators use semantic colors only when the operation carries that meaning.",
+                "Badges, separation, and progress",
+                "Badges label statuses and counts; rules organize related content; progress indicators use semantic colors only when the operation carries that meaning.",
             ),
+            row![badge_specimens(), badge_matrix()].spacing(spacing::MD),
             row![operation_progress(), quota_progress()].spacing(spacing::MD),
             progress_matrix(),
             rule_specimens(),
@@ -840,6 +841,141 @@ fn indicators() -> Element<'static, Message> {
     .width(Fill)
     .height(Fill)
     .into()
+}
+
+fn badge_specimens() -> Element<'static, Message> {
+    let soft = |intent| badge::Variant::Semantic {
+        intent,
+        style: badge::SemanticStyle::Soft,
+    };
+    let request = |method: &'static str, intent, path: &'static str| {
+        row![
+            badge(method)
+                .class(soft(intent))
+                .size(badge::Size::Small)
+                .width(52),
+            text(path).size(13).class(text::Variant::Secondary),
+        ]
+        .spacing(spacing::SM)
+        .align_y(Alignment::Center)
+    };
+
+    container(
+        column![
+            row![
+                text("Sessions API").size(15).class(text::Variant::Primary),
+                badge("3").shape(badge::Shape::Pill),
+                Space::new().width(Fill),
+                badge("200 OK").class(soft(Intent::Success)),
+                badge("142 ms").class(badge::Variant::Outline),
+            ]
+            .spacing(spacing::SM)
+            .align_y(Alignment::Center),
+            rule::horizontal(1).class(rule::Variant::Subtle),
+            request("GET", Intent::Accent, "/v1/sessions"),
+            request("POST", Intent::Success, "/v1/sessions"),
+            request("DELETE", Intent::Danger, "/v1/sessions/{id}"),
+            rule::horizontal(1).class(rule::Variant::Subtle),
+            row![
+                badge("Active").class(badge::Variant::Semantic {
+                    intent: Intent::Accent,
+                    style: badge::SemanticStyle::Solid,
+                }),
+                badge("string").class(badge::Variant::Outline),
+                badge("deprecated").class(badge::Variant::Semantic {
+                    intent: Intent::Warning,
+                    style: badge::SemanticStyle::Outline,
+                }),
+            ]
+            .spacing(spacing::XS)
+            .align_y(Alignment::Center),
+        ]
+        .spacing(spacing::MD),
+    )
+    .class(container::Variant::Raised)
+    .padding(spacing::LG)
+    .width(Fill)
+    .into()
+}
+
+fn badge_matrix() -> Element<'static, Message> {
+    let intent_row = |label: &'static str, intent| {
+        row![
+            text(label)
+                .size(text::size::LABEL)
+                .class(text::Variant::Secondary)
+                .width(84),
+            badge_cell(badge::Variant::Semantic {
+                intent,
+                style: badge::SemanticStyle::Solid,
+            }),
+            badge_cell(badge::Variant::Semantic {
+                intent,
+                style: badge::SemanticStyle::Soft,
+            }),
+            badge_cell(badge::Variant::Semantic {
+                intent,
+                style: badge::SemanticStyle::Outline,
+            }),
+        ]
+        .spacing(spacing::MD)
+        .align_y(Alignment::Center)
+    };
+
+    container(
+        column![
+            row![
+                text("INTENT")
+                    .size(10)
+                    .class(text::Variant::Muted)
+                    .width(84),
+                matrix_label("SOLID"),
+                matrix_label("SOFT"),
+                matrix_label("OUTLINE"),
+            ]
+            .spacing(spacing::MD)
+            .align_y(Alignment::Center),
+            row![
+                text("Neutral")
+                    .size(text::size::LABEL)
+                    .class(text::Variant::Secondary)
+                    .width(84),
+                container(Space::new()).width(Fill),
+                badge_cell(badge::Variant::Neutral),
+                badge_cell(badge::Variant::Outline),
+            ]
+            .spacing(spacing::MD)
+            .align_y(Alignment::Center),
+            intent_row("Accent", Intent::Accent),
+            intent_row("Success", Intent::Success),
+            intent_row("Warning", Intent::Warning),
+            intent_row("Danger", Intent::Danger),
+            intent_row("Info", Intent::Info),
+            row![
+                text("Sizes")
+                    .size(text::size::LABEL)
+                    .class(text::Variant::Secondary)
+                    .width(84),
+                badge("Small").size(badge::Size::Small),
+                badge("Medium"),
+                badge("Large").size(badge::Size::Large),
+                badge("Pill").shape(badge::Shape::Pill),
+            ]
+            .spacing(spacing::SM)
+            .align_y(Alignment::Center),
+        ]
+        .spacing(spacing::MD),
+    )
+    .class(container::Variant::Inset)
+    .padding(spacing::LG)
+    .width(Fill)
+    .into()
+}
+
+fn badge_cell(variant: badge::Variant) -> Element<'static, Message> {
+    container(badge("Label").class(variant))
+        .center_x(Fill)
+        .into()
 }
 
 fn operation_progress() -> Element<'static, Message> {

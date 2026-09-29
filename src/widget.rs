@@ -1,5 +1,6 @@
 //! Iced widgets bound to Moonveil's concrete theme.
 
+pub mod badge;
 pub mod button;
 pub mod checkbox;
 pub mod column;
@@ -35,6 +36,7 @@ pub mod tooltip;
 
 pub use iced_widget::{Space, space};
 
+pub use badge::{Badge, badge};
 pub use button::{Button, button};
 pub use checkbox::{Checkbox, checkbox};
 pub use column::{Column, column};

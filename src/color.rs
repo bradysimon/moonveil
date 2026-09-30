@@ -84,6 +84,31 @@ impl Color {
         [self.red, self.green, self.blue, self.alpha]
     }
 
+    /// Returns near-black or near-white text, whichever has the higher WCAG
+    /// contrast on this opaque color.
+    pub fn on_color(self) -> Self {
+        crate::contrast::on_color_foreground(self)
+    }
+
+    /// Multiplies this color's linear-light sRGB channels by `matrix`,
+    /// clamping the result to the sRGB gamut.
+    ///
+    /// Used for simulating color vision deficiencies like protanopia and
+    /// deuteranopia as part of selecting categorical colors.
+    pub(crate) fn transform_linear(self, matrix: [[f32; 3]; 3]) -> Self {
+        let linear = [
+            srgb_to_linear(self.red),
+            srgb_to_linear(self.green),
+            srgb_to_linear(self.blue),
+        ];
+        let [red, green, blue] = matrix.map(|[red, green, blue]| {
+            let channel = red * linear[0] + green * linear[1] + blue * linear[2];
+            linear_to_srgb(channel.clamp(0.0, 1.0)).clamp(0.0, 1.0)
+        });
+
+        Self::new(red, green, blue, self.alpha)
+    }
+
     /// Mixes two sRGB colors in the [`Oklab`] color space.
     /// Clamps `amount` to the range [0.0, 1.0].
     pub(crate) fn mix_oklab(self, other: Self, amount: f32) -> Self {

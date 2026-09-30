@@ -6,8 +6,8 @@ use crate::{
 };
 
 use super::{
-    BorderRole, Borders, Colors, Content, ContentRole, Intent, Interactions, ResolveError,
-    Surfaces, Syntax, SyntaxRole, TokenRole, semantic::Resolver as SemanticResolver,
+    BorderRole, Borders, Categorical, Colors, Content, ContentRole, Intent, Interactions,
+    ResolveError, Surfaces, Syntax, SyntaxRole, TokenRole, semantic::Resolver as SemanticResolver,
 };
 
 const MINIMUM_SURFACE_LIGHTNESS_DELTA: f32 = 0.01;
@@ -16,6 +16,16 @@ const CONTRAST_EPSILON: f32 = 0.000_1;
 const SYNTAX_CHROMA: f32 = 0.18;
 /// Hue rotation from the accent seed for the syntax function role, in degrees.
 const FUNCTION_HUE_OFFSET: f32 = 60.0;
+const CATEGORICAL_SEED_NAMES: [&str; Categorical::SLOTS] = [
+    "categorical[0]",
+    "categorical[1]",
+    "categorical[2]",
+    "categorical[3]",
+    "categorical[4]",
+    "categorical[5]",
+    "categorical[6]",
+    "categorical[7]",
+];
 
 impl Colors {
     /// Derives and validates all color tokens for an authored theme definition.
@@ -163,6 +173,11 @@ impl Colors {
         let success = semantic_resolver.resolve(Intent::Success, definition.seed.success)?;
         let warning = semantic_resolver.resolve(Intent::Warning, definition.seed.warning)?;
         let danger = semantic_resolver.resolve(Intent::Danger, definition.seed.danger)?;
+        let categorical = Categorical::resolve(
+            &definition.seed,
+            &definition.categorical,
+            &semantic_resolver,
+        )?;
         let function_seed = {
             let [lightness, chroma, hue, alpha] = Oklch::from(definition.seed.accent).components();
             Color::from(Oklch::new(
@@ -231,6 +246,7 @@ impl Colors {
             success,
             warning,
             danger,
+            categorical,
             syntax,
         };
         colors.validate(definition)?;
@@ -306,8 +322,18 @@ impl Colors {
         for intent in Intent::ALL {
             let semantic = self.semantic(intent);
             super::semantic::validate(
-                intent,
+                |role| TokenRole::Semantic(intent, role),
                 semantic,
+                &interactive,
+                &neutral,
+                targets.normal_text,
+                targets.boundary,
+            )?;
+        }
+        for (slot, semantic) in self.categorical.all().iter().enumerate() {
+            super::semantic::validate(
+                |role| TokenRole::Categorical(slot, role),
+                *semantic,
                 &interactive,
                 &neutral,
                 targets.normal_text,
@@ -352,7 +378,13 @@ fn validate_definition(definition: &Definition) -> Result<(), ResolveError> {
         ("success", seed.success),
         ("warning", seed.warning),
         ("danger", seed.danger),
-    ] {
+    ]
+    .into_iter()
+    .chain(
+        CATEGORICAL_SEED_NAMES
+            .into_iter()
+            .zip(definition.categorical.as_slice().iter().copied()),
+    ) {
         let alpha = color.components()[3];
         if (alpha - 1.0).abs() > f32::EPSILON {
             return Err(ResolveError::NonOpaqueSeed { seed: name, alpha });

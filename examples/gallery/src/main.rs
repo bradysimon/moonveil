@@ -541,12 +541,53 @@ fn overview(gallery: &Gallery) -> Element<'_, Message> {
                 .spacing(spacing::XS),
             ]
             .spacing(spacing::XS),
+            categorical_swatches(gallery),
         ]
         .spacing(22),
     )
     .padding(28)
     .width(Fill)
     .height(Fill)
+    .into()
+}
+
+fn categorical_swatches(gallery: &Gallery) -> Element<'_, Message> {
+    let categorical = gallery.theme.colors().categorical;
+    let authored = categorical.authored().len();
+    let swatch = |index: usize| {
+        let pair = categorical.all()[index].solid.active;
+        let origin = if index < authored {
+            "Authored"
+        } else {
+            "Generated"
+        };
+        let title = text(format!("Slot {}", index + 1)).font(Font {
+            weight: font::Weight::Semibold,
+            ..Default::default()
+        });
+        container(column![
+            Space::new().height(36),
+            title,
+            text(origin).size(text::size::CAPTION),
+            text(color_hex(pair.color)),
+        ])
+        .style(move |theme: &Theme| {
+            color_style(pair.color, pair.text, theme.appearance().radius.md)
+        })
+        .padding(10)
+        .width(Fill)
+        .into()
+    };
+
+    column![
+        palette_heading(
+            "CATEGORICAL",
+            "Distinct colors for tags, series, and labels"
+        ),
+        row((0..4).map(swatch)).spacing(spacing::XS),
+        row((4..8).map(swatch)).spacing(spacing::XS),
+    ]
+    .spacing(spacing::XS)
     .into()
 }
 
@@ -562,8 +603,9 @@ fn palette_heading(title: &'static str, detail: &'static str) -> Element<'static
 }
 
 fn palette_bar(color: Color) -> Element<'static, Message> {
+    let text_color = color.on_color();
     container(Space::new())
-        .style(move |theme| color_style(color, theme.definition().radius.xs))
+        .style(move |theme| color_style(color, text_color, theme.definition().radius.xs))
         .height(10)
         .width(Fill)
         .into()
@@ -575,25 +617,19 @@ fn color_swatch(label: &'static str, color: Color) -> Element<'static, Message> 
         weight: font::Weight::Semibold,
         ..Default::default()
     });
+    let text_color = color.on_color();
     container(column![spacing, title, text(color_hex(color))])
-        .style(move |theme| color_style(color, theme.appearance().radius.md))
+        .style(move |theme| color_style(color, text_color, theme.appearance().radius.md))
         .padding(10)
         .width(Fill)
         .height(112)
         .into()
 }
 
-fn color_style(color: Color, radius: f32) -> container::Style {
-    let iced_color: IcedColor = color.into();
-    let luminance = 0.299 * iced_color.r + 0.587 * iced_color.g + 0.114 * iced_color.b;
-
+fn color_style(color: Color, text_color: Color, radius: f32) -> container::Style {
     container::Style {
-        text_color: Some(if luminance > 0.58 {
-            IcedColor::from_rgb8(20, 22, 25)
-        } else {
-            IcedColor::WHITE
-        }),
-        background: Some(iced::Background::Color(iced_color)),
+        text_color: Some(text_color.into()),
+        background: Some(iced::Background::Color(color.into())),
         border: iced::Border {
             radius: radius.into(),
             ..iced::Border::default()

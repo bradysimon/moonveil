@@ -5,8 +5,11 @@ use std::{error::Error, fmt};
 use crate::Color;
 use iced_anim::Animate;
 
+mod categorical;
 mod resolve;
 mod semantic;
+
+pub use categorical::Categorical;
 
 /// A content token identified in a resolution error.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -131,6 +134,8 @@ pub enum TokenRole {
     Content(ContentRole),
     Border(BorderRole),
     Semantic(Intent, SemanticRole),
+    /// A role within the categorical slot at the given index.
+    Categorical(usize, SemanticRole),
     Syntax(SyntaxRole),
 }
 
@@ -201,6 +206,7 @@ impl fmt::Display for TokenRole {
             Self::Content(role) => write!(formatter, "content.{role}"),
             Self::Border(role) => write!(formatter, "borders.{role}"),
             Self::Semantic(intent, role) => write!(formatter, "{intent}.{role}"),
+            Self::Categorical(slot, role) => write!(formatter, "categorical.{slot}.{role}"),
             Self::Syntax(role) => write!(formatter, "syntax.{role}"),
         }
     }
@@ -512,6 +518,8 @@ pub struct Colors {
     pub warning: Semantic,
     /// Destructive, invalid, and error-state roles.
     pub danger: Semantic,
+    /// Colors for distinguishing unordered categories.
+    pub categorical: Categorical,
     /// Syntax highlighting foregrounds for code.
     pub syntax: Syntax,
 }

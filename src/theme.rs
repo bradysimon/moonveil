@@ -11,7 +11,7 @@ use std::{
 use crate::{
     Color, Contrast, ResolveError,
     contrast::composite,
-    token::{Colors, Interaction, Surface},
+    token::{Categorical, Colors, Interaction, Surface},
 };
 use iced_anim::Animate;
 
@@ -48,6 +48,82 @@ pub struct Seed {
     pub danger: Color,
 }
 
+/// Up to [`Categorical::SLOTS`] authored categorical colors, most distinct first.
+///
+/// Author these when a palette has its own set of accent hues, such as
+/// Catppuccin's or Nord's, so tags, chart series, and other categorical UI use
+/// the palette's real colors. Leave slots out rather than inventing colors;
+/// missing slots are generated to match the authored colors' lightness and
+/// chroma. See [`Categorical`] for how the resolved slots are used.
+///
+/// ```
+/// # use moonveil::{Color, Definition, Polarity};
+/// let definition = Definition::default_for(Polarity::Dark).with_categorical([
+///     Color::from_rgb8(0xc4, 0xa7, 0xe7),
+///     Color::from_rgb8(0x9c, 0xcf, 0xd8),
+///     Color::from_rgb8(0xf6, 0xc1, 0x77),
+/// ]);
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct CategoricalSeeds {
+    colors: [Color; Categorical::SLOTS],
+    len: usize,
+}
+
+impl CategoricalSeeds {
+    /// No authored colors; every slot is generated.
+    pub const EMPTY: Self = Self::new([]);
+
+    /// Creates categorical seeds from at most [`Categorical::SLOTS`] colors.
+    ///
+    /// ```compile_fail
+    /// # use moonveil::{CategoricalSeeds, Color};
+    /// let _ = CategoricalSeeds::new([Color::from_rgb(0.0, 0.0, 0.0); 9]);
+    /// ```
+    pub const fn new<const N: usize>(colors: [Color; N]) -> Self {
+        const {
+            assert!(
+                N <= Categorical::SLOTS,
+                "at most 8 categorical colors can be authored"
+            )
+        };
+        let mut slots = [Color::from_rgb(0.0, 0.0, 0.0); Categorical::SLOTS];
+        let mut index = 0;
+        while index < N {
+            slots[index] = colors[index];
+            index += 1;
+        }
+
+        Self {
+            colors: slots,
+            len: N,
+        }
+    }
+
+    /// Creates categorical seeds from a runtime list, or `None` if it has more
+    /// than [`Categorical::SLOTS`] colors.
+    pub fn from_slice(colors: &[Color]) -> Option<Self> {
+        if colors.len() > Categorical::SLOTS {
+            return None;
+        }
+        let mut seeds = Self::EMPTY;
+        seeds.colors[..colors.len()].copy_from_slice(colors);
+        seeds.len = colors.len();
+        Some(seeds)
+    }
+
+    /// Returns the authored colors in slot order.
+    pub fn as_slice(&self) -> &[Color] {
+        &self.colors[..self.len]
+    }
+}
+
+impl Default for CategoricalSeeds {
+    fn default() -> Self {
+        Self::EMPTY
+    }
+}
+
 /// Authored source data for a Moonveil theme.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Definition {
@@ -59,6 +135,8 @@ pub struct Definition {
     pub profile: Contrast,
     /// The seed colors that derive resolved tokens.
     pub seed: Seed,
+    /// Authored categorical colors; remaining slots are generated.
+    pub categorical: CategoricalSeeds,
     /// Corner radii used by controls and surfaces.
     pub radius: Radii,
     /// Border widths used by decoration, controls, and focus indicators.
@@ -76,10 +154,17 @@ impl Definition {
             polarity,
             profile,
             seed,
+            categorical: CategoricalSeeds::EMPTY,
             radius: Radii::STANDARD,
             border: BorderWidths::STANDARD,
             elevation: Elevation::standard(polarity),
         }
+    }
+
+    /// Sets the authored categorical colors, most distinct first.
+    pub fn with_categorical<const N: usize>(mut self, colors: [Color; N]) -> Self {
+        self.categorical = CategoricalSeeds::new(colors);
+        self
     }
 
     /// Sets the corner radii.
@@ -131,14 +216,14 @@ impl Definition {
                 Polarity::Light,
                 Contrast::Standard,
                 Seed {
-                    background: Color::from_rgb(0.945, 0.933, 0.902),
-                    foreground: Color::from_rgb(0.125, 0.118, 0.106),
-                    tint: Color::from_rgb(1.0, 0.996, 0.980),
-                    shade: Color::from_rgb(0.180, 0.170, 0.150),
-                    accent: Color::from_rgb(0.180, 0.450, 0.570),
-                    success: Color::from_rgb(0.250, 0.500, 0.200),
-                    warning: Color::from_rgb(0.580, 0.380, 0.080),
-                    danger: Color::from_rgb(0.650, 0.200, 0.250),
+                    background: Color::from_rgb8(0xF4, 0xF1, 0xEA),
+                    foreground: Color::from_rgb8(0x1B, 0x1E, 0x24),
+                    tint: Color::from_rgb8(0xFF, 0xFF, 0xFF),
+                    shade: Color::from_rgb8(0x23, 0x27, 0x2C),
+                    accent: Color::from_rgb8(0x26, 0x72, 0x8F),
+                    success: Color::from_rgb8(0x3C, 0x7D, 0x36),
+                    warning: Color::from_rgb8(0x96, 0x65, 0x00),
+                    danger: Color::from_rgb8(0xAD, 0x31, 0x3E),
                 },
             ),
         }

@@ -38,7 +38,16 @@ impl<'a> Resolver<'a> {
     }
 
     pub(super) fn resolve(&self, intent: Intent, seed: Color) -> Result<Semantic, ResolveError> {
-        let solid_token = token(intent, SemanticRole::Solid);
+        self.resolve_as(seed, |role| TokenRole::Semantic(intent, role))
+    }
+
+    /// Resolves semantic roles for `seed`, reporting errors with `token`.
+    pub(super) fn resolve_as(
+        &self,
+        seed: Color,
+        token: impl Fn(SemanticRole) -> TokenRole,
+    ) -> Result<Semantic, ResolveError> {
+        let solid_token = token(SemanticRole::Solid);
         let solid_color = adjust_semantic_solid(seed, self.text_target).ok_or(
             ResolveError::UnsatisfiableContrast {
                 token: solid_token,
@@ -52,18 +61,18 @@ impl<'a> Resolver<'a> {
             with_alpha(solid_color, if self.high_emphasis { 0.22 } else { 0.15 }),
             self.surface,
         );
-        let soft = self.resolve_fill(soft_color, solid_color, token(intent, SemanticRole::Soft))?;
+        let soft = self.resolve_fill(soft_color, solid_color, token(SemanticRole::Soft))?;
 
         Ok(Semantic {
             foreground: require_foreground(
-                token(intent, SemanticRole::Foreground),
+                token(SemanticRole::Foreground),
                 seed,
                 self.interactive_neutral,
                 "all supported neutral surface states",
                 self.text_target,
             )?,
             indicator: require_foreground(
-                token(intent, SemanticRole::Indicator),
+                token(SemanticRole::Indicator),
                 seed,
                 self.neutral,
                 "all opaque neutral surfaces and control tracks",
@@ -72,7 +81,7 @@ impl<'a> Resolver<'a> {
             solid,
             soft,
             border: require_foreground(
-                token(intent, SemanticRole::Border),
+                token(SemanticRole::Border),
                 seed,
                 self.neutral,
                 "all opaque neutral surfaces",
@@ -125,7 +134,7 @@ impl<'a> Resolver<'a> {
 }
 
 pub(super) fn validate(
-    intent: Intent,
+    token: impl Fn(SemanticRole) -> TokenRole,
     semantic: Semantic,
     interactive: &[(&'static str, Color)],
     neutral: &[(&'static str, Color)],
@@ -133,33 +142,25 @@ pub(super) fn validate(
     boundary_target: f32,
 ) -> Result<(), ResolveError> {
     validate_contrast(
-        token(intent, SemanticRole::Foreground),
+        token(SemanticRole::Foreground),
         semantic.foreground,
         interactive,
         text_target,
     )?;
     validate_contrast(
-        token(intent, SemanticRole::Indicator),
+        token(SemanticRole::Indicator),
         semantic.indicator,
         neutral,
         boundary_target,
     )?;
     validate_contrast(
-        token(intent, SemanticRole::Border),
+        token(SemanticRole::Border),
         semantic.border,
         neutral,
         boundary_target,
     )?;
-    validate_fill(
-        semantic.solid,
-        token(intent, SemanticRole::Solid),
-        text_target,
-    )?;
-    validate_fill(
-        semantic.soft,
-        token(intent, SemanticRole::Soft),
-        text_target,
-    )
+    validate_fill(semantic.solid, token(SemanticRole::Solid), text_target)?;
+    validate_fill(semantic.soft, token(SemanticRole::Soft), text_target)
 }
 
 fn validate_fill(fill: Fill, token: TokenRole, minimum_ratio: f32) -> Result<(), ResolveError> {
@@ -171,10 +172,6 @@ fn validate_fill(fill: Fill, token: TokenRole, minimum_ratio: f32) -> Result<(),
         validate_contrast(token, pair.text, &[(background, pair.color)], minimum_ratio)?;
     }
     Ok(())
-}
-
-const fn token(intent: Intent, role: SemanticRole) -> TokenRole {
-    TokenRole::Semantic(intent, role)
 }
 
 #[cfg(test)]

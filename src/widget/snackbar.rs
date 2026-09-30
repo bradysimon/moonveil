@@ -344,7 +344,6 @@ pub fn appearance(theme: &Theme, variant: Variant) -> Style {
             Intent::Success => theme.colors().success.indicator,
             Intent::Warning => theme.colors().warning.indicator,
             Intent::Danger => theme.colors().danger.indicator,
-            Intent::Info => theme.colors().info.indicator,
         },
     };
 
@@ -602,7 +601,7 @@ where
 {
     let handle = match variant {
         Variant::Primary | Variant::Secondary => icon::info(),
-        Variant::Semantic(Intent::Accent | Intent::Info) => icon::info(),
+        Variant::Semantic(Intent::Accent) => icon::info(),
         Variant::Semantic(Intent::Success) => icon::check(),
         Variant::Semantic(Intent::Warning) => icon::triangle_alert(),
         Variant::Semantic(Intent::Danger) => icon::circle_alert(),

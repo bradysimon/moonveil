@@ -174,7 +174,6 @@ fn semantic(theme: &Theme, intent: Intent) -> Semantic {
         Intent::Success => theme.colors().success,
         Intent::Warning => theme.colors().warning,
         Intent::Danger => theme.colors().danger,
-        Intent::Info => theme.colors().info,
     }
 }
 

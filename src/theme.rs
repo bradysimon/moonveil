@@ -46,7 +46,6 @@ pub struct Seed {
     pub success: Color,
     pub warning: Color,
     pub danger: Color,
-    pub info: Color,
 }
 
 /// Authored source data for a Moonveil theme.
@@ -122,7 +121,6 @@ impl Definition {
                     success: Color::from_rgb(0.561, 0.741, 0.525),
                     warning: Color::from_rgb(0.875, 0.706, 0.404),
                     danger: Color::from_rgb(0.875, 0.486, 0.525),
-                    info: Color::from_rgb(0.361, 0.761, 0.733),
                 },
             ),
             Polarity::Light => Definition::new(
@@ -141,7 +139,6 @@ impl Definition {
                     success: Color::from_rgb(0.250, 0.500, 0.200),
                     warning: Color::from_rgb(0.580, 0.380, 0.080),
                     danger: Color::from_rgb(0.650, 0.200, 0.250),
-                    info: Color::from_rgb(0.100, 0.480, 0.450),
                 },
             ),
         }
@@ -168,7 +165,6 @@ impl Definition {
                 success: Color::from_rgb8(0xa6, 0xe8, 0x9a),
                 warning: Color::from_rgb8(0xff, 0xd2, 0x7a),
                 danger: Color::from_rgb8(0xff, 0x90, 0x9b),
-                info: Color::from_rgb8(0x8c, 0xdb, 0xef),
             },
         )
         .with_border(BorderWidths::STRONG)
@@ -406,7 +402,6 @@ mod tests {
                 success: Color::from_rgb(0.561, 0.741, 0.525),
                 warning: Color::from_rgb(0.875, 0.706, 0.404),
                 danger: Color::from_rgb(0.875, 0.486, 0.525),
-                info: Color::from_rgb(0.361, 0.761, 0.733),
             },
         )
     }

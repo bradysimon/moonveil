@@ -184,7 +184,6 @@ fn semantic(theme: &Theme, intent: Intent, style: SemanticStyle) -> Style {
         Intent::Success => theme.colors().success,
         Intent::Warning => theme.colors().warning,
         Intent::Danger => theme.colors().danger,
-        Intent::Info => theme.colors().info,
     };
     let pair = match style {
         SemanticStyle::Solid => semantic.solid.active,

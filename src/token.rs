@@ -79,16 +79,14 @@ pub enum Intent {
     Success,
     Warning,
     Danger,
-    Info,
 }
 
 impl Intent {
-    pub const ALL: [Intent; 5] = [
+    pub const ALL: [Intent; 4] = [
         Intent::Accent,
         Intent::Success,
         Intent::Warning,
         Intent::Danger,
-        Intent::Info,
     ];
 }
 
@@ -168,7 +166,6 @@ impl fmt::Display for Intent {
             Self::Success => "success",
             Self::Warning => "warning",
             Self::Danger => "danger",
-            Self::Info => "info",
         })
     }
 }
@@ -471,7 +468,7 @@ pub struct Syntax {
     pub keyword: Color,
     /// Types, classes, and paths, derived from the warning seed.
     pub type_name: Color,
-    /// Functions and built-ins, derived from the info seed.
+    /// Functions and built-ins, derived from the accent seed with a rotated hue.
     pub function: Color,
     /// String and character literals, derived from the success seed.
     pub string: Color,
@@ -515,8 +512,6 @@ pub struct Colors {
     pub warning: Semantic,
     /// Destructive, invalid, and error-state roles.
     pub danger: Semantic,
-    /// Informational and neutral-notice roles.
-    pub info: Semantic,
     /// Syntax highlighting foregrounds for code.
     pub syntax: Syntax,
 }
@@ -529,7 +524,6 @@ impl Colors {
             Intent::Success => self.success,
             Intent::Warning => self.warning,
             Intent::Danger => self.danger,
-            Intent::Info => self.info,
         }
     }
 }

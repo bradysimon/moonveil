@@ -11,7 +11,6 @@ const EVERFOREST_SEED: Seed = Seed {
     success: Color::from_rgb8(0x8d, 0xa1, 0x01),
     warning: Color::from_rgb8(0xdf, 0xa0, 0x00),
     danger: Color::from_rgb8(0xf8, 0x55, 0x52),
-    info: Color::from_rgb8(0x3a, 0x94, 0xc5),
 };
 
 const ROSE_PINE_SEED: Seed = Seed {
@@ -23,7 +22,6 @@ const ROSE_PINE_SEED: Seed = Seed {
     success: Color::from_rgb8(0x9c, 0xcf, 0xd8),
     warning: Color::from_rgb8(0xf6, 0xc1, 0x77),
     danger: Color::from_rgb8(0xeb, 0x6f, 0x92),
-    info: Color::from_rgb8(0x8b, 0xd5, 0xca),
 };
 
 const CATPPUCCIN_LATTE_SEED: Seed = Seed {
@@ -35,7 +33,6 @@ const CATPPUCCIN_LATTE_SEED: Seed = Seed {
     success: Color::from_rgb8(0x40, 0xa0, 0x2b),
     warning: Color::from_rgb8(0xdf, 0x8e, 0x1d),
     danger: Color::from_rgb8(0xd2, 0x0f, 0x39),
-    info: Color::from_rgb8(0x0f, 0x7f, 0x88),
 };
 
 const NORD_SEED: Seed = Seed {
@@ -47,7 +44,6 @@ const NORD_SEED: Seed = Seed {
     success: Color::from_rgb8(0xa3, 0xbe, 0x8c),
     warning: Color::from_rgb8(0xeb, 0xcb, 0x8b),
     danger: Color::from_rgb8(0xbf, 0x61, 0x6a),
-    info: Color::from_rgb8(0x8f, 0xbc, 0xbb),
 };
 
 static EVERFOREST_THEME: LazyLock<Theme> = LazyLock::new(|| {

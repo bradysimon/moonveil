@@ -81,7 +81,6 @@ pub fn appearance(theme: &Theme, variant: Variant) -> Style {
             Intent::Success => theme.colors().success.indicator,
             Intent::Warning => theme.colors().warning.indicator,
             Intent::Danger => theme.colors().danger.indicator,
-            Intent::Info => theme.colors().info.indicator,
         },
     };
 

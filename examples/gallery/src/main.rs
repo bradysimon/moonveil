@@ -515,7 +515,6 @@ fn overview(gallery: &Gallery) -> Element<'_, Message> {
                         palette_bar(seed.success),
                         palette_bar(seed.warning),
                         palette_bar(seed.danger),
-                        palette_bar(seed.info),
                     ]
                     .spacing(spacing::XS),
                 ]
@@ -538,7 +537,6 @@ fn overview(gallery: &Gallery) -> Element<'_, Message> {
                     color_swatch("Success", seed.success),
                     color_swatch("Warning", seed.warning),
                     color_swatch("Danger", seed.danger),
-                    color_swatch("Info", seed.info),
                 ]
                 .spacing(spacing::XS),
             ]
@@ -639,9 +637,9 @@ fn actions() -> Element<'static, Message> {
                 },
             ),
             variant_row(
-                "Info outline",
+                "Warning outline",
                 button::Variant::Semantic {
-                    intent: Intent::Info,
+                    intent: Intent::Warning,
                     style: button::SemanticStyle::Outline,
                 },
             ),
@@ -687,9 +685,9 @@ fn live_actions() -> Element<'static, Message> {
                         style: button::SemanticStyle::Soft,
                     })
                     .on_press(Message::Action),
-                button(text("Info (outline)"))
+                button(text("Warning (outline)"))
                     .class(button::Variant::Semantic {
-                        intent: Intent::Info,
+                        intent: Intent::Warning,
                         style: button::SemanticStyle::Outline,
                     })
                     .on_press(Message::Action),
@@ -879,7 +877,6 @@ fn badge_matrix() -> Element<'static, Message> {
             intent_row("Success", Intent::Success),
             intent_row("Warning", Intent::Warning),
             intent_row("Danger", Intent::Danger),
-            intent_row("Info", Intent::Info),
             row![
                 text("Sizes")
                     .size(text::size::LABEL)
@@ -1005,7 +1002,6 @@ fn progress_matrix() -> Element<'static, Message> {
                 progress_bar::Variant::Semantic(Intent::Danger),
                 63.0,
             ),
-            progress_row("Info", progress_bar::Variant::Semantic(Intent::Info), 35.0,),
         ]
         .spacing(spacing::MD),
     )
@@ -1979,7 +1975,6 @@ fn surfaces() -> Element<'static, Message> {
                 semantic_sample("Success", Intent::Success),
                 semantic_sample("Warning", Intent::Warning),
                 semantic_sample("Danger", Intent::Danger),
-                semantic_sample("Info", Intent::Info),
             ]
             .spacing(10),
         ]
@@ -2139,7 +2134,7 @@ fn feedback_panel() -> Element<'static, Message> {
                 row![
                     snackbar_button("Warning", snackbar::Variant::Semantic(Intent::Warning),),
                     snackbar_button("Danger", snackbar::Variant::Semantic(Intent::Danger)),
-                    snackbar_button("Info", snackbar::Variant::Semantic(Intent::Info)),
+                    snackbar_button("Accent", snackbar::Variant::Semantic(Intent::Accent)),
                 ]
                 .spacing(spacing::SM),
             ]

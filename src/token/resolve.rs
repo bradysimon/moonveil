@@ -14,6 +14,8 @@ const MINIMUM_SURFACE_LIGHTNESS_DELTA: f32 = 0.01;
 const CONTRAST_EPSILON: f32 = 0.000_1;
 /// Oklch chroma requested for hued syntax roles before sRGB gamut mapping.
 const SYNTAX_CHROMA: f32 = 0.18;
+/// Hue rotation from the accent seed for the syntax function role, in degrees.
+const FUNCTION_HUE_OFFSET: f32 = 60.0;
 
 impl Colors {
     /// Derives and validates all color tokens for an authored theme definition.
@@ -161,7 +163,15 @@ impl Colors {
         let success = semantic_resolver.resolve(Intent::Success, definition.seed.success)?;
         let warning = semantic_resolver.resolve(Intent::Warning, definition.seed.warning)?;
         let danger = semantic_resolver.resolve(Intent::Danger, definition.seed.danger)?;
-        let info = semantic_resolver.resolve(Intent::Info, definition.seed.info)?;
+        let function_seed = {
+            let [lightness, chroma, hue, alpha] = Oklch::from(definition.seed.accent).components();
+            Color::from(Oklch::new(
+                lightness,
+                chroma,
+                (hue + FUNCTION_HUE_OFFSET).rem_euclid(360.0),
+                alpha,
+            ))
+        };
 
         let syntax_foreground = |role, seed| {
             require_foreground(
@@ -175,7 +185,7 @@ impl Colors {
         let syntax = Syntax {
             keyword: syntax_foreground(SyntaxRole::Keyword, definition.seed.accent)?,
             type_name: syntax_foreground(SyntaxRole::TypeName, definition.seed.warning)?,
-            function: syntax_foreground(SyntaxRole::Function, definition.seed.info)?,
+            function: syntax_foreground(SyntaxRole::Function, function_seed)?,
             string: syntax_foreground(SyntaxRole::String, definition.seed.success)?,
             constant: syntax_foreground(SyntaxRole::Constant, definition.seed.danger)?,
             comment: require_foreground(
@@ -207,8 +217,8 @@ impl Colors {
                 if high_emphasis { 0.38 } else { 0.30 },
             ),
             drop_target: with_alpha(
-                info.solid.active.color,
-                if high_emphasis { 0.32 } else { 0.22 },
+                accent.solid.active.color,
+                if high_emphasis { 0.46 } else { 0.36 },
             ),
         };
 
@@ -221,7 +231,6 @@ impl Colors {
             success,
             warning,
             danger,
-            info,
             syntax,
         };
         colors.validate(definition)?;
@@ -343,7 +352,6 @@ fn validate_definition(definition: &Definition) -> Result<(), ResolveError> {
         ("success", seed.success),
         ("warning", seed.warning),
         ("danger", seed.danger),
-        ("info", seed.info),
     ] {
         let alpha = color.components()[3];
         if (alpha - 1.0).abs() > f32::EPSILON {
@@ -557,7 +565,6 @@ mod tests {
                 success: Color::from_rgb(0.561, 0.741, 0.525),
                 warning: Color::from_rgb(0.875, 0.706, 0.404),
                 danger: Color::from_rgb(0.875, 0.486, 0.525),
-                info: Color::from_rgb(0.361, 0.761, 0.733),
             },
         )
     }
@@ -571,7 +578,6 @@ mod tests {
             for (syntax, semantic) in [
                 (colors.syntax.keyword, colors.accent.foreground),
                 (colors.syntax.type_name, colors.warning.foreground),
-                (colors.syntax.function, colors.info.foreground),
                 (colors.syntax.string, colors.success.foreground),
             ] {
                 assert!(chroma(syntax) > chroma(semantic) + 0.005);

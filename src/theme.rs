@@ -216,7 +216,7 @@ impl Definition {
                 Polarity::Light,
                 Contrast::Standard,
                 Seed {
-                    background: Color::from_rgb8(0xF4, 0xF1, 0xEA),
+                    background: Color::from_rgb8(0xF1, 0xF3, 0xF6),
                     foreground: Color::from_rgb8(0x1B, 0x1E, 0x24),
                     tint: Color::from_rgb8(0xFF, 0xFF, 0xFF),
                     shade: Color::from_rgb8(0x23, 0x27, 0x2C),

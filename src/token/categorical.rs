@@ -40,8 +40,15 @@ const DEUTERANOPIA: [[f32; 3]; 3] = [
     [-0.011_820, 0.042_940, 0.968_881],
 ];
 
-/// Scales simulated color-deficient distances, which shrink as red and green
-/// collapse, so they only dominate when a pair nearly merges for those viewers.
+/// Machado et al. (2009) tritanopia simulation at full severity, in linear sRGB.
+const TRITANOPIA: [[f32; 3]; 3] = [
+    [1.255_528, -0.076_749, -0.178_779],
+    [-0.078_411, 0.930_809, 0.147_602],
+    [0.004_733, 0.691_367, 0.303_900],
+];
+
+/// Scales simulated color-deficient distances, which shrink as hues collapse,
+/// so they only dominate when a pair nearly merges for those viewers.
 const DEFICIENT_VISION_SCALE: f32 = 2.0;
 
 /// Colors for telling apart unordered categories, such as tags, chart series,
@@ -72,10 +79,10 @@ const DEFICIENT_VISION_SCALE: f32 = 2.0;
 /// Never use a categorical color as the only way to tell categories apart
 /// ([WCAG 1.4.1 Use of Color]). Pair it with a text label, icon, or pattern.
 ///
-/// Generated slots are chosen to stay distinct under simulated protanopia and
-/// deuteranopia as well as typical color vision. Because slots share a similar
-/// lightness, only the first few remain reliably distinguishable for people
-/// with red-green color vision deficiency. Authored colors are used as-is, so
+/// Generated slots are chosen to stay distinct under simulated protanopia,
+/// deuteranopia, and tritanopia as well as typical color vision. Because slots
+/// share a similar lightness, only the first few remain reliably
+/// distinguishable for people with color vision deficiency. Authored colors are used as-is, so
 /// their accessibility depends on the theme's palette.
 ///
 /// [WCAG 1.4.1 Use of Color]: https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html
@@ -185,7 +192,7 @@ impl Animate for Categorical {
 ///
 /// Each generated color is the candidate farthest from the status seeds, the
 /// authored colors, and previously generated colors, measured as the smallest
-/// distance across typical, protanopic, and deuteranopic vision. Candidates
+/// distance across typical, protanopic, deuteranopic, and tritanopic vision. Candidates
 /// share the mean chroma of the authored colors, or of the status seeds when
 /// nothing is authored, and sit at the mean lightness or one standard deviation
 /// of lightness away from it. Tightly grouped palettes such as pastels
@@ -279,12 +286,12 @@ impl Band {
     }
 }
 
-/// A color with Oklab coordinates as seen with typical, protanopic, and
-/// deuteranopic vision, lightness scaled by [`LIGHTNESS_WEIGHT`].
+/// A color with Oklab coordinates as seen with typical, protanopic,
+/// deuteranopic, and tritanopic vision, lightness scaled by [`LIGHTNESS_WEIGHT`].
 #[derive(Clone, Copy)]
 struct Point {
     color: Color,
-    views: [[f32; 3]; 3],
+    views: [[f32; 3]; 4],
 }
 
 impl Point {
@@ -295,6 +302,7 @@ impl Point {
                 color,
                 color.transform_linear(PROTANOPIA),
                 color.transform_linear(DEUTERANOPIA),
+                color.transform_linear(TRITANOPIA),
             ]
             .map(weighted_oklab),
         }
@@ -306,7 +314,12 @@ impl Point {
         self.views
             .iter()
             .zip(&other.views)
-            .zip([1.0, DEFICIENT_VISION_SCALE, DEFICIENT_VISION_SCALE])
+            .zip([
+                1.0,
+                DEFICIENT_VISION_SCALE,
+                DEFICIENT_VISION_SCALE,
+                DEFICIENT_VISION_SCALE,
+            ])
             .map(|(([l, a, b], [other_l, other_a, other_b]), scale)| {
                 scale * (l - other_l).hypot(a - other_a).hypot(b - other_b)
             })
@@ -344,11 +357,11 @@ mod tests {
     }
 
     #[test]
-    fn generated_slots_stay_distinct_for_red_green_color_vision_deficiency() {
+    fn generated_slots_stay_distinct_for_color_vision_deficiency() {
         for polarity in [Polarity::Dark, Polarity::Light] {
             let colors = base_colors(&Definition::default_for(polarity).seed, &[]);
 
-            for simulation in [PROTANOPIA, DEUTERANOPIA] {
+            for simulation in [PROTANOPIA, DEUTERANOPIA, TRITANOPIA] {
                 let simulated = colors.map(|color| color.transform_linear(simulation));
                 assert!(minimum_pairwise_distance(&simulated) > 0.02);
             }
@@ -370,6 +383,21 @@ mod tests {
                 ) < oklab_distance(red, green) / 2.0
             );
         }
+    }
+
+    #[test]
+    fn tritanopia_simulation_preserves_neutrals_and_merges_blue_with_green() {
+        let white = Color::from_rgb(1.0, 1.0, 1.0);
+        let blue = Color::from(Oklch::new(0.6, 0.12, 250.0, 1.0));
+        let green = Color::from(Oklch::new(0.6, 0.12, 170.0, 1.0));
+
+        assert!(oklab_distance(white.transform_linear(TRITANOPIA), white) < 0.01);
+        assert!(
+            oklab_distance(
+                blue.transform_linear(TRITANOPIA),
+                green.transform_linear(TRITANOPIA),
+            ) < oklab_distance(blue, green) / 2.0
+        );
     }
 
     fn minimum_pairwise_distance(colors: &[Color]) -> f32 {

@@ -34,6 +34,16 @@ pub enum SemanticStyle {
 }
 
 /// A built-in Moonveil container style.
+///
+/// Layout planes ([`Canvas`], [`Surface`], [`Sunken`], and [`Raised`]) are flush by
+/// default: square, unoutlined, and meant to meet their neighbors along a rule. Use
+/// [`Variant::floating`] when one stands apart from its surroundings, like a card.
+/// The remaining variants are free-standing objects and are always rounded.
+///
+/// [`Canvas`]: Variant::Canvas
+/// [`Surface`]: Variant::Surface
+/// [`Sunken`]: Variant::Sunken
+/// [`Raised`]: Variant::Raised
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Variant {
@@ -48,7 +58,7 @@ pub enum Variant {
     Inset,
     /// The primary content plane.
     Surface,
-    /// Inline panels and grouped content without a shadow.
+    /// Bands of emphasized chrome or content, such as toolbars and headers.
     Raised,
     /// Content placed above another plane.
     Overlay,
@@ -65,10 +75,22 @@ pub enum Variant {
     Modal,
 }
 
+impl Variant {
+    /// Draws this variant as a free-standing object, rounded and outlined, for when it is
+    /// set apart by spacing rather than meeting its neighbors.
+    ///
+    /// Floating [`Raised`](Variant::Raised) containers are also elevated with a shadow.
+    pub fn floating<'a>(self) -> Class<'a> {
+        Class::Floating(self)
+    }
+}
+
 /// A built-in variant or downstream custom style function.
 pub enum Class<'a> {
     /// A built-in, allocation-free Moonveil variant.
     Variant(Variant),
+    /// A built-in variant drawn as a free-standing object. See [`Variant::floating`].
+    Floating(Variant),
     /// A downstream custom style function.
     Custom(StyleFn<'a>),
 }
@@ -101,6 +123,7 @@ impl Catalog for Theme {
     fn style(&self, class: &Self::Class<'_>) -> Style {
         match class {
             Class::Variant(variant) => appearance(self, *variant),
+            Class::Floating(variant) => floating_appearance(self, *variant),
             Class::Custom(style) => style(self),
         }
     }
@@ -110,11 +133,7 @@ impl Catalog for Theme {
 pub fn appearance(theme: &Theme, variant: Variant) -> Style {
     match variant {
         Variant::Transparent => Style::default(),
-        Variant::Sunken => surface(
-            theme,
-            theme.surface(Surface::Sunken),
-            Some(theme.colors().borders.standard),
-        ),
+        Variant::Sunken => surface(theme, theme.surface(Surface::Sunken), None),
         Variant::Canvas => surface(theme, theme.surface(Surface::Canvas), None),
         Variant::Inset => surface(
             theme,
@@ -122,14 +141,7 @@ pub fn appearance(theme: &Theme, variant: Variant) -> Style {
             Some(theme.colors().borders.subtle),
         ),
         Variant::Surface => surface(theme, theme.surface(Surface::Surface), None),
-        Variant::Raised => Style {
-            shadow: theme.appearance().shadow.raised.into(),
-            ..surface(
-                theme,
-                theme.surface(Surface::Raised),
-                Some(theme.colors().borders.standard),
-            )
-        },
+        Variant::Raised => surface(theme, theme.surface(Surface::Raised), None),
         Variant::Overlay => surface(
             theme,
             theme.surface(Surface::Overlay),
@@ -153,6 +165,36 @@ pub fn appearance(theme: &Theme, variant: Variant) -> Style {
             },
             ..surface(theme, theme.surface(Surface::Overlay), None)
         },
+    }
+}
+
+/// Returns the resolved style for a built-in container variant drawn as a free-standing
+/// object. See [`Variant::floating`].
+pub fn floating_appearance(theme: &Theme, variant: Variant) -> Style {
+    let borders = theme.colors().borders;
+    match variant {
+        Variant::Sunken => surface(
+            theme,
+            theme.surface(Surface::Sunken),
+            Some(borders.standard),
+        ),
+        Variant::Canvas => surface(theme, theme.surface(Surface::Canvas), Some(borders.subtle)),
+        Variant::Surface => surface(theme, theme.surface(Surface::Surface), Some(borders.subtle)),
+        Variant::Raised => Style {
+            shadow: theme.appearance().shadow.raised.into(),
+            ..surface(
+                theme,
+                theme.surface(Surface::Raised),
+                Some(borders.standard),
+            )
+        },
+        Variant::Transparent
+        | Variant::Inset
+        | Variant::Overlay
+        | Variant::Field
+        | Variant::Semantic { .. }
+        | Variant::Popover
+        | Variant::Modal => appearance(theme, variant),
     }
 }
 

@@ -1,6 +1,6 @@
 use iced::Length::Fill;
 use iced::widget::{column, row};
-use iced::{Alignment, Color as IcedColor, Font, Length, font};
+use iced::{Alignment, Font, Length, font};
 use moonveil::widget::combo_box::ComboBoxExt as _;
 use moonveil::widget::text::TextExt as _;
 use moonveil::widget::text_editor::TextEditorExt as _;
@@ -469,18 +469,50 @@ fn toolbar(gallery: &Gallery) -> Element<'_, Message> {
         .spacing(spacing::SM)
         .align_y(Alignment::End),
     )
-    .style(toolbar_style)
+    .class(container::Variant::Raised)
     .padding([14, 20])
     .width(Fill)
     .into()
 }
 
-fn toolbar_style(theme: &Theme) -> container::Style {
-    let mut style = container::appearance(theme, container::Variant::Raised);
-    style.border.radius = 0.0.into();
-    style.border.color = IcedColor::TRANSPARENT;
-    style.shadow = iced::Shadow::default();
-    style
+const PANEL_PADDING: iced::Padding = iced::Padding {
+    top: 24.0,
+    right: 28.0,
+    bottom: 24.0,
+    left: 28.0,
+};
+
+/// Stacks full-width bands, divided by rules.
+fn page<'a>(bands: impl IntoIterator<Item = Element<'a, Message>>) -> Element<'a, Message> {
+    let mut page = Column::new().width(Fill);
+    for (index, band) in bands.into_iter().enumerate() {
+        if index > 0 {
+            page = page.push(rule::horizontal(1).class(rule::Variant::Subtle));
+        }
+        page = page.push(band);
+    }
+    page.into()
+}
+
+/// Places items side by side, divided by rules.
+fn divided<'a>(items: impl IntoIterator<Item = Element<'a, Message>>) -> Row<'a, Message> {
+    let mut row = Row::new();
+    for (index, item) in items.into_iter().enumerate() {
+        if index > 0 {
+            row = row.push(rule::vertical(1).class(rule::Variant::Subtle));
+        }
+        row = row.push(item);
+    }
+    // Rules fill the height, which would otherwise make the row fill it too.
+    row.height(Length::Shrink)
+}
+
+fn band<'a>(panels: impl IntoIterator<Item = Element<'a, Message>>) -> Element<'a, Message> {
+    divided(panels).width(Fill).into()
+}
+
+fn panel<'a>(content: impl Into<Element<'a, Message>>) -> container::Container<'a, Message> {
+    container(content).padding(PANEL_PADDING).width(Fill)
 }
 
 fn section(gallery: &Gallery) -> Element<'_, Message> {
@@ -506,58 +538,54 @@ fn overview(gallery: &Gallery) -> Element<'_, Message> {
         .as_deref()
         .unwrap_or("A contrast-aware palette from resolved seed colors.");
 
-    container(
-        column![
-            container(
-                column![
-                    text("ACTIVE PALETTE")
-                        .size(text::size::CAPTION)
-                        .class(text::Variant::Decorative),
-                    text(definition.metadata.name.as_str())
-                        .size(34)
-                        .class(text::Variant::Primary),
-                    text(description)
-                        .size(text::size::TITLE)
-                        .class(text::Variant::Secondary),
-                    row![
-                        palette_bar(seed.accent),
-                        palette_bar(seed.success),
-                        palette_bar(seed.warning),
-                        palette_bar(seed.danger),
-                    ]
-                    .spacing(spacing::XS),
-                ]
-                .spacing(spacing::MD),
-            )
-            .class(container::Variant::Raised)
-            .padding(24)
-            .width(Fill),
+    page([
+        container(
+            column![
+                text("ACTIVE PALETTE")
+                    .size(text::size::CAPTION)
+                    .class(text::Variant::Decorative),
+                text(definition.metadata.name.as_str())
+                    .size(34)
+                    .class(text::Variant::Primary),
+                text(description)
+                    .size(text::size::TITLE)
+                    .class(text::Variant::Secondary),
+                row![
+                    palette_bar(seed.accent),
+                    palette_bar(seed.success),
+                    palette_bar(seed.warning),
+                    palette_bar(seed.danger),
+                ],
+            ]
+            .spacing(spacing::MD),
+        )
+        .class(container::Variant::Raised)
+        .padding(PANEL_PADDING)
+        .width(Fill)
+        .into(),
+        panel(
             column![
                 palette_heading("SEED COLORS", "The authored colors that shape this theme"),
-                row![
-                    color_swatch("Background", seed.background),
-                    color_swatch("Foreground", seed.foreground),
-                    color_swatch("Tint", seed.tint),
-                    color_swatch("Shade", seed.shade),
-                ]
-                .spacing(spacing::XS),
-                row![
-                    color_swatch("Accent", seed.accent),
-                    color_swatch("Success", seed.success),
-                    color_swatch("Warning", seed.warning),
-                    color_swatch("Danger", seed.danger),
-                ]
-                .spacing(spacing::XS),
+                column![
+                    row![
+                        color_swatch("Background", seed.background),
+                        color_swatch("Foreground", seed.foreground),
+                        color_swatch("Tint", seed.tint),
+                        color_swatch("Shade", seed.shade),
+                    ],
+                    row![
+                        color_swatch("Accent", seed.accent),
+                        color_swatch("Success", seed.success),
+                        color_swatch("Warning", seed.warning),
+                        color_swatch("Danger", seed.danger),
+                    ],
+                ],
             ]
-            .spacing(spacing::XS),
-            categorical_swatches(gallery),
-        ]
-        .spacing(22),
-    )
-    .padding(28)
-    .width(Fill)
-    .height(Fill)
-    .into()
+            .spacing(spacing::SM),
+        )
+        .into(),
+        panel(categorical_swatches(gallery)).into(),
+    ])
 }
 
 fn categorical_swatches(gallery: &Gallery) -> Element<'_, Message> {
@@ -580,9 +608,7 @@ fn categorical_swatches(gallery: &Gallery) -> Element<'_, Message> {
             text(origin).size(text::size::CAPTION),
             text(color_hex(pair.color)),
         ])
-        .style(move |theme: &Theme| {
-            color_style(pair.color, pair.text, theme.appearance().radius.md)
-        })
+        .style(move |_| color_style(pair.color, pair.text))
         .padding(10)
         .width(Fill)
         .into()
@@ -593,10 +619,9 @@ fn categorical_swatches(gallery: &Gallery) -> Element<'_, Message> {
             "CATEGORICAL",
             "Distinct colors for tags, series, and labels"
         ),
-        row((0..4).map(swatch)).spacing(spacing::XS),
-        row((4..8).map(swatch)).spacing(spacing::XS),
+        column![row((0..4).map(swatch)), row((4..8).map(swatch))],
     ]
-    .spacing(spacing::XS)
+    .spacing(spacing::SM)
     .into()
 }
 
@@ -614,7 +639,7 @@ fn palette_heading(title: &'static str, detail: &'static str) -> Element<'static
 fn palette_bar(color: Color) -> Element<'static, Message> {
     let text_color = color.on_color();
     container(Space::new())
-        .style(move |theme| color_style(color, text_color, theme.definition().radius.xs))
+        .style(move |_| color_style(color, text_color))
         .height(10)
         .width(Fill)
         .into()
@@ -628,21 +653,17 @@ fn color_swatch(label: &'static str, color: Color) -> Element<'static, Message> 
     });
     let text_color = color.on_color();
     container(column![spacing, title, text(color_hex(color))])
-        .style(move |theme| color_style(color, text_color, theme.appearance().radius.md))
+        .style(move |_| color_style(color, text_color))
         .padding(10)
         .width(Fill)
         .height(112)
         .into()
 }
 
-fn color_style(color: Color, text_color: Color, radius: f32) -> container::Style {
+fn color_style(color: Color, text_color: Color) -> container::Style {
     container::Style {
         text_color: Some(text_color.into()),
         background: Some(iced::Background::Color(color.into())),
-        border: iced::Border {
-            radius: radius.into(),
-            ..iced::Border::default()
-        },
         ..container::Style::default()
     }
 }
@@ -658,43 +679,47 @@ fn color_hex(color: Color) -> String {
 }
 
 fn actions() -> Element<'static, Message> {
-    container(
-        column![
-            section_heading("BUTTON CATALOG", "Actions and explicit states", None),
-            live_actions(),
-            matrix_heading(),
-            variant_row("Primary", button::Variant::Primary),
-            variant_row("Secondary", button::Variant::Secondary),
-            variant_row("Outline", button::Variant::Outline),
-            variant_row("Ghost", button::Variant::Ghost),
-            variant_row(
-                "Success solid",
-                button::Variant::Semantic {
-                    intent: Intent::Success,
-                    style: button::SemanticStyle::Solid,
-                },
-            ),
-            variant_row(
-                "Danger soft",
-                button::Variant::Semantic {
-                    intent: Intent::Danger,
-                    style: button::SemanticStyle::Soft,
-                },
-            ),
-            variant_row(
-                "Warning outline",
-                button::Variant::Semantic {
-                    intent: Intent::Warning,
-                    style: button::SemanticStyle::Outline,
-                },
-            ),
-        ]
-        .spacing(spacing::SM),
-    )
-    .padding(28)
-    .width(Fill)
-    .height(Fill)
-    .into()
+    page([
+        panel(section_heading(
+            "BUTTON CATALOG",
+            "Actions and explicit states",
+            None,
+        ))
+        .into(),
+        panel(live_actions()).into(),
+        panel(
+            column![
+                matrix_heading(),
+                variant_row("Primary", button::Variant::Primary),
+                variant_row("Secondary", button::Variant::Secondary),
+                variant_row("Outline", button::Variant::Outline),
+                variant_row("Ghost", button::Variant::Ghost),
+                variant_row(
+                    "Success solid",
+                    button::Variant::Semantic {
+                        intent: Intent::Success,
+                        style: button::SemanticStyle::Solid,
+                    },
+                ),
+                variant_row(
+                    "Danger soft",
+                    button::Variant::Semantic {
+                        intent: Intent::Danger,
+                        style: button::SemanticStyle::Soft,
+                    },
+                ),
+                variant_row(
+                    "Warning outline",
+                    button::Variant::Semantic {
+                        intent: Intent::Warning,
+                        style: button::SemanticStyle::Outline,
+                    },
+                ),
+            ]
+            .spacing(spacing::SM),
+        )
+        .into(),
+    ])
 }
 
 fn live_actions() -> Element<'static, Message> {
@@ -799,20 +824,18 @@ fn forced_button(
 }
 
 fn indicators() -> Element<'static, Message> {
-    container(
-        column![
-            section_heading("CONTENT CATALOGS", "Badges, separation, and progress", None),
-            row![badge_specimens(), badge_matrix()].spacing(spacing::MD),
-            row![operation_progress(), quota_progress()].spacing(spacing::MD),
-            progress_matrix(),
-            rule_specimens(),
-        ]
-        .spacing(20),
-    )
-    .padding(28)
-    .width(Fill)
-    .height(Fill)
-    .into()
+    page([
+        panel(section_heading(
+            "CONTENT CATALOGS",
+            "Badges, separation, and progress",
+            None,
+        ))
+        .into(),
+        band([badge_specimens(), badge_matrix()]),
+        band([operation_progress(), quota_progress()]),
+        progress_matrix(),
+        rule_specimens(),
+    ])
 }
 
 fn badge_specimens() -> Element<'static, Message> {
@@ -832,7 +855,7 @@ fn badge_specimens() -> Element<'static, Message> {
         .align_y(Alignment::Center)
     };
 
-    container(
+    panel(
         column![
             row![
                 text("Sessions API").size(15).class(text::Variant::Primary),
@@ -864,9 +887,6 @@ fn badge_specimens() -> Element<'static, Message> {
         ]
         .spacing(spacing::MD),
     )
-    .class(container::Variant::Raised)
-    .padding(spacing::LG)
-    .width(Fill)
     .into()
 }
 
@@ -894,7 +914,7 @@ fn badge_matrix() -> Element<'static, Message> {
         .align_y(Alignment::Center)
     };
 
-    container(
+    panel(
         column![
             row![
                 text("INTENT")
@@ -937,9 +957,6 @@ fn badge_matrix() -> Element<'static, Message> {
         ]
         .spacing(spacing::MD),
     )
-    .class(container::Variant::Inset)
-    .padding(spacing::LG)
-    .width(Fill)
     .into()
 }
 
@@ -950,7 +967,7 @@ fn badge_cell(variant: badge::Variant) -> Element<'static, Message> {
 }
 
 fn operation_progress() -> Element<'static, Message> {
-    container(
+    panel(
         column![
             row![
                 column![
@@ -976,14 +993,11 @@ fn operation_progress() -> Element<'static, Message> {
         ]
         .spacing(spacing::MD),
     )
-    .class(container::Variant::Raised)
-    .padding(spacing::LG)
-    .width(Fill)
     .into()
 }
 
 fn quota_progress() -> Element<'static, Message> {
-    container(
+    panel(
         column![
             row![
                 column![
@@ -1011,14 +1025,11 @@ fn quota_progress() -> Element<'static, Message> {
         ]
         .spacing(spacing::MD),
     )
-    .class(container::Variant::Raised)
-    .padding(spacing::LG)
-    .width(Fill)
     .into()
 }
 
 fn progress_matrix() -> Element<'static, Message> {
-    container(
+    panel(
         column![
             row![
                 text("INTENT")
@@ -1050,9 +1061,6 @@ fn progress_matrix() -> Element<'static, Message> {
         ]
         .spacing(spacing::MD),
     )
-    .class(container::Variant::Inset)
-    .padding(spacing::LG)
-    .width(Fill)
     .into()
 }
 
@@ -1083,8 +1091,8 @@ fn progress_cell(value: f32, variant: progress_bar::Variant) -> Element<'static,
 }
 
 fn rule_specimens() -> Element<'static, Message> {
-    row![
-        container(
+    band([
+        panel(
             column![
                 text("Request summary").class(text::Variant::Primary),
                 rule::horizontal(1).class(rule::Variant::Standard),
@@ -1099,10 +1107,8 @@ fn rule_specimens() -> Element<'static, Message> {
             ]
             .spacing(10),
         )
-        .class(container::Variant::Raised)
-        .padding(spacing::LG)
-        .width(Fill),
-        container(
+        .into(),
+        panel(
             row![
                 column![
                     text("Environment")
@@ -1124,33 +1130,27 @@ fn rule_specimens() -> Element<'static, Message> {
             ]
             .spacing(spacing::LG),
         )
-        .class(container::Variant::Canvas)
-        .padding(spacing::LG)
-        .width(Fill),
-    ]
-    .spacing(spacing::MD)
-    .into()
+        .into(),
+    ])
 }
 
 fn selection(gallery: &Gallery) -> Element<'_, Message> {
-    container(
-        column![
-            section_heading("CONTROL CATALOGS", "Controls and selection", None),
-            row![live_selection(gallery), svg_specimens()].spacing(spacing::MD),
-            tab_bar_specimens(gallery),
-            row![checkbox_matrix(), radio_matrix(), toggler_matrix()].spacing(spacing::MD),
-            slider_specimens(gallery),
-        ]
-        .spacing(18),
-    )
-    .padding(28)
-    .width(Fill)
-    .height(Fill)
-    .into()
+    page([
+        panel(section_heading(
+            "CONTROL CATALOGS",
+            "Controls and selection",
+            None,
+        ))
+        .into(),
+        band([live_selection(gallery), svg_specimens()]),
+        tab_bar_specimens(gallery),
+        band([checkbox_matrix(), radio_matrix(), toggler_matrix()]),
+        slider_specimens(gallery),
+    ])
 }
 
 fn tab_bar_specimens(gallery: &Gallery) -> Element<'_, Message> {
-    container(
+    panel(
         row![
             column![
                 text("Full underline")
@@ -1194,8 +1194,6 @@ fn tab_bar_specimens(gallery: &Gallery) -> Element<'_, Message> {
         ]
         .spacing(spacing::LG),
     )
-    .class(container::Variant::Inset)
-    .padding(spacing::LG)
     .into()
 }
 
@@ -1216,7 +1214,7 @@ fn live_selection(gallery: &Gallery) -> Element<'_, Message> {
                 )
             });
 
-    container(
+    panel(
         row![
             column![
                 text("Release options").class(text::Variant::Primary),
@@ -1260,14 +1258,12 @@ fn live_selection(gallery: &Gallery) -> Element<'_, Message> {
         ]
         .spacing(spacing::LG),
     )
-    .class(container::Variant::Raised)
-    .padding(spacing::LG)
     .width(Length::FillPortion(3))
     .into()
 }
 
 fn svg_specimens() -> Element<'static, Message> {
-    container(
+    panel(
         column![
             text("SVG color modes").class(text::Variant::Primary),
             row![
@@ -1292,8 +1288,6 @@ fn svg_specimens() -> Element<'static, Message> {
         ]
         .spacing(spacing::MD),
     )
-    .class(container::Variant::Inset)
-    .padding(spacing::LG)
     .width(Length::FillPortion(2))
     .into()
 }
@@ -1475,22 +1469,19 @@ fn state_matrix(
     title: &'static str,
     content: impl Into<Element<'static, Message>>,
 ) -> Element<'static, Message> {
-    container(
+    panel(
         column![
             text(title).size(13).class(text::Variant::Primary),
             content.into()
         ]
         .spacing(10),
     )
-    .class(container::Variant::Inset)
-    .padding(14)
-    .width(Fill)
     .into()
 }
 
 fn slider_specimens(gallery: &Gallery) -> Element<'_, Message> {
-    container(
-        row![
+    band([
+        panel(
             column![
                 text("Live range controls")
                     .size(13)
@@ -1512,9 +1503,11 @@ fn slider_specimens(gallery: &Gallery) -> Element<'_, Message> {
                     Message::AlertThresholdChanged,
                 ),
             ]
-            .spacing(spacing::MD)
-            .width(Length::FillPortion(2)),
-            rule::vertical(1).class(rule::Variant::Subtle),
+            .spacing(spacing::MD),
+        )
+        .width(Length::FillPortion(2))
+        .into(),
+        panel(
             column![
                 text("Explicit states")
                     .size(13)
@@ -1524,15 +1517,11 @@ fn slider_specimens(gallery: &Gallery) -> Element<'_, Message> {
                 slider_state_row("Hovered", slider::Status::Hovered),
                 slider_state_row("Dragged", slider::Status::Dragged),
             ]
-            .spacing(spacing::SM)
-            .width(Length::FillPortion(3)),
-        ]
-        .spacing(spacing::LG),
-    )
-    .class(container::Variant::Raised)
-    .padding(spacing::LG)
-    .width(Fill)
-    .into()
+            .spacing(spacing::SM),
+        )
+        .width(Length::FillPortion(3))
+        .into(),
+    ])
 }
 
 fn slider_control<'a>(
@@ -1591,22 +1580,15 @@ fn forced_slider(value: f32, status: slider::Status) -> Element<'static, Message
 }
 
 fn fields(gallery: &Gallery) -> Element<'_, Message> {
-    container(
-        column![
-            section_heading("FIELD CATALOGS", "Structured input", None),
-            row![live_fields(gallery), live_editor(gallery)].spacing(spacing::MD),
-            field_state_matrix(gallery),
-        ]
-        .spacing(18),
-    )
-    .padding(28)
-    .width(Fill)
-    .height(Fill)
-    .into()
+    page([
+        panel(section_heading("FIELD CATALOGS", "Structured input", None)).into(),
+        band([live_fields(gallery), live_editor(gallery)]),
+        field_state_matrix(gallery),
+    ])
 }
 
 fn live_fields(gallery: &Gallery) -> Element<'_, Message> {
-    container(
+    panel(
         column![
             text("Request details").class(text::Variant::Primary),
             labeled_input(
@@ -1648,8 +1630,6 @@ fn live_fields(gallery: &Gallery) -> Element<'_, Message> {
         ]
         .spacing(spacing::SM),
     )
-    .class(container::Variant::Raised)
-    .padding(spacing::LG)
     .width(Length::FillPortion(3))
     .into()
 }
@@ -1671,7 +1651,7 @@ fn labeled_input<'a>(
 }
 
 fn live_editor(gallery: &Gallery) -> Element<'_, Message> {
-    container(
+    panel(
         column![
             text("Deployment notes").class(text::Variant::Primary),
             text("Plain text editor with code-oriented field treatment")
@@ -1690,14 +1670,12 @@ fn live_editor(gallery: &Gallery) -> Element<'_, Message> {
         ]
         .spacing(9),
     )
-    .class(container::Variant::Inset)
-    .padding(spacing::LG)
     .width(Length::FillPortion(2))
     .into()
 }
 
 fn field_state_matrix(gallery: &Gallery) -> Element<'_, Message> {
-    container(
+    panel(
         column![
             row![
                 text("STATE").size(9).class(text::Variant::Muted).width(96),
@@ -1721,9 +1699,6 @@ fn field_state_matrix(gallery: &Gallery) -> Element<'_, Message> {
         ]
         .spacing(spacing::SM),
     )
-    .class(container::Variant::Inset)
-    .padding(14)
-    .width(Fill)
     .into()
 }
 
@@ -1762,23 +1737,21 @@ fn field_state_row<'a>(
 }
 
 fn choice(gallery: &Gallery) -> Element<'_, Message> {
-    container(
-        column![
-            section_heading("CHOICE & NAVIGATION", "Menus and bounded regions", None),
-            row![pick_list_specimens(gallery), pick_list_matrix()].spacing(spacing::MD),
-            combo_box_specimens(gallery),
-            scrollable_specimens(),
-        ]
-        .spacing(spacing::LG),
-    )
-    .padding(28)
-    .width(Fill)
-    .height(Fill)
-    .into()
+    page([
+        panel(section_heading(
+            "CHOICE & NAVIGATION",
+            "Menus and bounded regions",
+            None,
+        ))
+        .into(),
+        band([pick_list_specimens(gallery), pick_list_matrix()]),
+        combo_box_specimens(gallery),
+        scrollable_specimens(),
+    ])
 }
 
 fn pick_list_specimens(gallery: &Gallery) -> Element<'_, Message> {
-    container(
+    panel(
         column![
             text("Live environment selector").class(text::Variant::Primary),
             pick_list(Some(gallery.environment), Environment::ALL, |environment| {
@@ -1808,14 +1781,12 @@ fn pick_list_specimens(gallery: &Gallery) -> Element<'_, Message> {
         ]
         .spacing(9),
     )
-    .class(container::Variant::Raised)
-    .padding(spacing::LG)
     .width(Length::FillPortion(2))
     .into()
 }
 
 fn pick_list_matrix() -> Element<'static, Message> {
-    container(
+    panel(
         column![
             text("Explicit states")
                 .size(13)
@@ -1831,8 +1802,6 @@ fn pick_list_matrix() -> Element<'static, Message> {
         ]
         .spacing(spacing::SM),
     )
-    .class(container::Variant::Inset)
-    .padding(14)
     .width(Length::FillPortion(3))
     .into()
 }
@@ -1857,7 +1826,7 @@ fn pick_list_state(label: &'static str, status: pick_list::Status) -> Element<'s
 }
 
 fn combo_box_specimens(gallery: &Gallery) -> Element<'_, Message> {
-    container(
+    panel(
         column![
             text("Searchable environment selector").class(text::Variant::Primary),
             row![
@@ -1887,14 +1856,11 @@ fn combo_box_specimens(gallery: &Gallery) -> Element<'_, Message> {
         ]
         .spacing(9),
     )
-    .class(container::Variant::Raised)
-    .padding(spacing::LG)
-    .width(Fill)
     .into()
 }
 
 fn scrollable_specimens() -> Element<'static, Message> {
-    row![
+    band([
         scroll_panel(
             "Vertical",
             scrollable(
@@ -1914,15 +1880,12 @@ fn scrollable_specimens() -> Element<'static, Message> {
         ),
         scroll_panel(
             "Horizontal",
-            scrollable(
-                row![
-                    metric("REQUESTS", "1,284"),
-                    metric("ERRORS", "12"),
-                    metric("LATENCY", "86 ms"),
-                    metric("REGIONS", "4"),
-                ]
-                .spacing(spacing::SM),
-            )
+            scrollable(metrics([
+                ("REQUESTS", "1,284"),
+                ("ERRORS", "12"),
+                ("LATENCY", "86 ms"),
+                ("REGIONS", "4"),
+            ]))
             .direction(scrollable::Direction::Horizontal(scrollable::scrollbar()))
             .class(scrollable::Variant::Subtle)
             .height(104)
@@ -1936,13 +1899,12 @@ fn scrollable_specimens() -> Element<'static, Message> {
                         text("Deployment topology")
                             .size(text::size::LABEL)
                             .class(text::Variant::Primary),
-                        row![
-                            metric("US EAST", "Healthy"),
-                            metric("US WEST", "Healthy"),
-                            metric("EU WEST", "Rolling"),
-                            metric("AP SOUTH", "Queued"),
-                        ]
-                        .spacing(spacing::SM),
+                        metrics([
+                            ("US EAST", "Healthy"),
+                            ("US WEST", "Healthy"),
+                            ("EU WEST", "Rolling"),
+                            ("AP SOUTH", "Queued"),
+                        ]),
                     ]
                     .spacing(14),
                 )
@@ -1959,16 +1921,14 @@ fn scrollable_specimens() -> Element<'static, Message> {
             .height(104)
             .width(Fill),
         ),
-    ]
-    .spacing(spacing::MD)
-    .into()
+    ])
 }
 
 fn scroll_panel(
     title: &'static str,
     content: scrollable::Scrollable<'static, Message>,
 ) -> Element<'static, Message> {
-    container(
+    panel(
         column![
             text(title)
                 .size(text::size::CAPTION)
@@ -1977,9 +1937,6 @@ fn scroll_panel(
         ]
         .spacing(spacing::SM),
     )
-    .class(container::Variant::Inset)
-    .padding(spacing::MD)
-    .width(Fill)
     .into()
 }
 
@@ -1992,84 +1949,100 @@ fn log_line(time: &'static str, event: &'static str) -> Element<'static, Message
     .into()
 }
 
-fn metric(label: &'static str, value: &'static str) -> Element<'static, Message> {
-    container(
-        column![
-            text(label).size(9).class(text::Variant::Muted),
-            text(value)
-                .size(text::size::LABEL)
-                .class(text::Variant::Primary),
-        ]
-        .spacing(spacing::XS),
-    )
-    .class(container::Variant::Raised)
-    .padding(10)
-    .width(132)
+fn metrics(items: [(&'static str, &'static str); 4]) -> Element<'static, Message> {
+    divided(items.map(|(label, value)| {
+        container(
+            column![
+                text(label).size(9).class(text::Variant::Muted),
+                text(value)
+                    .size(text::size::LABEL)
+                    .class(text::Variant::Primary),
+            ]
+            .spacing(spacing::XS),
+        )
+        .padding([2.0, spacing::MD])
+        .width(132)
+        .into()
+    }))
     .into()
 }
 
 fn surfaces() -> Element<'static, Message> {
-    container(
-        column![
-            section_heading("CONTENT FOUNDATIONS", "Planes and readable roles", None),
-            row![
-                surface_swatch("Sunken", "Code wells", container::Variant::Sunken),
-                surface_swatch("Canvas", "App chrome", container::Variant::Canvas),
-                surface_swatch("Inset", "Local recess", container::Variant::Inset),
-                surface_swatch("Surface", "Primary plane", container::Variant::Surface),
-            ]
-            .spacing(10),
-            row![
-                surface_swatch("Raised", "Inline panel", container::Variant::Raised),
-                surface_swatch("Overlay", "Placed above", container::Variant::Overlay),
-                surface_swatch("Field", "Editable plane", container::Variant::Field),
-                surface_swatch("Popover", "Floating", container::Variant::Popover),
-            ]
-            .spacing(10),
-            container(
+    page([
+        panel(section_heading(
+            "CONTENT FOUNDATIONS",
+            "Planes and readable roles",
+            None,
+        ))
+        .into(),
+        panel(palette_heading("FLUSH", "Layout planes meet along rules")).into(),
+        band([
+            plane_swatch("Canvas", "App chrome", container::Variant::Canvas),
+            plane_swatch("Surface", "Primary plane", container::Variant::Surface),
+            plane_swatch("Sunken", "Wells and output", container::Variant::Sunken),
+            plane_swatch("Raised", "Toolbars and bands", container::Variant::Raised),
+        ]),
+        panel(
+            column![
+                palette_heading("FLOATING", "Planes set apart by spacing, and objects"),
                 row![
-                    content_sample("Primary", text::Variant::Primary),
-                    content_sample("Secondary", text::Variant::Secondary),
-                    content_sample("Muted", text::Variant::Muted),
-                    content_sample("Decorative", text::Variant::Decorative),
-                    content_sample("Disabled", text::Variant::Disabled),
+                    surface_swatch(
+                        "Raised",
+                        ".floating()",
+                        container::Variant::Raised.floating(),
+                    ),
+                    surface_swatch(
+                        "Sunken",
+                        ".floating()",
+                        container::Variant::Sunken.floating(),
+                    ),
+                    surface_swatch("Inset", "Local recess", container::Variant::Inset),
+                    surface_swatch("Field", "Editable plane", container::Variant::Field),
+                    surface_swatch("Overlay", "Placed above", container::Variant::Overlay),
+                    surface_swatch("Popover", "Anchored", container::Variant::Popover),
                 ]
-                .spacing(spacing::LG),
-            )
-            .class(container::Variant::Inset)
-            .padding(spacing::LG)
-            .width(Fill),
-            container(
-                row![
-                    type_scale_sample("Caption", text::size::CAPTION),
-                    type_scale_sample("Label", text::size::LABEL),
-                    type_scale_sample("Body", text::size::BODY),
-                    type_scale_sample("Title", text::size::TITLE),
-                    type_scale_sample("Heading", text::size::HEADING),
-                    type_scale_sample("Display", text::size::DISPLAY),
-                ]
-                .spacing(spacing::LG)
-                .align_y(Alignment::End),
-            )
-            .class(container::Variant::Raised)
-            .padding(spacing::LG)
-            .width(Fill),
+                .spacing(spacing::MD),
+            ]
+            .spacing(spacing::MD),
+        )
+        .into(),
+        panel(
+            row![
+                content_sample("Primary", text::Variant::Primary),
+                content_sample("Secondary", text::Variant::Secondary),
+                content_sample("Muted", text::Variant::Muted),
+                content_sample("Decorative", text::Variant::Decorative),
+                content_sample("Disabled", text::Variant::Disabled),
+            ]
+            .spacing(spacing::LG),
+        )
+        .into(),
+        panel(
+            row![
+                type_scale_sample("Caption", text::size::CAPTION),
+                type_scale_sample("Label", text::size::LABEL),
+                type_scale_sample("Body", text::size::BODY),
+                type_scale_sample("Title", text::size::TITLE),
+                type_scale_sample("Heading", text::size::HEADING),
+                type_scale_sample("Display", text::size::DISPLAY),
+            ]
+            .spacing(spacing::LG)
+            .align_y(Alignment::End),
+        )
+        .into(),
+        panel(
             row![
                 semantic_sample("Success", Intent::Success),
                 semantic_sample("Warning", Intent::Warning),
                 semantic_sample("Danger", Intent::Danger),
             ]
-            .spacing(10),
-        ]
-        .spacing(18),
-    )
-    .padding(28)
-    .width(Fill)
-    .height(Fill)
-    .into()
+            .spacing(spacing::MD),
+        )
+        .into(),
+    ])
 }
 
-fn surface_swatch(
+fn plane_swatch(
     title: &'static str,
     detail: &'static str,
     variant: container::Variant,
@@ -2084,6 +2057,27 @@ fn surface_swatch(
         .spacing(6),
     )
     .class(variant)
+    .padding(PANEL_PADDING)
+    .width(Fill)
+    .height(112)
+    .into()
+}
+
+fn surface_swatch(
+    title: &'static str,
+    detail: &'static str,
+    class: impl Into<container::Class<'static>>,
+) -> Element<'static, Message> {
+    container(
+        column![
+            text(title).class(text::Variant::Primary),
+            text(detail)
+                .size(text::size::CAPTION)
+                .class(text::Variant::Muted),
+        ]
+        .spacing(6),
+    )
+    .class(class)
     .padding(14)
     .width(Fill)
     .height(92)
@@ -2124,27 +2118,17 @@ fn semantic_sample(label: &'static str, intent: Intent) -> Element<'static, Mess
 }
 
 fn overlays(gallery: &Gallery) -> Element<'_, Message> {
-    container(
-        column![
-            section_heading(
-                "OVERLAY CATALOGS",
-                "Deployment controls",
-                Some("A focused release workspace for transient feedback, action menus, and modal confirmation."),
-            ),
-            deployment_summary(gallery),
-            row![
-                feedback_panel(),
-                action_menu_panel(),
-            ]
-            .spacing(spacing::MD),
-            tooltip_panel(),
-        ]
-        .spacing(18),
-    )
-    .padding(28)
-    .width(Fill)
-    .height(Fill)
-    .into()
+    page([
+        panel(section_heading(
+            "OVERLAY CATALOGS",
+            "Deployment controls",
+            Some("A focused release workspace for transient feedback, action menus, and modal confirmation."),
+        ))
+        .into(),
+        deployment_summary(gallery),
+        band([feedback_panel(), action_menu_panel()]),
+        tooltip_panel(),
+    ])
 }
 
 fn deployment_summary(gallery: &Gallery) -> Element<'_, Message> {
@@ -2189,13 +2173,13 @@ fn deployment_summary(gallery: &Gallery) -> Element<'_, Message> {
         .align_y(Alignment::Center),
     )
     .class(container::Variant::Raised)
-    .padding(spacing::LG)
+    .padding(PANEL_PADDING)
     .width(Fill)
     .into()
 }
 
 fn feedback_panel() -> Element<'static, Message> {
-    container(
+    panel(
         column![
             text("01  TRANSIENT FEEDBACK")
                 .size(10)
@@ -2225,9 +2209,6 @@ fn feedback_panel() -> Element<'static, Message> {
         ]
         .spacing(spacing::SM),
     )
-    .class(container::Variant::Raised)
-    .padding(spacing::LG)
-    .width(Fill)
     .into()
 }
 
@@ -2251,7 +2232,7 @@ fn snackbar_button(label: &str, variant: snackbar::Variant) -> Element<'_, Messa
 }
 
 fn action_menu_panel() -> Element<'static, Message> {
-    container(
+    panel(
         column![
             text("02  CONTEXTUAL ACTIONS")
                 .size(10)
@@ -2294,7 +2275,7 @@ fn action_menu_panel() -> Element<'static, Message> {
                         .size(text::size::CAPTION)
                         .class(text::Variant::Muted),
                 )
-                .class(container::Variant::Raised)
+                .class(container::Variant::Sunken.floating())
                 .padding([10, 12])
                 .width(Fill),
                 [
@@ -2326,9 +2307,6 @@ fn action_menu_panel() -> Element<'static, Message> {
         ]
         .spacing(spacing::SM),
     )
-    .class(container::Variant::Inset)
-    .padding(spacing::LG)
-    .width(Fill)
     .into()
 }
 
@@ -2357,7 +2335,7 @@ const DEPLOY_REGIONS: &[&str] = &[
 ];
 
 fn tooltip_panel() -> Element<'static, Message> {
-    container(
+    panel(
         column![
             text("03  TOOLTIP PLACEMENT")
                 .size(10)
@@ -2411,9 +2389,6 @@ fn tooltip_panel() -> Element<'static, Message> {
         ]
         .spacing(spacing::SM),
     )
-    .class(container::Variant::Raised)
-    .padding(spacing::LG)
-    .width(Fill)
     .into()
 }
 
@@ -2480,41 +2455,36 @@ canary = true
 "#;
 
 fn markdown_section(gallery: &Gallery) -> Element<'_, Message> {
-    container(
-        column![
-            section_heading(
-                "DOCUMENT CATALOGS",
-                "Markdown and syntax highlighting",
-                Some("Edit the highlighted source to update the rendered preview. Code colors resolve from the active theme's syntax tokens."),
-            ),
-            row![markdown_source(gallery), markdown_preview(gallery)].spacing(spacing::XL),
-            syntax_legend(),
-        ]
-        .spacing(18),
-    )
-    .padding(28)
-    .width(Fill)
-    .height(Fill)
-    .into()
+    page([
+        panel(section_heading(
+            "DOCUMENT CATALOGS",
+            "Markdown and syntax highlighting",
+            Some("Edit the highlighted source to update the rendered preview. Code colors resolve from the active theme's syntax tokens."),
+        ))
+        .into(),
+        band([markdown_source(gallery), markdown_preview(gallery)]),
+        syntax_legend(),
+    ])
 }
 
 fn markdown_source(gallery: &Gallery) -> Element<'_, Message> {
-    column![
-        text("Source").class(text::Variant::Primary),
-        text("Text editor highlighted as Markdown")
-            .size(text::size::CAPTION)
-            .class(text::Variant::Muted),
-        text_editor(&gallery.markdown_source)
-            .on_action(Message::EditMarkdown)
-            .class(text_editor::Variant::Code)
-            .font(iced::Font::MONOSPACE)
-            .size(text::size::LABEL)
-            .height(520)
-            .padding(spacing::MD)
-            .highlight("md"),
-    ]
-    .spacing(9)
-    .width(Fill)
+    panel(
+        column![
+            text("Source").class(text::Variant::Primary),
+            text("Text editor highlighted as Markdown")
+                .size(text::size::CAPTION)
+                .class(text::Variant::Muted),
+            text_editor(&gallery.markdown_source)
+                .on_action(Message::EditMarkdown)
+                .class(text_editor::Variant::Code)
+                .font(iced::Font::MONOSPACE)
+                .size(text::size::LABEL)
+                .height(520)
+                .padding(spacing::MD)
+                .highlight("md"),
+        ]
+        .spacing(9),
+    )
     .into()
 }
 
@@ -2526,19 +2496,20 @@ fn markdown_preview(gallery: &Gallery) -> Element<'_, Message> {
     )
     .map(Message::OpenLink);
 
-    column![
-        text("Preview").class(text::Variant::Primary),
-        text("Rendered with the Moonveil markdown catalog")
-            .size(text::size::CAPTION)
-            .class(text::Variant::Muted),
-        scrollable(container(preview).padding(iced::Padding {
-            right: spacing::MD,
-            ..iced::Padding::ZERO
-        }))
-        .height(520),
-    ]
-    .spacing(9)
-    .width(Fill)
+    panel(
+        column![
+            text("Preview").class(text::Variant::Primary),
+            text("Rendered with the Moonveil markdown catalog")
+                .size(text::size::CAPTION)
+                .class(text::Variant::Muted),
+            scrollable(container(preview).padding(iced::Padding {
+                right: spacing::MD,
+                ..iced::Padding::ZERO
+            }))
+            .height(520),
+        ]
+        .spacing(9),
+    )
     .into()
 }
 
@@ -2582,7 +2553,7 @@ fn syntax_legend() -> Element<'static, Message> {
         .spacing(spacing::SM),
     )
     .class(container::Variant::Sunken)
-    .padding(spacing::LG)
+    .padding(PANEL_PADDING)
     .width(Fill)
     .into()
 }

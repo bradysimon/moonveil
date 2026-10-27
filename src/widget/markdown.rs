@@ -52,7 +52,7 @@ impl Catalog for Theme {
     }
 
     fn code_block<'a>() -> container::Class<'a> {
-        container::Variant::Sunken.into()
+        container::Variant::Sunken.floating()
     }
 
     fn quote<'a>() -> container::Class<'a> {

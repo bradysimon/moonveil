@@ -1,15 +1,16 @@
 use iced::Length::Fill;
 use iced::widget::{column, row};
 use iced::{Alignment, Color as IcedColor, Font, Length, font};
+use moonveil::widget::combo_box::ComboBoxExt as _;
 use moonveil::widget::text::TextExt as _;
 use moonveil::widget::text_editor::TextEditorExt as _;
 use moonveil::{
     Color, Element, Radii, Theme, highlighter, spacing,
     token::Intent,
     widget::{
-        Column, Labeled, Row, Space, badge, button, checkbox, container, context_menu, dialog,
-        dropdown, labeled, markdown, pick_list, progress_bar, radio, rule, scrollable, slider,
-        snackbar, svg, tab_bar, text, text_editor, text_input, toggler, tooltip,
+        Column, Labeled, Row, Space, badge, button, checkbox, combo_box, container, context_menu,
+        dialog, dropdown, labeled, markdown, pick_list, progress_bar, radio, rule, scrollable,
+        slider, snackbar, svg, tab_bar, text, text_editor, text_input, toggler, tooltip,
     },
 };
 
@@ -31,6 +32,7 @@ struct Gallery {
     include_prereleases: bool,
     accepted_terms: bool,
     environment: Environment,
+    environments: combo_box::State<Environment>,
     preview_tab: PreviewTab,
     auto_retry: bool,
     incident_alerts: bool,
@@ -63,6 +65,7 @@ fn boot() -> Gallery {
         include_prereleases: true,
         accepted_terms: false,
         environment: Environment::Staging,
+        environments: combo_box::State::new(Environment::ALL.to_vec()),
         preview_tab: PreviewTab::Overview,
         auto_retry: true,
         incident_alerts: true,
@@ -192,6 +195,12 @@ impl Environment {
             Self::Staging => "Staging",
             Self::Production => "Production",
         }
+    }
+}
+
+impl std::fmt::Display for Environment {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.label())
     }
 }
 
@@ -1757,6 +1766,7 @@ fn choice(gallery: &Gallery) -> Element<'_, Message> {
         column![
             section_heading("CHOICE & NAVIGATION", "Menus and bounded regions", None),
             row![pick_list_specimens(gallery), pick_list_matrix()].spacing(spacing::MD),
+            combo_box_specimens(gallery),
             scrollable_specimens(),
         ]
         .spacing(spacing::LG),
@@ -1843,6 +1853,43 @@ fn pick_list_state(label: &'static str, status: pick_list::Status) -> Element<'s
     ]
     .spacing(spacing::SM)
     .align_y(Alignment::Center)
+    .into()
+}
+
+fn combo_box_specimens(gallery: &Gallery) -> Element<'_, Message> {
+    container(
+        column![
+            text("Searchable environment selector").class(text::Variant::Primary),
+            row![
+                combo_box(
+                    &gallery.environments,
+                    "Search environments",
+                    Some(&gallery.environment),
+                    Message::SelectEnvironment,
+                )
+                .class(combo_box::Variant::Standard),
+                combo_box(
+                    &gallery.environments,
+                    "Subtle search",
+                    None,
+                    Message::SelectEnvironment,
+                )
+                .class(combo_box::Variant::Subtle),
+                combo_box(
+                    &gallery.environments,
+                    "Selection required",
+                    None,
+                    Message::SelectEnvironment,
+                )
+                .class(combo_box::Variant::Invalid),
+            ]
+            .spacing(spacing::SM),
+        ]
+        .spacing(9),
+    )
+    .class(container::Variant::Raised)
+    .padding(spacing::LG)
+    .width(Fill)
     .into()
 }
 

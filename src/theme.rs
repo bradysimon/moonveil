@@ -220,6 +220,7 @@ impl Definition {
                     foreground: Color::from_rgb8(0x1B, 0x1E, 0x24),
                     tint: Color::from_rgb8(0xFF, 0xFF, 0xFF),
                     shade: Color::from_rgb8(0x23, 0x27, 0x2C),
+                    // shade: Color::from_rgb8(0x77, 0x7C, 0x8A),
                     accent: Color::from_rgb8(0x26, 0x72, 0x8F),
                     success: Color::from_rgb8(0x3C, 0x7D, 0x36),
                     warning: Color::from_rgb8(0x96, 0x65, 0x00),

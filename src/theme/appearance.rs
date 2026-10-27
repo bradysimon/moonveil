@@ -177,10 +177,10 @@ impl Elevation {
                 drag_preview: Depth::new(6.0, 16.0, 0.46),
             },
             Polarity::Light => Self {
-                raised: Depth::new(2.0, 8.0, 0.10),
-                popover: Depth::new(4.0, 18.0, 0.20),
-                modal: Depth::new(8.0, 24.0, 0.26),
-                drag_preview: Depth::new(6.0, 16.0, 0.18),
+                raised: Depth::new(2.0, 8.0, 0.04),
+                popover: Depth::new(4.0, 18.0, 0.08),
+                modal: Depth::new(8.0, 24.0, 0.11),
+                drag_preview: Depth::new(6.0, 16.0, 0.07),
             },
         }
     }
@@ -267,8 +267,15 @@ mod tests {
         let dark = Appearance::resolve(&Definition::default_for(Polarity::Dark));
         let light = Appearance::resolve(&Definition::default_for(Polarity::Light));
 
+        assert_eq!(dark.shadow.raised.color.components()[3], 0.30);
         assert_eq!(dark.shadow.popover.color.components()[3], 0.50);
-        assert_eq!(light.shadow.popover.color.components()[3], 0.20);
+        assert_eq!(dark.shadow.modal.color.components()[3], 0.62);
+        assert_eq!(dark.shadow.drag_preview.color.components()[3], 0.46);
+
+        assert_eq!(light.shadow.raised.color.components()[3], 0.04);
+        assert_eq!(light.shadow.popover.color.components()[3], 0.08);
+        assert_eq!(light.shadow.modal.color.components()[3], 0.11);
+        assert_eq!(light.shadow.drag_preview.color.components()[3], 0.07);
     }
 
     #[test]

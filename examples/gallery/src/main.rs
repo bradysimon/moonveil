@@ -9,8 +9,9 @@ use moonveil::{
     token::Intent,
     widget::{
         Column, Labeled, Row, Space, badge, button, checkbox, combo_box, container, context_menu,
-        dialog, dropdown, labeled, markdown, pick_list, progress_bar, radio, rule, scrollable,
-        slider, snackbar, svg, tab_bar, text, text_editor, text_input, toggler, tooltip,
+        dialog, dropdown, labeled, markdown, pick_list, progress, progress_bar, radio, rule,
+        scrollable, slider, snackbar, svg, tab_bar, text, text_editor, text_input, toggler,
+        tooltip,
     },
 };
 
@@ -834,8 +835,156 @@ fn indicators() -> Element<'static, Message> {
         band([badge_specimens(), badge_matrix()]),
         band([operation_progress(), quota_progress()]),
         progress_matrix(),
+        indeterminate_matrix(),
+        band([indeterminate_in_context(), indeterminate_sizes()]),
         rule_specimens(),
     ])
+}
+
+const COMPACT_SHAPES: [(&str, progress::Shape); 7] = [
+    ("ARC", progress::Shape::Arc),
+    ("SWEEP", progress::Shape::Sweep),
+    ("SPOKES", progress::Shape::Spokes),
+    ("ORBIT", progress::Shape::Orbit),
+    ("DOTS", progress::Shape::Dots),
+    ("BARS", progress::Shape::Bars),
+    ("PULSE", progress::Shape::Pulse),
+];
+
+fn indeterminate_matrix() -> Element<'static, Message> {
+    let variant_row = |label: &'static str, variant: progress::Variant| {
+        let mut cells = row![
+            text(label)
+                .size(text::size::LABEL)
+                .class(text::Variant::Secondary)
+                .width(84),
+        ]
+        .spacing(spacing::MD)
+        .align_y(Alignment::Center);
+
+        for (_, shape) in COMPACT_SHAPES {
+            cells = cells.push(container(progress().shape(shape).class(variant)).center_x(Fill));
+        }
+
+        column![
+            cells,
+            row![
+                Space::new().width(84),
+                progress().shape(progress::Shape::Bar).class(variant),
+            ]
+            .spacing(spacing::MD)
+            .align_y(Alignment::Center),
+        ]
+        .spacing(spacing::SM)
+    };
+
+    let mut heading = row![
+        text("VARIANT")
+            .size(10)
+            .class(text::Variant::Muted)
+            .width(84),
+    ]
+    .spacing(spacing::MD)
+    .align_y(Alignment::Center);
+
+    for (label, _) in COMPACT_SHAPES {
+        heading = heading.push(matrix_label(label));
+    }
+
+    panel(
+        column![
+            heading,
+            variant_row("Standard", progress::Variant::Standard),
+            variant_row("Neutral", progress::Variant::Neutral),
+            variant_row("Success", progress::Variant::Semantic(Intent::Success)),
+            variant_row("Danger", progress::Variant::Semantic(Intent::Danger)),
+        ]
+        .spacing(spacing::LG),
+    )
+    .into()
+}
+
+fn indeterminate_in_context() -> Element<'static, Message> {
+    let small = |shape| progress().shape(shape).size(progress::Size::Small);
+
+    panel(
+        column![
+            row![
+                button(
+                    row![
+                        small(progress::Shape::Arc).class(progress::Variant::Inherited),
+                        text("Saving"),
+                    ]
+                    .spacing(spacing::SM)
+                    .align_y(Alignment::Center),
+                )
+                .class(button::Variant::Primary)
+                .on_press(Message::Action),
+                button(
+                    row![
+                        small(progress::Shape::Spokes).class(progress::Variant::Inherited),
+                        text("Refreshing"),
+                    ]
+                    .spacing(spacing::SM)
+                    .align_y(Alignment::Center),
+                )
+                .class(button::Variant::Secondary)
+                .on_press(Message::Action),
+            ]
+            .spacing(spacing::SM),
+            row![
+                small(progress::Shape::Dots).class(progress::Variant::Neutral),
+                text("Assistant is typing")
+                    .size(text::size::LABEL)
+                    .class(text::Variant::Muted),
+            ]
+            .spacing(spacing::SM)
+            .align_y(Alignment::Center),
+            row![
+                small(progress::Shape::Pulse).class(progress::Variant::Semantic(Intent::Success)),
+                text("Live: streaming logs")
+                    .size(text::size::LABEL)
+                    .class(text::Variant::Secondary),
+            ]
+            .spacing(spacing::SM)
+            .align_y(Alignment::Center),
+            column![
+                text("Fetching schema")
+                    .size(text::size::LABEL)
+                    .class(text::Variant::Secondary),
+                progress()
+                    .shape(progress::Shape::Bar)
+                    .size(progress::Size::Small),
+            ]
+            .spacing(spacing::XS),
+        ]
+        .spacing(spacing::MD),
+    )
+    .into()
+}
+
+fn indeterminate_sizes() -> Element<'static, Message> {
+    let sizes = |shape| {
+        row![
+            progress().shape(shape).size(progress::Size::Small),
+            progress().shape(shape),
+            progress().shape(shape).size(progress::Size::Large),
+        ]
+        .spacing(spacing::LG)
+        .align_y(Alignment::Center)
+    };
+
+    panel(
+        column![
+            text("SIZES").size(10).class(text::Variant::Muted),
+            sizes(progress::Shape::Arc),
+            sizes(progress::Shape::Orbit),
+            sizes(progress::Shape::Dots),
+            sizes(progress::Shape::Pulse),
+        ]
+        .spacing(spacing::MD),
+    )
+    .into()
 }
 
 fn badge_specimens() -> Element<'static, Message> {

@@ -2,7 +2,6 @@
 
 pub mod badge;
 pub mod button;
-#[cfg(feature = "canvas")]
 pub mod canvas;
 pub mod checkbox;
 pub mod column;
@@ -23,6 +22,7 @@ pub mod mouse_area;
 pub mod overlay;
 pub mod pick_list;
 pub mod pin;
+pub mod progress;
 pub mod progress_bar;
 pub mod radio;
 pub mod responsive;
@@ -51,7 +51,6 @@ pub use iced_widget::{Space, Void, space, void};
 
 pub use badge::{Badge, badge};
 pub use button::{Button, button};
-#[cfg(feature = "canvas")]
 pub use canvas::{Canvas, canvas};
 pub use checkbox::{Checkbox, checkbox};
 pub use column::{Column, column};
@@ -71,6 +70,7 @@ pub use lazy::{Lazy, lazy};
 pub use mouse_area::{MouseArea, mouse_area};
 pub use pick_list::{PickList, pick_list};
 pub use pin::{Pin, pin};
+pub use progress::{Progress, progress};
 pub use progress_bar::{ProgressBar, progress_bar};
 pub use radio::{Radio, radio};
 pub use responsive::{Responsive, responsive};

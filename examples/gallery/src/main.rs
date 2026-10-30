@@ -8,10 +8,10 @@ use moonveil::{
     Color, Element, Radii, Theme, highlighter, spacing,
     token::Intent,
     widget::{
-        Column, Labeled, Row, Space, badge, button, checkbox, combo_box, container, context_menu,
-        dialog, dropdown, labeled, markdown, pick_list, popover, progress, progress_bar, radio,
-        rule, scrollable, slider, snackbar, svg, tab_bar, text, text_editor, text_input, toggler,
-        tooltip,
+        Column, Labeled, Row, Space, alert, badge, button, checkbox, combo_box, container,
+        context_menu, dialog, dropdown, labeled, markdown, pick_list, popover, progress,
+        progress_bar, radio, rule, scrollable, slider, snackbar, svg, tab_bar, text, text_editor,
+        text_input, toggler, tooltip,
     },
 };
 
@@ -829,11 +829,12 @@ fn indicators() -> Element<'static, Message> {
     page([
         panel(section_heading(
             "CONTENT CATALOGS",
-            "Badges, separation, and progress",
+            "Badges, alerts, separation, and progress",
             None,
         ))
         .into(),
         band([badge_specimens(), badge_matrix()]),
+        alert_specimens(),
         band([operation_progress(), quota_progress()]),
         progress_matrix(),
         indeterminate_matrix(),
@@ -1114,6 +1115,26 @@ fn badge_cell(variant: badge::Variant) -> Element<'static, Message> {
     container(badge("Label").class(variant))
         .center_x(Fill)
         .into()
+}
+
+fn alert_specimens() -> Element<'static, Message> {
+    panel(
+        column![
+            alert("A new version of the CLI is available."),
+            alert("Deployment complete")
+                .intent(Intent::Success)
+                .description("All 12 instances are healthy and serving traffic."),
+            alert("Certificate expires in 7 days")
+                .intent(Intent::Warning)
+                .description("Renew it before October 30 to avoid interrupted requests.")
+                .on_dismiss(Message::Action),
+            alert("Unable to reach the database")
+                .intent(Intent::Danger)
+                .description("Check the connection string and network rules, then retry."),
+        ]
+        .spacing(spacing::SM),
+    )
+    .into()
 }
 
 fn operation_progress() -> Element<'static, Message> {

@@ -1,5 +1,6 @@
 //! Iced widgets bound to Moonveil's concrete theme.
 
+pub mod alert;
 pub mod badge;
 pub mod button;
 pub mod canvas;
@@ -50,6 +51,7 @@ pub mod transition;
 pub use iced_widget::{Image, image};
 pub use iced_widget::{Space, Void, space, void};
 
+pub use alert::{Alert, alert};
 pub use badge::{Badge, badge};
 pub use button::{Button, button};
 pub use canvas::{Canvas, canvas};

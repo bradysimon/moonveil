@@ -233,6 +233,8 @@ pub fn appearance(theme: &Theme, variant: Variant) -> Style {
 /// Creates a new [`Dialog`] wrapping the given `base` element.
 ///
 /// The external [`State`] controls whether the dialog target is open or closing.
+///
+/// Wrap other layered widgets (such as a snackbar) in `base` so they render beneath the scrim.
 pub fn dialog<'a, Message, Renderer>(
     base: impl Into<Element<'a, Message, Renderer>>,
     state: &'a State,
@@ -810,6 +812,19 @@ where
                 shell.capture_event();
             }
 
+            // Keep base animations (e.g. snackbars) ticking without exposing input.
+            if let Event::Window(_) = event {
+                self.base.as_widget_mut().update(
+                    &mut tree.children[0],
+                    event,
+                    base_layout,
+                    mouse::Cursor::Unavailable,
+                    renderer,
+                    shell,
+                    viewport,
+                );
+            }
+
             return;
         }
 
@@ -839,6 +854,11 @@ where
         let Some(base_layout) = children.next() else {
             return;
         };
+        let base_cursor = if self.is_showing(state) {
+            mouse::Cursor::Unavailable
+        } else {
+            cursor
+        };
 
         self.base.as_widget().draw(
             &tree.children[0],
@@ -846,7 +866,7 @@ where
             theme,
             style,
             base_layout,
-            cursor,
+            base_cursor,
             viewport,
         );
 

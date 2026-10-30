@@ -521,8 +521,10 @@ where
     });
 
     let title_class = class.clone();
+    // Fill defers the title to the second layout pass so the dismiss button keeps its size.
     let title: Element<'a, Message, Renderer> = text(&entry.title)
         .size(16)
+        .width(Fill)
         .style(move |theme| iced_widget::text::Style {
             color: Some(title_class.style(theme).title),
         })
@@ -542,7 +544,6 @@ where
     let header = row([
         icon_badge(entry.variant, class.clone()),
         title,
-        space::horizontal().width(Fill).into(),
         dismiss_button.unwrap_or_else(|| space().into()),
     ])
     .spacing(HEADER_SPACING)

@@ -32,6 +32,23 @@ where
     Slider::new(range, value, on_change)
 }
 
+/// An Iced vertical slider using Moonveil's concrete theme.
+pub type VerticalSlider<'a, Value, Message> =
+    iced_widget::VerticalSlider<'a, Value, Message, Theme>;
+
+/// Creates a vertical slider using Moonveil's concrete theme.
+pub fn vertical_slider<'a, Value, Message>(
+    range: RangeInclusive<Value>,
+    value: Value,
+    on_change: impl Fn(Value) -> Message + 'a,
+) -> VerticalSlider<'a, Value, Message>
+where
+    Value: Copy + PartialOrd,
+    Message: Clone,
+{
+    VerticalSlider::new(range, value, on_change)
+}
+
 /// A built-in Moonveil slider style.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]

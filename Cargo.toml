@@ -20,6 +20,10 @@ iced_highlighter = { version = "0.15.0-dev", git = "https://github.com/iced-rs/i
 markdown = ["iced_widget/markdown"]
 # Syntax highlighting for Markdown code blocks and text editors, colored by Moonveil's theme.
 highlighter = ["iced_widget/highlighter", "dep:iced_highlighter"]
+# Raster image widgets.
+image = ["iced_widget/image"]
+# Canvas widgets for custom 2D drawing.
+canvas = ["iced_widget/canvas"]
 
 [dev-dependencies]
 proptest = "1.7"

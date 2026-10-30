@@ -25,3 +25,15 @@ where
 {
     iced_widget::opaque(content)
 }
+
+/// Displays `top` over `base` only while `base` is hovered.
+pub fn hover<'a, Message, Renderer>(
+    base: impl Into<Element<'a, Message, Renderer>>,
+    top: impl Into<Element<'a, Message, Renderer>>,
+) -> Element<'a, Message, Renderer>
+where
+    Message: 'a,
+    Renderer: iced_core::Renderer + 'a,
+{
+    iced_widget::hover(base, top)
+}

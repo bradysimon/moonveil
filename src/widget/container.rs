@@ -4,7 +4,7 @@ use crate::{
     Color, Element, Theme,
     token::{Intent, Surface},
 };
-use iced_core::{Background, Border};
+use iced_core::{Background, Border, Length};
 
 pub use iced_widget::container::{Catalog, Style};
 
@@ -21,6 +21,92 @@ where
     Renderer: iced_core::Renderer,
 {
     Container::new(content)
+}
+
+/// Creates a container that fills all available space and centers its content.
+pub fn center<'a, Message, Renderer>(
+    content: impl Into<Element<'a, Message, Renderer>>,
+) -> Container<'a, Message, Renderer>
+where
+    Renderer: iced_core::Renderer,
+{
+    container(content).center(Length::Fill)
+}
+
+/// Creates a container that fills the available width and centers its content horizontally.
+pub fn center_x<'a, Message, Renderer>(
+    content: impl Into<Element<'a, Message, Renderer>>,
+) -> Container<'a, Message, Renderer>
+where
+    Renderer: iced_core::Renderer,
+{
+    container(content).center_x(Length::Fill)
+}
+
+/// Creates a container that fills the available height and centers its content vertically.
+pub fn center_y<'a, Message, Renderer>(
+    content: impl Into<Element<'a, Message, Renderer>>,
+) -> Container<'a, Message, Renderer>
+where
+    Renderer: iced_core::Renderer,
+{
+    container(content).center_y(Length::Fill)
+}
+
+/// Creates a container that fills the available width and right-aligns its content.
+pub fn right<'a, Message, Renderer>(
+    content: impl Into<Element<'a, Message, Renderer>>,
+) -> Container<'a, Message, Renderer>
+where
+    Renderer: iced_core::Renderer,
+{
+    container(content).align_right(Length::Fill)
+}
+
+/// Creates a container that fills all available space and aligns its content to the right center.
+pub fn right_center<'a, Message, Renderer>(
+    content: impl Into<Element<'a, Message, Renderer>>,
+) -> Container<'a, Message, Renderer>
+where
+    Renderer: iced_core::Renderer,
+{
+    container(content)
+        .align_right(Length::Fill)
+        .center_y(Length::Fill)
+}
+
+/// Creates a container that fills the available height and bottom-aligns its content.
+pub fn bottom<'a, Message, Renderer>(
+    content: impl Into<Element<'a, Message, Renderer>>,
+) -> Container<'a, Message, Renderer>
+where
+    Renderer: iced_core::Renderer,
+{
+    container(content).align_bottom(Length::Fill)
+}
+
+/// Creates a container that fills all available space and aligns its content to the bottom center.
+pub fn bottom_center<'a, Message, Renderer>(
+    content: impl Into<Element<'a, Message, Renderer>>,
+) -> Container<'a, Message, Renderer>
+where
+    Renderer: iced_core::Renderer,
+{
+    container(content)
+        .center_x(Length::Fill)
+        .align_bottom(Length::Fill)
+}
+
+/// Creates a container that fills all available space and aligns its content to the bottom right.
+pub fn bottom_right<'a, Message, Renderer>(
+    content: impl Into<Element<'a, Message, Renderer>>,
+) -> Container<'a, Message, Renderer>
+where
+    Renderer: iced_core::Renderer,
+{
+    container(content)
+        .align_right(Length::Fill)
+        .align_bottom(Length::Fill)
 }
 
 /// The visual treatment of a semantic container.

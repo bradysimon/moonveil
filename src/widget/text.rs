@@ -2,8 +2,10 @@
 
 use crate::{Theme, token::Intent};
 
+pub use iced_widget::span;
 pub use iced_widget::text::{
-    Alignment, Catalog, Ellipsis, IntoFragment, LineHeight, Position, Shaping, Style, Wrapping,
+    Alignment, Catalog, Ellipsis, IntoFragment, LineHeight, Position, Shaping, Span, Style,
+    Wrapping,
 };
 
 /// Text sizes measured in logical pixels.
@@ -31,6 +33,24 @@ pub type Text<'a> = iced_widget::Text<'a, Theme>;
 /// Creates text using Moonveil's concrete theme.
 pub fn text<'a>(content: impl IntoFragment<'a>) -> Text<'a> {
     Text::new(content).size(size::BODY)
+}
+
+/// Creates text that displays the given value.
+pub fn value<'a>(value: impl ToString) -> Text<'a> {
+    text(value.to_string())
+}
+
+/// Iced rich text using Moonveil's concrete theme.
+pub type Rich<'a, Link, Message> = iced_widget::text::Rich<'a, Link, Message, Theme>;
+
+/// Creates rich text from the given spans.
+pub fn rich_text<'a, Link, Message>(
+    spans: impl AsRef<[Span<'a, Link>]> + 'a,
+) -> Rich<'a, Link, Message>
+where
+    Link: Clone + 'static,
+{
+    Rich::with_spans(spans).size(size::BODY)
 }
 
 /// Adds Moonveil's named variants to Iced text.

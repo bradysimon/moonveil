@@ -254,11 +254,12 @@ fn view(gallery: &Gallery) -> Element<'_, Message> {
         )
     });
 
-    snackbar(
-        &gallery.snackbars,
-        dialog(base, &gallery.dialog, dialog_config).on_update(Message::Dialog),
+    dialog(
+        snackbar(&gallery.snackbars, base).on_update(Message::Snackbar),
+        &gallery.dialog,
+        dialog_config,
     )
-    .on_update(Message::Snackbar)
+    .on_update(Message::Dialog)
     .into()
 }
 

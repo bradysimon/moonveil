@@ -9,8 +9,8 @@ use moonveil::{
     token::Intent,
     widget::{
         Column, Labeled, Row, Space, badge, button, checkbox, combo_box, container, context_menu,
-        dialog, dropdown, labeled, markdown, pick_list, progress, progress_bar, radio, rule,
-        scrollable, slider, snackbar, svg, tab_bar, text, text_editor, text_input, toggler,
+        dialog, dropdown, labeled, markdown, pick_list, popover, progress, progress_bar, radio,
+        rule, scrollable, slider, snackbar, svg, tab_bar, text, text_editor, text_input, toggler,
         tooltip,
     },
 };
@@ -2278,6 +2278,7 @@ fn overlays(gallery: &Gallery) -> Element<'_, Message> {
         deployment_summary(gallery),
         band([feedback_panel(), action_menu_panel()]),
         tooltip_panel(),
+        popover_panel(gallery),
     ])
 }
 
@@ -2555,6 +2556,87 @@ fn tooltip_button(
         text(hint).size(text::size::LABEL),
         position,
     )
+    .into()
+}
+
+fn popover_panel(gallery: &Gallery) -> Element<'_, Message> {
+    let settings = column![
+        text("Rollout settings").class(text::Variant::Primary),
+        text("Applies to the next production deploy.")
+            .size(text::size::CAPTION)
+            .class(text::Variant::Muted),
+        rule::horizontal(1).class(rule::Variant::Subtle),
+        toggler(gallery.auto_retry)
+            .label("Retry failed checks")
+            .on_toggle(Message::AutoRetry)
+            .text_size(text::size::LABEL),
+        toggler(gallery.incident_alerts)
+            .label("Alert on failed deploys")
+            .on_toggle(Message::IncidentAlerts)
+            .text_size(text::size::LABEL),
+    ]
+    .spacing(spacing::SM);
+
+    panel(
+        column![
+            text("04  POPOVER PLACEMENT")
+                .size(10)
+                .class(text::Variant::Decorative),
+            text("Anchored detail panels")
+                .size(15)
+                .class(text::Variant::Primary),
+            text("Press a control to open its popover. Press outside or Esc to dismiss.")
+                .size(text::size::CAPTION)
+                .class(text::Variant::Muted),
+            rule::horizontal(1).class(rule::Variant::Subtle),
+            row![
+                popover(
+                    button(text("Rollout  ↓"))
+                        .class(button::Variant::Secondary)
+                        .padding([7, 10])
+                        .on_press(Message::Action),
+                    settings,
+                )
+                .width(260),
+                popover_button("Top", popover::Position::Top),
+                popover_button("Bottom end", popover::Position::BottomEnd),
+                popover_button("Left", popover::Position::Left),
+                popover_button("Right start", popover::Position::RightStart),
+                popover(
+                    button(text("Subtle"))
+                        .class(button::Variant::Ghost)
+                        .padding([7, 10])
+                        .on_press(Message::Action),
+                    text("A quieter edge for dense surfaces.").size(text::size::LABEL),
+                )
+                .position(popover::Position::Bottom)
+                .padding([spacing::SM, spacing::MD])
+                .class(popover::Variant::Subtle),
+            ]
+            .spacing(spacing::SM)
+            .align_y(Alignment::Center),
+        ]
+        .spacing(spacing::SM),
+    )
+    .into()
+}
+
+fn popover_button(label: &'static str, position: popover::Position) -> Element<'static, Message> {
+    popover(
+        button(text(label))
+            .class(button::Variant::Outline)
+            .padding([7, 10])
+            .on_press(Message::Action),
+        column![
+            text(label).class(text::Variant::Primary),
+            text("Popovers flip and clamp to stay inside the window.")
+                .size(text::size::CAPTION)
+                .class(text::Variant::Muted),
+        ]
+        .spacing(spacing::XS),
+    )
+    .position(position)
+    .max_width(220)
     .into()
 }
 

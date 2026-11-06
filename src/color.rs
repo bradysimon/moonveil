@@ -44,6 +44,27 @@ pub(crate) struct Oklch {
 }
 
 impl Color {
+    pub const TRANSPARENT: Self = Self {
+        red: 0.0,
+        green: 0.0,
+        blue: 0.0,
+        alpha: 0.0,
+    };
+
+    pub const BLACK: Self = Self {
+        red: 0.0,
+        green: 0.0,
+        blue: 0.0,
+        alpha: 1.0,
+    };
+
+    pub const WHITE: Self = Self {
+        red: 1.0,
+        green: 1.0,
+        blue: 1.0,
+        alpha: 1.0,
+    };
+
     /// Creates an opaque color from sRGB components in range `[0.0, 1.0]`.
     pub const fn from_rgb(red: f32, green: f32, blue: f32) -> Self {
         Self::from_rgba(red, green, blue, 1.0)

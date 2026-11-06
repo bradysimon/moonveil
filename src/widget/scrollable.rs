@@ -145,14 +145,6 @@ pub fn appearance(theme: &Theme, status: Status, variant: Variant) -> Style {
 }
 
 fn rail(theme: &Theme, variant: Variant, emphasized: bool, disabled: bool) -> Rail {
-    let track_border = match variant {
-        Variant::Standard => Border {
-            color: theme.colors().borders.subtle.into(),
-            width: theme.appearance().border.hairline,
-            radius: theme.appearance().radius.full.into(),
-        },
-        Variant::Subtle => Border::default(),
-    };
     let thumb = if disabled {
         theme.colors().content.disabled
     } else if emphasized {
@@ -166,7 +158,7 @@ fn rail(theme: &Theme, variant: Variant, emphasized: bool, disabled: bool) -> Ra
             Variant::Standard => Some(Background::Color(theme.surface(Surface::Inset).into())),
             Variant::Subtle => None,
         },
-        border: track_border,
+        border: Border::default(),
         scroller: Scroller {
             background: Background::Color(thumb.into()),
             border: Border {

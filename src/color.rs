@@ -367,6 +367,12 @@ impl From<Oklch> for Color {
     }
 }
 
+impl From<Color> for iced_core::Background {
+    fn from(value: Color) -> Self {
+        iced_core::Background::Color(value.into())
+    }
+}
+
 fn lerp(first: f32, second: f32, amount: f32) -> f32 {
     first + (second - first) * amount
 }

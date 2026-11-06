@@ -1,7 +1,4 @@
-use crate::{
-    Color, Theme,
-    token::{Interaction, Surface},
-};
+use crate::{Color, Theme, token::Surface};
 use iced_core::{Background, Border};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -47,11 +44,7 @@ pub(super) fn appearance(theme: &Theme, status: Status, variant: Variant) -> App
         Variant::Code => Surface::Sunken,
         Variant::Standard | Variant::Subtle | Variant::Invalid => Surface::Field,
     };
-    let background = match status {
-        Status::Hovered => theme.interaction_on(surface, Interaction::Hover),
-        Status::Active | Status::Focused => theme.surface(surface),
-        Status::Disabled => unreachable!(),
-    };
+
     let (border_color, border_width) = match (variant, status) {
         (Variant::Invalid, _) => (
             theme.colors().danger.border,
@@ -76,7 +69,7 @@ pub(super) fn appearance(theme: &Theme, status: Status, variant: Variant) -> App
     };
 
     Appearance {
-        background: Background::Color(background.into()),
+        background: Background::Color(theme.surface(surface).into()),
         border: border(theme, border_color, border_width),
         placeholder: theme.colors().content.muted.into(),
         value: theme.colors().content.primary.into(),

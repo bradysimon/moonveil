@@ -21,6 +21,8 @@ pub struct Appearance {
 /// Values are measured in logical pixels.
 #[derive(Debug, Clone, Copy, PartialEq, Animate)]
 pub struct Radii {
+    /// Minimal rounding for tiny elements and sharp corners.
+    pub xxs: f32,
     /// Tight rounding for compact controls and small details.
     pub xs: f32,
     /// Standard rounding for buttons, fields, and similar controls.
@@ -29,6 +31,8 @@ pub struct Radii {
     pub md: f32,
     /// Broad rounding for large surfaces such as dialogs.
     pub lg: f32,
+    /// Extra-large rounding for very prominent surfaces.
+    pub xl: f32,
     /// Effectively complete rounding for pills and circular shapes.
     pub full: f32,
 }
@@ -36,28 +40,34 @@ pub struct Radii {
 impl Radii {
     /// Square corners everywhere, including pills and tracks.
     pub const SHARP: Self = Self {
+        xxs: 0.0,
         xs: 0.0,
         sm: 0.0,
         md: 0.0,
         lg: 0.0,
+        xl: 0.0,
         full: 0.0,
     };
 
     /// Moonveil's default rounding.
     pub const STANDARD: Self = Self {
+        xxs: 2.0,
         xs: 3.0,
         sm: 5.0,
         md: 8.0,
         lg: 12.0,
+        xl: 16.0,
         full: 999.0,
     };
 
     /// Softer rounding for friendlier, more tactile interfaces.
     pub const ROUND: Self = Self {
+        xxs: 2.0,
         xs: 4.0,
         sm: 8.0,
         md: 12.0,
         lg: 16.0,
+        xl: 24.0,
         full: 999.0,
     };
 

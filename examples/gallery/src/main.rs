@@ -1,6 +1,7 @@
 use iced::Length::Fill;
+use iced::border::Radius;
 use iced::widget::{column, row};
-use iced::{Alignment, Font, Length, font};
+use iced::{Alignment, Border, Font, Length, font};
 use moonveil::widget::combo_box::ComboBoxExt as _;
 use moonveil::widget::text::TextExt as _;
 use moonveil::widget::text_editor::TextEditorExt as _;
@@ -24,6 +25,59 @@ const COLOR_MODE_ICON: &[u8] = br##"
     <path d="M18 46h30" stroke="#a6e89a" stroke-width="4" stroke-linecap="round"/>
 </svg>
 "##;
+
+#[derive(Clone, Copy)]
+enum Edge {
+    Left,
+    Right,
+    TopLeft,
+    TopRight,
+    BottomLeft,
+    BottomRight,
+}
+
+impl Edge {
+    fn top_left(&self, amount: f32) -> f32 {
+        match self {
+            Edge::Left => amount,
+            Edge::TopLeft => amount,
+            _ => 0.0,
+        }
+    }
+
+    fn top_right(&self, amount: f32) -> f32 {
+        match self {
+            Edge::Right => amount,
+            Edge::TopRight => amount,
+            _ => 0.0,
+        }
+    }
+
+    fn bottom_left(&self, amount: f32) -> f32 {
+        match self {
+            Edge::Left => amount,
+            Edge::BottomLeft => amount,
+            _ => 0.0,
+        }
+    }
+
+    fn bottom_right(&self, amount: f32) -> f32 {
+        match self {
+            Edge::Right => amount,
+            Edge::BottomRight => amount,
+            _ => 0.0,
+        }
+    }
+
+    fn radius(&self, amount: f32) -> Radius {
+        Radius {
+            top_left: self.top_left(amount),
+            top_right: self.top_right(amount),
+            bottom_left: self.bottom_left(amount),
+            bottom_right: self.bottom_right(amount),
+        }
+    }
+}
 
 struct Gallery {
     theme: Theme,
@@ -553,10 +607,10 @@ fn overview(gallery: &Gallery) -> Element<'_, Message> {
                     .size(text::size::TITLE)
                     .class(text::Variant::Secondary),
                 row![
-                    palette_bar(seed.accent),
-                    palette_bar(seed.success),
-                    palette_bar(seed.warning),
-                    palette_bar(seed.danger),
+                    palette_bar(seed.accent, Some(Edge::Left)),
+                    palette_bar(seed.success, None),
+                    palette_bar(seed.warning, None),
+                    palette_bar(seed.danger, Some(Edge::Right)),
                 ],
             ]
             .spacing(spacing::MD),
@@ -570,16 +624,16 @@ fn overview(gallery: &Gallery) -> Element<'_, Message> {
                 palette_heading("SEED COLORS", "The authored colors that shape this theme"),
                 column![
                     row![
-                        color_swatch("Background", seed.background),
-                        color_swatch("Foreground", seed.foreground),
-                        color_swatch("Tint", seed.tint),
-                        color_swatch("Shade", seed.shade),
+                        color_swatch("Background", seed.background, Some(Edge::TopLeft)),
+                        color_swatch("Foreground", seed.foreground, None),
+                        color_swatch("Tint", seed.tint, None),
+                        color_swatch("Shade", seed.shade, Some(Edge::TopRight)),
                     ],
                     row![
-                        color_swatch("Accent", seed.accent),
-                        color_swatch("Success", seed.success),
-                        color_swatch("Warning", seed.warning),
-                        color_swatch("Danger", seed.danger),
+                        color_swatch("Accent", seed.accent, Some(Edge::BottomLeft)),
+                        color_swatch("Success", seed.success, None),
+                        color_swatch("Warning", seed.warning, None),
+                        color_swatch("Danger", seed.danger, Some(Edge::BottomRight)),
                     ],
                 ],
             ]
@@ -593,6 +647,13 @@ fn overview(gallery: &Gallery) -> Element<'_, Message> {
 fn categorical_swatches(gallery: &Gallery) -> Element<'_, Message> {
     let categorical = gallery.theme.colors().categorical;
     let authored = categorical.authored().len();
+    let edge = |index| match index {
+        0 => Some(Edge::TopLeft),
+        3 => Some(Edge::TopRight),
+        4 => Some(Edge::BottomLeft),
+        7 => Some(Edge::BottomRight),
+        _ => None,
+    };
     let swatch = |index: usize| {
         let pair = categorical.all()[index].solid.active;
         let origin = if index < authored {
@@ -610,7 +671,7 @@ fn categorical_swatches(gallery: &Gallery) -> Element<'_, Message> {
             text(origin).size(text::size::CAPTION),
             text(color_hex(pair.color)),
         ])
-        .style(move |_| color_style(pair.color, pair.text))
+        .style(move |theme| color_style(pair.color, pair.text, theme, edge(index)))
         .padding(10)
         .width(Fill)
         .into()
@@ -638,16 +699,16 @@ fn palette_heading(title: &'static str, detail: &'static str) -> Element<'static
     .into()
 }
 
-fn palette_bar(color: Color) -> Element<'static, Message> {
+fn palette_bar(color: Color, edge: Option<Edge>) -> Element<'static, Message> {
     let text_color = color.on_color();
     container(Space::new())
-        .style(move |_| color_style(color, text_color))
+        .style(move |theme| color_style(color, text_color, theme, edge))
         .height(10)
         .width(Fill)
         .into()
 }
 
-fn color_swatch(label: &'static str, color: Color) -> Element<'static, Message> {
+fn color_swatch<'a>(label: &'static str, color: Color, edge: Option<Edge>) -> Element<'a, Message> {
     let spacing = Space::new().height(54);
     let title = text(label).font(Font {
         weight: font::Weight::Semibold,
@@ -655,16 +716,25 @@ fn color_swatch(label: &'static str, color: Color) -> Element<'static, Message> 
     });
     let text_color = color.on_color();
     container(column![spacing, title, text(color_hex(color))])
-        .style(move |_| color_style(color, text_color))
+        .style(move |theme| color_style(color, text_color, theme, edge))
         .padding(10)
         .width(Fill)
         .height(112)
         .into()
 }
 
-fn color_style(color: Color, text_color: Color) -> container::Style {
+fn color_style(
+    color: Color,
+    text_color: Color,
+    theme: &Theme,
+    edge: Option<Edge>,
+) -> container::Style {
     container::Style {
         text_color: Some(text_color.into()),
+        border: Border::default().rounded(
+            edge.map(|e| e.radius(theme.appearance().radius.xs))
+                .unwrap_or_default(),
+        ),
         background: Some(iced::Background::Color(color.into())),
         ..container::Style::default()
     }

@@ -1,3 +1,4 @@
+use iced::Alignment::Center;
 use iced::Length::Fill;
 use iced::border::Radius;
 use iced::widget::{column, row};
@@ -444,18 +445,44 @@ fn sidebar(gallery: &Gallery) -> Element<'_, Message> {
     let mut navigation = Column::new().spacing(spacing::XS);
 
     for section in Section::ALL {
-        let variant = if section == gallery.section {
-            button::Variant::IconSelected
-        } else {
-            button::Variant::Icon
-        };
+        fn indicator_style(theme: &Theme, is_active: bool) -> rule::Style {
+            rule::Style {
+                color: if is_active {
+                    theme.colors().accent.foreground
+                } else {
+                    Color::TRANSPARENT
+                }
+                .into(),
+                radius: theme.appearance().radius.full.into(),
+                fill_mode: rule::FillMode::Full,
+                snap: true,
+            }
+        }
 
+        let selected = section == gallery.section;
         navigation = navigation.push(
-            button(text(section.label()))
-                .class(variant)
-                .on_press(Message::SelectSection(section))
-                .padding([10.0, spacing::MD])
-                .width(Fill),
+            button(
+                row![
+                    container(
+                        rule::vertical(3).style(move |theme| indicator_style(theme, selected))
+                    )
+                    .height(Fill.max(24)),
+                    text(section.label()).style(move |theme| text::Style {
+                        color: if selected {
+                            Some(theme.colors().content.primary.into())
+                        } else {
+                            None
+                        }
+                    })
+                ]
+                .align_y(Center)
+                .spacing(spacing::SM),
+            )
+            // .class(variant)
+            .class(button::Variant::Ghost)
+            .on_press(Message::SelectSection(section))
+            .padding([10.0, spacing::MD])
+            .width(Fill),
         );
     }
 

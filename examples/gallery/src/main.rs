@@ -652,16 +652,16 @@ fn overview(gallery: &Gallery) -> Element<'_, Message> {
                 palette_heading("SEED COLORS", "The authored colors that shape this theme"),
                 column![
                     row![
-                        color_swatch("Background", seed.background, Some(Edge::TopLeft)),
-                        color_swatch("Foreground", seed.foreground, None),
-                        color_swatch("Tint", seed.tint, None),
-                        color_swatch("Shade", seed.shade, Some(Edge::TopRight)),
+                        color_swatch("Background", seed.background, Some(Edge::TopLeft), false),
+                        color_swatch("Foreground", seed.foreground, None, false),
+                        color_swatch("Tint", seed.tint, None, false),
+                        color_swatch("Shade", seed.shade, Some(Edge::TopRight), false),
                     ],
                     row![
-                        color_swatch("Accent", seed.accent, Some(Edge::BottomLeft)),
-                        color_swatch("Success", seed.success, None),
-                        color_swatch("Warning", seed.warning, None),
-                        color_swatch("Danger", seed.danger, Some(Edge::BottomRight)),
+                        color_swatch("Accent", seed.accent, Some(Edge::BottomLeft), false),
+                        color_swatch("Success", seed.success, None, false),
+                        color_swatch("Warning", seed.warning, None, false),
+                        color_swatch("Danger", seed.danger, Some(Edge::BottomRight), false),
                     ],
                 ],
             ]
@@ -699,7 +699,7 @@ fn categorical_swatches(gallery: &Gallery) -> Element<'_, Message> {
             text(origin).size(text::Size::Label),
             text(color_hex(pair.color)),
         ])
-        .style(move |theme| color_style(pair.color, pair.text, theme, edge(index)))
+        .style(move |theme| color_style(pair.color, pair.text, theme, edge(index), false))
         .padding(10)
         .width(Fill)
         .into()
@@ -734,13 +734,18 @@ fn palette_heading(title: &'static str, detail: &'static str) -> Element<'static
 fn palette_bar(color: Color, edge: Option<Edge>) -> Element<'static, Message> {
     let text_color = color.on_color();
     container(Space::new())
-        .style(move |theme| color_style(color, text_color, theme, edge))
+        .style(move |theme| color_style(color, text_color, theme, edge, true))
         .height(10)
         .width(Fill)
         .into()
 }
 
-fn color_swatch<'a>(label: &'static str, color: Color, edge: Option<Edge>) -> Element<'a, Message> {
+fn color_swatch<'a>(
+    label: &'static str,
+    color: Color,
+    edge: Option<Edge>,
+    sharp: bool,
+) -> Element<'a, Message> {
     let spacing = Space::new().height(54);
     let title = text(label).font(Font {
         weight: font::Weight::Semibold,
@@ -748,7 +753,7 @@ fn color_swatch<'a>(label: &'static str, color: Color, edge: Option<Edge>) -> El
     });
     let text_color = color.on_color();
     container(column![spacing, title, text(color_hex(color))])
-        .style(move |theme| color_style(color, text_color, theme, edge))
+        .style(move |theme| color_style(color, text_color, theme, edge, sharp))
         .padding(10)
         .width(Fill)
         .height(112)
@@ -760,13 +765,16 @@ fn color_style(
     text_color: Color,
     theme: &Theme,
     edge: Option<Edge>,
+    sharp: bool,
 ) -> container::Style {
+    let radius = if sharp {
+        theme.appearance().radius.xs
+    } else {
+        theme.appearance().radius.md
+    };
     container::Style {
         text_color: Some(text_color.into()),
-        border: Border::default().rounded(
-            edge.map(|e| e.radius(theme.appearance().radius.xs))
-                .unwrap_or_default(),
-        ),
+        border: Border::default().rounded(edge.map(|e| e.radius(radius)).unwrap_or_default()),
         background: Some(iced::Background::Color(color.into())),
         ..container::Style::default()
     }

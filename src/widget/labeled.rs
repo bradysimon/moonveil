@@ -10,7 +10,7 @@ use crate::{
         text::{self, IntoFragment, LineHeight, Text, TextExt as _, Variant},
     },
 };
-use iced_core::{Alignment, Length, Pixels};
+use iced_core::{Alignment, Length};
 
 /// Supporting text that may be absent, such as a conditional validation message.
 pub trait IntoMessage<'a> {
@@ -76,7 +76,7 @@ where
 {
     Labeled {
         label: text::text(label)
-            .size(text::size::LABEL)
+            .size(text::Size::Label)
             .class(Variant::Secondary),
         content: content.into(),
         required: false,
@@ -138,7 +138,9 @@ where
 }
 
 fn supporting<'a>(content: impl IntoFragment<'a>, variant: Variant) -> Text<'a> {
-    text::text(content).size(text::size::CAPTION).class(variant)
+    text::text(content)
+        .size(text::Size::Label.sm())
+        .class(variant)
 }
 
 impl<'a, Message, Renderer> From<Labeled<'a, Message, Renderer>> for Element<'a, Message, Renderer>
@@ -152,14 +154,14 @@ where
                 Some(text) => Some(text.into()),
                 None if labeled.reserve_message => Some(
                     Space::new()
-                        .height(LineHeight::default().to_absolute(Pixels(text::size::CAPTION)))
+                        .height(LineHeight::default().to_absolute(text::Size::Label.sm()))
                         .into(),
                 ),
                 None => None,
             };
         let marker = labeled.required.then(|| {
             text::text("*")
-                .size(text::size::LABEL)
+                .size(text::Size::Label)
                 .class(Variant::Semantic(Intent::Danger))
         });
         let mut header = Row::new()

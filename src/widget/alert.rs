@@ -9,7 +9,7 @@ use crate::{
         text::{self, IntoFragment, LineHeight, Text},
     },
 };
-use iced_core::{Alignment, Length, Pixels};
+use iced_core::{Alignment, Length};
 
 const ICON_SIZE: f32 = 16.0;
 const DISMISS_ICON_SIZE: f32 = 14.0;
@@ -50,7 +50,7 @@ impl<'a, Message> Alert<'a, Message> {
     /// Sets the supporting text shown below the title.
     #[must_use]
     pub fn description(mut self, description: impl IntoFragment<'a>) -> Self {
-        self.description = Some(text::text(description).size(text::size::LABEL));
+        self.description = Some(text::text(description).size(text::Size::Label));
         self
     }
 
@@ -83,7 +83,7 @@ where
             Intent::Danger => icon::circle_alert(),
         };
         // Center icons on the title's first line rather than the whole message.
-        let line_height = LineHeight::default().to_absolute(Pixels(text::size::BODY));
+        let line_height = LineHeight::default().to_absolute(text::Size::Body);
 
         let icon = container(
             svg(handle)

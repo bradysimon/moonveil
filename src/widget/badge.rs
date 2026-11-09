@@ -8,7 +8,7 @@ use crate::{
         text::{self, IntoFragment, Text},
     },
 };
-use iced_core::{Alignment, Background, Border, Length, Padding};
+use iced_core::{Alignment, Background, Border, Length, Padding, Pixels};
 
 pub use iced_widget::container::Style;
 
@@ -122,11 +122,11 @@ pub enum Size {
 
 impl Size {
     /// The label text size in logical pixels.
-    pub const fn text_size(self) -> f32 {
+    pub fn text_size(self) -> Pixels {
         match self {
-            Self::Small => text::size::CAPTION,
-            Self::Medium => text::size::LABEL,
-            Self::Large => text::size::BODY,
+            Self::Small => text::Size::Label.px(text::Scale::Small),
+            Self::Medium => text::Size::Label.into(),
+            Self::Large => text::Size::Body.into(),
         }
     }
 

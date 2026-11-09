@@ -17,13 +17,13 @@ pub use iced_widget::markdown::{
 /// Returns Markdown [`Settings`] aligned with Moonveil's type scale and spacing.
 pub fn settings() -> Settings {
     Settings {
-        inline_code_size: Pixels(text::size::LABEL),
-        code_block_size: Pixels(text::size::LABEL),
-        h1_size: Pixels(text::size::DISPLAY),
-        h2_size: Pixels(text::size::HEADING),
-        h3_size: Pixels(text::size::TITLE),
+        inline_code_size: text::Size::Label.into(),
+        code_block_size: text::Size::Label.into(),
+        h1_size: text::Size::Headline.px(text::Scale::Large),
+        h2_size: text::Size::Title.px(text::Scale::Medium),
+        h3_size: text::Size::Body.px(text::Scale::Small),
         spacing: Pixels(spacing::MD),
-        ..Settings::with_text_size(text::size::BODY)
+        ..Settings::with_text_size(text::Size::Body)
     }
 }
 
@@ -94,8 +94,11 @@ mod tests {
     fn settings_follow_the_type_scale() {
         let settings = settings();
 
-        assert_eq!(settings.text_size, Pixels(text::size::BODY));
-        assert_eq!(settings.h1_size, Pixels(text::size::DISPLAY));
-        assert_eq!(settings.h4_size, Pixels(text::size::BODY));
+        assert_eq!(settings.text_size, text::Size::Body.px(text::Scale::Medium));
+        assert_eq!(
+            settings.h1_size,
+            text::Size::Headline.px(text::Scale::Large)
+        );
+        assert_eq!(settings.h4_size, text::Size::Body.px(text::Scale::Small));
     }
 }

@@ -1,5 +1,7 @@
 //! Text using Moonveil's concrete theme and resolved content tokens.
 
+pub mod size;
+
 use crate::{Theme, token::Intent};
 
 pub use iced_widget::span;
@@ -7,22 +9,23 @@ pub use iced_widget::text::{
     Alignment, Catalog, Ellipsis, IntoFragment, LineHeight, Position, Shaping, Span, Style,
     Wrapping,
 };
+pub use size::{Scale, Size};
 
 /// Text sizes measured in logical pixels.
-pub mod size {
-    /// Compact annotations, table headers, and incidental metadata.
-    pub const CAPTION: f32 = 11.0;
-    /// Control labels and secondary interface copy.
-    pub const LABEL: f32 = 12.0;
-    /// Default body copy and control text.
-    pub const BODY: f32 = 14.0;
-    /// Compact section and panel titles.
-    pub const TITLE: f32 = 16.0;
-    /// Page and major section headings.
-    pub const HEADING: f32 = 20.0;
-    /// Reserved for the largest title in a view.
-    pub const DISPLAY: f32 = 24.0;
-}
+// pub mod size {
+//     /// Compact annotations, table headers, and incidental metadata.
+//     pub const CAPTION: f32 = 11.0;
+//     /// Control labels and secondary interface copy.
+//     pub const LABEL: f32 = 12.0;
+//     /// Default body copy and control text.
+//     pub const BODY: f32 = 14.0;
+//     /// Compact section and panel titles.
+//     pub const TITLE: f32 = 16.0;
+//     /// Page and major section headings.
+//     pub const HEADING: f32 = 20.0;
+//     /// Reserved for the largest title in a view.
+//     pub const DISPLAY: f32 = 24.0;
+// }
 
 /// A custom text style function using Moonveil's concrete theme.
 pub type StyleFn<'a> = iced_widget::text::StyleFn<'a, Theme>;
@@ -32,7 +35,7 @@ pub type Text<'a> = iced_widget::Text<'a, Theme>;
 
 /// Creates text using Moonveil's concrete theme.
 pub fn text<'a>(content: impl IntoFragment<'a>) -> Text<'a> {
-    Text::new(content).size(size::BODY)
+    Text::new(content).size(Size::Body)
 }
 
 /// Creates text that displays the given value.
@@ -50,7 +53,7 @@ pub fn rich_text<'a, Link, Message>(
 where
     Link: Clone + 'static,
 {
-    Rich::with_spans(spans).size(size::BODY)
+    Rich::with_spans(spans).size(Size::Body)
 }
 
 /// Adds Moonveil's named variants to Iced text.

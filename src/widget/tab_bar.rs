@@ -183,7 +183,7 @@ where
         let width = tab_bar.width;
         let tabs = tab_bar.options.into_iter().map(move |option| {
             let is_selected = selected.as_ref() == Some(&option);
-            let label = text(option.to_string()).size(text::size::BODY);
+            let label = text(option.to_string()).size(text::Size::Body);
             let button_padding = match variant {
                 Variant::FullUnderline => Padding {
                     top: padding.top,

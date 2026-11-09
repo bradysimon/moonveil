@@ -138,9 +138,7 @@ where
 }
 
 fn supporting<'a>(content: impl IntoFragment<'a>, variant: Variant) -> Text<'a> {
-    text::text(content)
-        .size(text::Size::Label.sm())
-        .class(variant)
+    text::text(content).size(text::Size::Label).class(variant)
 }
 
 impl<'a, Message, Renderer> From<Labeled<'a, Message, Renderer>> for Element<'a, Message, Renderer>

@@ -489,7 +489,9 @@ fn sidebar(gallery: &Gallery) -> Element<'_, Message> {
     container(
         column![
             column![
-                text("MOONVEIL").size(13).class(text::Variant::Muted),
+                text("MOONVEIL")
+                    .size(text::Size::Label)
+                    .class(text::Variant::Muted),
                 text("Widget gallery")
                     .size(text::Size::Headline)
                     .class(text::Variant::Primary)
@@ -497,7 +499,7 @@ fn sidebar(gallery: &Gallery) -> Element<'_, Message> {
             ],
             Space::new().height(12),
             text("SECTIONS")
-                .size(text::Size::Label.sm())
+                .size(text::Size::Label)
                 .class(text::Variant::Muted),
             navigation,
         ]
@@ -625,10 +627,10 @@ fn overview(gallery: &Gallery) -> Element<'_, Message> {
         container(
             column![
                 text("ACTIVE PALETTE")
-                    .size(text::Size::Label.sm())
+                    .size(text::Size::Label)
                     .class(text::Variant::Decorative),
                 text(definition.metadata.name.as_str())
-                    .size(34)
+                    .size(text::Size::Headline.lg())
                     .class(text::Variant::Primary),
                 text(description)
                     .size(text::Size::Title)
@@ -695,7 +697,7 @@ fn categorical_swatches(gallery: &Gallery) -> Element<'_, Message> {
         container(column![
             Space::new().height(36),
             title,
-            text(origin).size(text::Size::Label.sm()),
+            text(origin).size(text::Size::Label),
             text(color_hex(pair.color)),
         ])
         .style(move |theme| color_style(pair.color, pair.text, theme, edge(index)))
@@ -878,7 +880,7 @@ fn live_actions() -> Element<'static, Message> {
 fn matrix_heading() -> Element<'static, Message> {
     row![
         text("VARIANT")
-            .size(10)
+            .size(text::Size::Label)
             .class(text::Variant::Muted)
             .width(108),
         matrix_label("ACTIVE"),
@@ -892,10 +894,14 @@ fn matrix_heading() -> Element<'static, Message> {
 }
 
 fn matrix_label(label: &'static str) -> Element<'static, Message> {
-    container(text(label).size(10).class(text::Variant::Muted))
-        .width(Fill)
-        .center_x(Length::Fill)
-        .into()
+    container(
+        text(label)
+            .size(text::Size::Label)
+            .class(text::Variant::Muted),
+    )
+    .width(Fill)
+    .center_x(Length::Fill)
+    .into()
 }
 
 fn variant_row(label: &'static str, variant: button::Variant) -> Element<'static, Message> {
@@ -983,7 +989,7 @@ fn indeterminate_matrix() -> Element<'static, Message> {
 
     let mut heading = row![
         text("VARIANT")
-            .size(10)
+            .size(text::Size::Label)
             .class(text::Variant::Muted)
             .width(84),
     ]
@@ -1079,7 +1085,9 @@ fn indeterminate_sizes() -> Element<'static, Message> {
 
     panel(
         column![
-            text("SIZES").size(10).class(text::Variant::Muted),
+            text("SIZES")
+                .size(text::Size::Label)
+                .class(text::Variant::Muted),
             sizes(progress::Shape::Arc),
             sizes(progress::Shape::Orbit),
             sizes(progress::Shape::Dots),
@@ -1101,7 +1109,9 @@ fn badge_specimens() -> Element<'static, Message> {
                 .class(soft(intent))
                 .size(badge::Size::Small)
                 .width(52),
-            text(path).size(13).class(text::Variant::Secondary),
+            text(path)
+                .size(text::Size::Label)
+                .class(text::Variant::Secondary),
         ]
         .spacing(spacing::SM)
         .align_y(Alignment::Center)
@@ -1110,7 +1120,9 @@ fn badge_specimens() -> Element<'static, Message> {
     panel(
         column![
             row![
-                text("Sessions API").size(15).class(text::Variant::Primary),
+                text("Sessions API")
+                    .size(text::Size::Title)
+                    .class(text::Variant::Primary),
                 badge("3").shape(badge::Shape::Pill),
                 Space::new().width(Fill),
                 badge("200 OK").class(soft(Intent::Success)),
@@ -1170,7 +1182,7 @@ fn badge_matrix() -> Element<'static, Message> {
         column![
             row![
                 text("INTENT")
-                    .size(10)
+                    .size(text::Size::Label)
                     .class(text::Variant::Muted)
                     .width(84),
                 matrix_label("SOLID"),
@@ -1244,7 +1256,7 @@ fn operation_progress() -> Element<'static, Message> {
             row![
                 column![
                     text("Deploying preview")
-                        .size(15)
+                        .size(text::Size::Title)
                         .class(text::Variant::Primary),
                     text("Optimizing application bundle")
                         .size(text::Size::Label)
@@ -1252,7 +1264,9 @@ fn operation_progress() -> Element<'static, Message> {
                 ]
                 .spacing(3),
                 Space::new().width(Fill),
-                text("68%").size(13).class(text::Variant::Secondary),
+                text("68%")
+                    .size(text::Size::Body)
+                    .class(text::Variant::Secondary),
             ]
             .align_y(Alignment::Center),
             progress_bar(0.0..=100.0, 68.0)
@@ -1274,7 +1288,7 @@ fn quota_progress() -> Element<'static, Message> {
             row![
                 column![
                     text("Monthly request quota")
-                        .size(15)
+                        .size(text::Size::Title)
                         .class(text::Variant::Primary),
                     text("8,420 of 10,000 requests")
                         .size(text::Size::Label)
@@ -1283,7 +1297,7 @@ fn quota_progress() -> Element<'static, Message> {
                 .spacing(3),
                 Space::new().width(Fill),
                 text("84%")
-                    .size(13)
+                    .size(text::Size::Body)
                     .class(text::Variant::Semantic(Intent::Warning)),
             ]
             .align_y(Alignment::Center),
@@ -1305,7 +1319,7 @@ fn progress_matrix() -> Element<'static, Message> {
         column![
             row![
                 text("INTENT")
-                    .size(10)
+                    .size(text::Size::Label)
                     .class(text::Variant::Muted)
                     .width(84),
                 matrix_label("EMPTY"),
@@ -1384,18 +1398,22 @@ fn rule_specimens() -> Element<'static, Message> {
             row![
                 column![
                     text("Environment")
-                        .size(text::Size::Label.sm())
+                        .size(text::Size::Label)
                         .class(text::Variant::Muted),
-                    text("Production").size(13).class(text::Variant::Primary),
+                    text("Production")
+                        .size(text::Size::Body)
+                        .class(text::Variant::Primary),
                 ]
                 .spacing(spacing::XS)
                 .width(Fill),
                 rule::vertical(1).class(rule::Variant::Subtle),
                 column![
                     text("Region")
-                        .size(text::Size::Label.sm())
+                        .size(text::Size::Label)
                         .class(text::Variant::Muted),
-                    text("us-east-1").size(13).class(text::Variant::Primary),
+                    text("us-east-1")
+                        .size(text::Size::Body)
+                        .class(text::Variant::Primary),
                 ]
                 .spacing(spacing::XS)
                 .width(Fill),
@@ -1426,7 +1444,7 @@ fn tab_bar_specimens(gallery: &Gallery) -> Element<'_, Message> {
         row![
             column![
                 text("Full underline")
-                    .size(text::Size::Label.sm())
+                    .size(text::Size::Label)
                     .class(text::Variant::Muted),
                 tab_bar(
                     PreviewTab::ALL,
@@ -1439,7 +1457,7 @@ fn tab_bar_specimens(gallery: &Gallery) -> Element<'_, Message> {
             .width(Fill),
             column![
                 text("Active underline")
-                    .size(text::Size::Label.sm())
+                    .size(text::Size::Label)
                     .class(text::Variant::Muted),
                 tab_bar(
                     PreviewTab::ALL,
@@ -1452,7 +1470,7 @@ fn tab_bar_specimens(gallery: &Gallery) -> Element<'_, Message> {
             .width(Fill),
             column![
                 text("Rounded")
-                    .size(text::Size::Label.sm())
+                    .size(text::Size::Label)
                     .class(text::Variant::Muted),
                 tab_bar(
                     PreviewTab::ALL,
@@ -1501,7 +1519,7 @@ fn live_selection(gallery: &Gallery) -> Element<'_, Message> {
                     .class(checkbox::Variant::Invalid)
                     .text_size(text::Size::Label),
                 text("Required before production deploys")
-                    .size(text::Size::Label.sm())
+                    .size(text::Size::Label)
                     .class(text::Variant::Semantic(Intent::Danger)),
             ]
             .spacing(spacing::SM)
@@ -1549,7 +1567,7 @@ fn svg_specimens() -> Element<'static, Message> {
             rule::horizontal(1).class(rule::Variant::Subtle),
             row![
                 text("FORCED")
-                    .size(10)
+                    .size(text::Size::Label)
                     .class(text::Variant::Muted)
                     .width(52),
                 forced_icon("Idle", svg::Variant::Secondary, svg::Status::Idle),
@@ -1570,7 +1588,9 @@ fn live_icon(label: &'static str, variant: svg::Variant) -> Element<'static, Mes
             .class(variant)
             .width(32)
             .height(32),
-        text(label).size(10).class(text::Variant::Muted),
+        text(label)
+            .size(text::Size::Label)
+            .class(text::Variant::Muted),
     ]
     .spacing(5)
     .align_x(Alignment::Center)
@@ -1587,7 +1607,9 @@ fn forced_icon(
             .style(move |theme, _| svg::appearance(theme, status, variant))
             .width(20)
             .height(20),
-        text(label).size(10).class(text::Variant::Secondary),
+        text(label)
+            .size(text::Size::Label)
+            .class(text::Variant::Secondary),
     ]
     .spacing(5)
     .align_y(Alignment::Center)
@@ -1615,7 +1637,10 @@ fn checkbox_state_row(label: &'static str, status: checkbox::Status) -> Element<
     };
 
     row![
-        text(label).size(10).class(text::Variant::Muted).width(58),
+        text(label)
+            .size(text::Size::Label)
+            .class(text::Variant::Muted)
+            .width(58),
         state_cell(forced_checkbox(false, status)),
         state_cell(forced_checkbox(true, checked_status)),
     ]
@@ -1639,7 +1664,7 @@ fn radio_matrix() -> Element<'static, Message> {
             radio_state_row("Active", radio::Status::Active { is_selected: false }),
             radio_state_row("Hovered", radio::Status::Hovered { is_selected: false }),
             text("No disabled or focus status")
-                .size(10)
+                .size(text::Size::Label)
                 .class(text::Variant::Muted),
         ]
         .spacing(spacing::SM),
@@ -1653,7 +1678,10 @@ fn radio_state_row(label: &'static str, status: radio::Status) -> Element<'stati
     };
 
     row![
-        text(label).size(10).class(text::Variant::Muted).width(58),
+        text(label)
+            .size(text::Size::Label)
+            .class(text::Variant::Muted)
+            .width(58),
         state_cell(forced_radio(false, status)),
         state_cell(forced_radio(true, selected_status)),
     ]
@@ -1678,7 +1706,9 @@ fn toggler_matrix() -> Element<'static, Message> {
             toggler_state_row("Hovered", toggler::Status::Hovered { is_toggled: false }),
             toggler_state_row("Disabled", toggler::Status::Disabled { is_toggled: false }),
             rule::horizontal(1).class(rule::Variant::Subtle),
-            text("SIZES").size(9).class(text::Variant::Muted),
+            text("SIZES")
+                .size(text::Size::Label.sm())
+                .class(text::Variant::Muted),
             toggler_size_row("Compact", toggler::size::COMPACT),
             toggler_size_row("Default", toggler::size::DEFAULT),
         ]
@@ -1688,7 +1718,10 @@ fn toggler_matrix() -> Element<'static, Message> {
 
 fn toggler_size_row(label: &'static str, size: f32) -> Element<'static, Message> {
     row![
-        text(label).size(10).class(text::Variant::Muted).width(58),
+        text(label)
+            .size(text::Size::Label)
+            .class(text::Variant::Muted)
+            .width(58),
         toggler(true).on_toggle(|_| Message::Action).size(size),
     ]
     .spacing(spacing::SM)
@@ -1704,7 +1737,10 @@ fn toggler_state_row(label: &'static str, status: toggler::Status) -> Element<'s
     };
 
     row![
-        text(label).size(10).class(text::Variant::Muted).width(58),
+        text(label)
+            .size(text::Size::Label)
+            .class(text::Variant::Muted)
+            .width(58),
         state_cell(forced_toggler(false, status)),
         state_cell(forced_toggler(true, toggled_status)),
     ]
@@ -1725,9 +1761,20 @@ fn state_header(
     on: &'static str,
 ) -> Element<'static, Message> {
     row![
-        text(state).size(9).class(text::Variant::Muted).width(58),
-        state_cell(text(off).size(9).class(text::Variant::Muted)),
-        state_cell(text(on).size(9).class(text::Variant::Muted)),
+        text(state)
+            .size(text::Size::Label.sm())
+            .class(text::Variant::Muted)
+            .width(58),
+        state_cell(
+            text(off)
+                .size(text::Size::Label.sm())
+                .class(text::Variant::Muted)
+        ),
+        state_cell(
+            text(on)
+                .size(text::Size::Label.sm())
+                .class(text::Variant::Muted)
+        ),
     ]
     .spacing(spacing::SM)
     .into()
@@ -1743,7 +1790,9 @@ fn state_matrix(
 ) -> Element<'static, Message> {
     panel(
         column![
-            text(title).size(13).class(text::Variant::Primary),
+            text(title)
+                .size(text::Size::Title.sm())
+                .class(text::Variant::Primary),
             content.into()
         ]
         .spacing(10),
@@ -1756,7 +1805,7 @@ fn slider_specimens(gallery: &Gallery) -> Element<'_, Message> {
         panel(
             column![
                 text("Live range controls")
-                    .size(13)
+                    .size(text::Size::Title.sm())
                     .class(text::Variant::Primary),
                 slider_control(
                     "Canvas zoom",
@@ -1782,7 +1831,7 @@ fn slider_specimens(gallery: &Gallery) -> Element<'_, Message> {
         panel(
             column![
                 text("Explicit states")
-                    .size(13)
+                    .size(text::Size::Title.sm())
                     .class(text::Variant::Primary),
                 slider_header(),
                 slider_state_row("Active", slider::Status::Active),
@@ -1807,11 +1856,11 @@ fn slider_control<'a>(
     column![
         row![
             text(label)
-                .size(text::Size::Label.sm())
+                .size(text::Size::Label)
                 .class(text::Variant::Secondary),
             Space::new().width(Fill),
             text(format!("{value:.0}{suffix}"))
-                .size(text::Size::Label.sm())
+                .size(text::Size::Label)
                 .class(text::Variant::Muted),
         ]
         .align_y(Alignment::Center),
@@ -1823,10 +1872,25 @@ fn slider_control<'a>(
 
 fn slider_header() -> Element<'static, Message> {
     row![
-        text("STATE").size(9).class(text::Variant::Muted).width(58),
-        state_cell(text("MIN").size(9).class(text::Variant::Muted)),
-        state_cell(text("MID").size(9).class(text::Variant::Muted)),
-        state_cell(text("MAX").size(9).class(text::Variant::Muted)),
+        text("STATE")
+            .size(text::Size::Label.sm())
+            .class(text::Variant::Muted)
+            .width(58),
+        state_cell(
+            text("MIN")
+                .size(text::Size::Label.sm())
+                .class(text::Variant::Muted)
+        ),
+        state_cell(
+            text("MID")
+                .size(text::Size::Label.sm())
+                .class(text::Variant::Muted)
+        ),
+        state_cell(
+            text("MAX")
+                .size(text::Size::Label.sm())
+                .class(text::Variant::Muted)
+        ),
     ]
     .spacing(spacing::SM)
     .into()
@@ -1834,7 +1898,10 @@ fn slider_header() -> Element<'static, Message> {
 
 fn slider_state_row(label: &'static str, status: slider::Status) -> Element<'static, Message> {
     row![
-        text(label).size(10).class(text::Variant::Muted).width(58),
+        text(label)
+            .size(text::Size::Label)
+            .class(text::Variant::Muted)
+            .width(58),
         forced_slider(0.0, status),
         forced_slider(50.0, status),
         forced_slider(100.0, status),
@@ -1873,7 +1940,7 @@ fn live_fields(gallery: &Gallery) -> Element<'_, Message> {
             .required(true)
             .trailing(
                 text(format!("{} / 60", gallery.request_name.chars().count()))
-                    .size(text::Size::Label.sm())
+                    .size(text::Size::Label)
                     .class(text::Variant::Muted),
             ),
             labeled_input(
@@ -1927,7 +1994,7 @@ fn live_editor(gallery: &Gallery) -> Element<'_, Message> {
         column![
             text("Deployment notes").class(text::Variant::Primary),
             text("Plain text editor with code-oriented field treatment")
-                .size(text::Size::Label.sm())
+                .size(text::Size::Label)
                 .class(text::Variant::Muted),
             text_editor(&gallery.notes)
                 .placeholder("Add rollout notes...")
@@ -1937,7 +2004,7 @@ fn live_editor(gallery: &Gallery) -> Element<'_, Message> {
                 .height(172)
                 .padding(spacing::MD),
             text(format!("{} lines", gallery.notes.line_count()))
-                .size(10)
+                .size(text::Size::Label)
                 .class(text::Variant::Muted),
         ]
         .spacing(9),
@@ -1950,7 +2017,10 @@ fn field_state_matrix(gallery: &Gallery) -> Element<'_, Message> {
     panel(
         column![
             row![
-                text("STATE").size(9).class(text::Variant::Muted).width(96),
+                text("STATE")
+                    .size(text::Size::Label.sm())
+                    .class(text::Variant::Muted)
+                    .width(96),
                 matrix_label("TEXT INPUT"),
                 matrix_label("TEXT EDITOR"),
             ]
@@ -1987,7 +2057,10 @@ fn field_state_row<'a>(
     };
 
     row![
-        text(label).size(10).class(text::Variant::Muted).width(96),
+        text(label)
+            .size(text::Size::Label)
+            .class(text::Variant::Muted)
+            .width(96),
         text_input("Placeholder", "Example value")
             .on_input(|_| Message::Action)
             .style(move |theme, _| {
@@ -2061,7 +2134,7 @@ fn pick_list_matrix() -> Element<'static, Message> {
     panel(
         column![
             text("Explicit states")
-                .size(13)
+                .size(text::Size::Title.sm())
                 .class(text::Variant::Primary),
             pick_list_state("Active", pick_list::Status::Active),
             pick_list_state("Hovered", pick_list::Status::Hovered),
@@ -2080,7 +2153,10 @@ fn pick_list_matrix() -> Element<'static, Message> {
 
 fn pick_list_state(label: &'static str, status: pick_list::Status) -> Element<'static, Message> {
     row![
-        text(label).size(10).class(text::Variant::Muted).width(82),
+        text(label)
+            .size(text::Size::Label)
+            .class(text::Variant::Muted)
+            .width(82),
         pick_list(
             Some(Environment::Staging),
             Environment::ALL,
@@ -2203,7 +2279,7 @@ fn scroll_panel(
     panel(
         column![
             text(title)
-                .size(text::Size::Label.sm())
+                .size(text::Size::Label)
                 .class(text::Variant::Muted),
             content,
         ]
@@ -2214,8 +2290,13 @@ fn scroll_panel(
 
 fn log_line(time: &'static str, event: &'static str) -> Element<'static, Message> {
     row![
-        text(time).size(10).class(text::Variant::Muted).width(58),
-        text(event).size(10).class(text::Variant::Secondary),
+        text(time)
+            .size(text::Size::Label)
+            .class(text::Variant::Muted)
+            .width(58),
+        text(event)
+            .size(text::Size::Label)
+            .class(text::Variant::Secondary),
     ]
     .spacing(6)
     .into()
@@ -2225,7 +2306,9 @@ fn metrics(items: [(&'static str, &'static str); 4]) -> Element<'static, Message
     divided(items.map(|(label, value)| {
         container(
             column![
-                text(label).size(9).class(text::Variant::Muted),
+                text(label)
+                    .size(text::Size::Label.sm())
+                    .class(text::Variant::Muted),
                 text(value)
                     .size(text::Size::Label)
                     .class(text::Variant::Primary),
@@ -2292,7 +2375,10 @@ fn surfaces() -> Element<'static, Message> {
         panel(
             column![
                 row![
-                    text("ROLE").size(10).class(text::Variant::Muted).width(100),
+                    text("ROLE")
+                        .size(text::Size::Label)
+                        .class(text::Variant::Muted)
+                        .width(100),
                     matrix_label("SMALL"),
                     matrix_label("MEDIUM"),
                     matrix_label("LARGE"),
@@ -2328,7 +2414,7 @@ fn plane_swatch(
         column![
             text(title).class(text::Variant::Primary),
             text(detail)
-                .size(text::Size::Label.sm())
+                .size(text::Size::Label)
                 .class(text::Variant::Muted),
         ]
         .spacing(6),
@@ -2349,7 +2435,7 @@ fn surface_swatch(
         column![
             text(title).class(text::Variant::Primary),
             text(detail)
-                .size(text::Size::Label.sm())
+                .size(text::Size::Label)
                 .class(text::Variant::Muted),
         ]
         .spacing(6),
@@ -2391,7 +2477,7 @@ fn type_scale_sample(size: text::Size, scale: text::Scale) -> Element<'static, M
     column![
         text("Aa").size(pixels).class(text::Variant::Primary),
         text(format!("{:.0} px", pixels.0))
-            .size(text::Size::Label.sm())
+            .size(text::Size::Label)
             .class(text::Variant::Muted),
     ]
     .spacing(spacing::XS)
@@ -2429,7 +2515,7 @@ fn overlays(gallery: &Gallery) -> Element<'_, Message> {
 fn deployment_summary(gallery: &Gallery) -> Element<'_, Message> {
     container(
         row![
-            container(text("PROD").size(10))
+            container(text("PROD").size(text::Size::Label))
                 .class(container::Variant::Semantic {
                     intent: Intent::Success,
                     style: container::SemanticStyle::Soft,
@@ -2440,7 +2526,7 @@ fn deployment_summary(gallery: &Gallery) -> Element<'_, Message> {
                     .size(text::Size::Title)
                     .class(text::Variant::Primary),
                 text("main  •  us-east-1  •  rolling")
-                    .size(text::Size::Label.sm())
+                    .size(text::Size::Label)
                     .class(text::Variant::Muted),
             ]
             .spacing(4),
@@ -2451,10 +2537,10 @@ fn deployment_summary(gallery: &Gallery) -> Element<'_, Message> {
                 } else {
                     "READY TO DEPLOY"
                 })
-                .size(9)
+                .size(text::Size::Label.sm())
                 .class(text::Variant::Decorative),
                 text("Theme preview ready")
-                    .size(text::Size::Label.sm())
+                    .size(text::Size::Label)
                     .class(text::Variant::Secondary),
             ]
             .spacing(4)
@@ -2477,13 +2563,13 @@ fn feedback_panel() -> Element<'static, Message> {
     panel(
         column![
             text("01  TRANSIENT FEEDBACK")
-                .size(10)
+                .size(text::Size::Label)
                 .class(text::Variant::Decorative),
             text("Notify the team")
-                .size(15)
+                .size(text::Size::Title)
                 .class(text::Variant::Primary),
             text("Preview each intent as a live snackbar notification.")
-                .size(text::Size::Label.sm())
+                .size(text::Size::Label)
                 .class(text::Variant::Muted),
             rule::horizontal(1).class(rule::Variant::Subtle),
             column![
@@ -2518,7 +2604,7 @@ fn snackbar_button(label: &str, variant: snackbar::Variant) -> Element<'_, Messa
         _ => button::Variant::Secondary,
     };
 
-    button(text(label).size(text::Size::Label.sm()))
+    button(text(label).size(text::Size::Label))
         .class(button_variant)
         .padding([7, 10])
         .width(Fill)
@@ -2530,13 +2616,13 @@ fn action_menu_panel() -> Element<'static, Message> {
     panel(
         column![
             text("02  CONTEXTUAL ACTIONS")
-                .size(10)
+                .size(text::Size::Label)
                 .class(text::Variant::Decorative),
             text("Release commands")
-                .size(15)
+                .size(text::Size::Title)
                 .class(text::Variant::Primary),
             text("Open either menu to inspect hierarchy and placement.")
-                .size(text::Size::Label.sm())
+                .size(text::Size::Label)
                 .class(text::Variant::Muted),
             rule::horizontal(1).class(rule::Variant::Subtle),
             row![
@@ -2567,7 +2653,7 @@ fn action_menu_panel() -> Element<'static, Message> {
             context_menu(
                 container(
                     text("Right-click for artifact actions")
-                        .size(text::Size::Label.sm())
+                        .size(text::Size::Label)
                         .class(text::Variant::Muted),
                 )
                 .class(container::Variant::Sunken.floating())
@@ -2633,13 +2719,13 @@ fn tooltip_panel() -> Element<'static, Message> {
     panel(
         column![
             text("03  TOOLTIP PLACEMENT")
-                .size(10)
+                .size(text::Size::Label)
                 .class(text::Variant::Decorative),
             text("Context at the point of action")
-                .size(15)
+                .size(text::Size::Title)
                 .class(text::Variant::Primary),
             text("Hover each control to compare placement and viewport behavior.")
-                .size(text::Size::Label.sm())
+                .size(text::Size::Label)
                 .class(text::Variant::Muted),
             rule::horizontal(1).class(rule::Variant::Subtle),
             row![
@@ -2674,7 +2760,7 @@ fn tooltip_panel() -> Element<'static, Message> {
                     .class(button::Variant::Icon)
                     .padding(6)
                     .on_press(Message::Action),
-                    text("Immediate icon tooltip").size(text::Size::Label.sm()),
+                    text("Immediate icon tooltip").size(text::Size::Label),
                     tooltip::Position::Bottom,
                 )
                 .delay(iced::time::Duration::ZERO),
@@ -2707,7 +2793,7 @@ fn popover_panel(gallery: &Gallery) -> Element<'_, Message> {
     let settings = column![
         text("Rollout settings").class(text::Variant::Primary),
         text("Applies to the next production deploy.")
-            .size(text::Size::Label.sm())
+            .size(text::Size::Label)
             .class(text::Variant::Muted),
         rule::horizontal(1).class(rule::Variant::Subtle),
         toggler(gallery.auto_retry)
@@ -2724,13 +2810,13 @@ fn popover_panel(gallery: &Gallery) -> Element<'_, Message> {
     panel(
         column![
             text("04  POPOVER PLACEMENT")
-                .size(10)
+                .size(text::Size::Label)
                 .class(text::Variant::Decorative),
             text("Anchored detail panels")
-                .size(15)
+                .size(text::Size::Title)
                 .class(text::Variant::Primary),
             text("Press a control to open its popover. Press outside or Esc to dismiss.")
-                .size(text::Size::Label.sm())
+                .size(text::Size::Label)
                 .class(text::Variant::Muted),
             rule::horizontal(1).class(rule::Variant::Subtle),
             row![
@@ -2774,7 +2860,7 @@ fn popover_button(label: &'static str, position: popover::Position) -> Element<'
         column![
             text(label).class(text::Variant::Primary),
             text("Popovers flip and clamp to stay inside the window.")
-                .size(text::Size::Label.sm())
+                .size(text::Size::Label)
                 .class(text::Variant::Muted),
         ]
         .spacing(spacing::XS),
@@ -2848,7 +2934,7 @@ fn markdown_source(gallery: &Gallery) -> Element<'_, Message> {
         column![
             text("Source").class(text::Variant::Primary),
             text("Text editor highlighted as Markdown")
-                .size(text::Size::Label.sm())
+                .size(text::Size::Label)
                 .class(text::Variant::Muted),
             text_editor(&gallery.markdown_source)
                 .on_action(Message::EditMarkdown)
@@ -2876,7 +2962,7 @@ fn markdown_preview(gallery: &Gallery) -> Element<'_, Message> {
         column![
             text("Preview").class(text::Variant::Primary),
             text("Rendered with the Moonveil markdown catalog")
-                .size(text::Size::Label.sm())
+                .size(text::Size::Label)
                 .class(text::Variant::Muted),
             scrollable(container(preview).padding(iced::Padding {
                 right: spacing::MD,
@@ -2914,7 +3000,7 @@ fn syntax_legend() -> Element<'static, Message> {
                             },
                             ..iced::Font::MONOSPACE
                         })
-                        .size(13)
+                        .size(text::Size::Label)
                         .style(move |theme| text::Style {
                             color: highlighter::highlight(code, theme).color,
                         }),
@@ -2923,7 +3009,9 @@ fn syntax_legend() -> Element<'static, Message> {
 
     container(
         column![
-            text("SYNTAX TOKENS").size(10).class(text::Variant::Muted),
+            text("SYNTAX TOKENS")
+                .size(text::Size::Label)
+                .class(text::Variant::Muted),
             swatches,
         ]
         .spacing(spacing::SM),
@@ -2941,7 +3029,7 @@ fn section_heading(
 ) -> Element<'static, Message> {
     column![
         text(eyebrow)
-            .size(text::Size::Label.sm())
+            .size(text::Size::Label)
             .class(text::Variant::Decorative),
         text(title)
             .size(text::Size::Headline)

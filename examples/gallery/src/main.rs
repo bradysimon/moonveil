@@ -478,7 +478,6 @@ fn sidebar(gallery: &Gallery) -> Element<'_, Message> {
                 .align_y(Center)
                 .spacing(spacing::SM),
             )
-            // .class(variant)
             .class(button::Variant::Ghost)
             .on_press(Message::SelectSection(section))
             .padding([10.0, spacing::MD])

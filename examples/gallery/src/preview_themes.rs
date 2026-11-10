@@ -1,3 +1,4 @@
+//! A variety of different themes that you can use in the gallery.
 use std::sync::LazyLock;
 
 use moonveil::{CategoricalSeeds, Color, Contrast, Definition, Metadata, Polarity, Seed, Theme};
@@ -171,7 +172,7 @@ fn resolve(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{catppuccin_latte, everforest, nord, rose_pine};
 
     #[test]
     fn all_preview_themes_resolve() {

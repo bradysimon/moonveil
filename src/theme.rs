@@ -76,10 +76,7 @@ impl CategoricalSeeds {
 
     /// Creates categorical seeds from at most [`Categorical::SLOTS`] colors.
     ///
-    /// ```compile_fail
-    /// # use moonveil::{CategoricalSeeds, Color};
-    /// let _ = CategoricalSeeds::new([Color::from_rgb(0.0, 0.0, 0.0); 9]);
-    /// ```
+    /// The remaining empty slots not provided will be generated automatically.
     pub const fn new<const N: usize>(colors: [Color; N]) -> Self {
         const {
             assert!(

@@ -2337,7 +2337,7 @@ fn surfaces() -> Element<'static, Message> {
             None,
         ))
         .into(),
-        panel(palette_heading("FLUSH", "Layout planes meet along rules")).into(),
+        panel(palette_heading("FLUSH", "Background surfaces")).into(),
         band([
             plane_swatch("Canvas", "App chrome", container::Variant::Canvas),
             plane_swatch("Surface", "Primary plane", container::Variant::Surface),
@@ -2346,7 +2346,7 @@ fn surfaces() -> Element<'static, Message> {
         ]),
         panel(
             column![
-                palette_heading("FLOATING", "Planes set apart by spacing, and objects"),
+                palette_heading("FLOATING", "Content and field surfaces"),
                 row![
                     surface_swatch(
                         "Raised",

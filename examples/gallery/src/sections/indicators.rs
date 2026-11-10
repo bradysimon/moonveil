@@ -2,7 +2,7 @@ use crate::message::Message;
 use crate::ui::{band, matrix_label, page, panel, section_heading};
 use iced::Alignment;
 use iced::Length::Fill;
-use iced::widget::{column, row};
+use moonveil::widget::{column, row};
 use moonveil::widget::text::TextExt as _;
 use moonveil::widget::{alert, badge, button, container, progress, progress_bar, rule, text, Space};
 use moonveil::{Element, spacing, token::Intent};

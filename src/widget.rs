@@ -47,6 +47,9 @@ pub mod toggler;
 pub mod tooltip;
 pub mod transition;
 
+// These would ideally be in a separate widget crate but I don't want to set that up right now.
+pub use crate::{column, row};
+
 #[cfg(feature = "image")]
 pub use iced_widget::{Image, image};
 pub use iced_widget::{Space, Void, space, void};

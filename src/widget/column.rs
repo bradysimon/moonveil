@@ -14,3 +14,16 @@ where
 {
     Column::with_children(children)
 }
+
+/// Creates a [`Column`] with the given children.
+///
+/// Columns distribute their children vertically.
+#[macro_export]
+macro_rules! column {
+    () => (
+        $crate::widget::Column::new()
+    );
+    ($($x:expr),+ $(,)?) => (
+        $crate::widget::Column::with_children([$($crate::Element::from($x)),+])
+    );
+}

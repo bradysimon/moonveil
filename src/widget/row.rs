@@ -14,3 +14,16 @@ where
 {
     Row::with_children(children)
 }
+
+/// Creates a [`Row`] with the given children.
+///
+/// Rows distribute their children horizontally.
+#[macro_export]
+macro_rules! row {
+    () => (
+        $crate::widget::Row::new()
+    );
+    ($($x:expr),+ $(,)?) => (
+        $crate::widget::Row::with_children([$($crate::Element::from($x)),+])
+    );
+}

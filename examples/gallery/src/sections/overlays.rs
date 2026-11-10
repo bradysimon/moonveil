@@ -3,7 +3,7 @@ use crate::message::Message;
 use crate::ui::{band, page, panel, section_heading, COLOR_MODE_ICON, PANEL_PADDING};
 use iced::Alignment;
 use iced::Length::Fill;
-use iced::widget::{column, row};
+use moonveil::widget::{column, row};
 use moonveil::widget::text::TextExt as _;
 use moonveil::widget::{
     button, container, context_menu, dropdown, popover, rule, snackbar, svg, text, toggler, tooltip,

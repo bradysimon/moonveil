@@ -4,7 +4,7 @@ use crate::shared::{Environment, PreviewTab};
 use crate::ui::{band, page, panel, section_heading, COLOR_MODE_ICON};
 use iced::{Alignment, Length};
 use iced::Length::Fill;
-use iced::widget::{column, row};
+use moonveil::widget::{column, row};
 use moonveil::widget::text::TextExt as _;
 use moonveil::widget::{checkbox, container, radio, rule, slider, svg, tab_bar, text, toggler, Column, Space};
 use moonveil::{Element, spacing, token::Intent};

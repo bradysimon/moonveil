@@ -1,10 +1,9 @@
 //! Shared UI elements used in the gallery example.
 use iced::Alignment::Center;
 use iced::Length::Fill;
-use iced::widget::{Space, column, row};
 use iced::{Alignment, Length};
 use moonveil::widget::text::TextExt as _;
-use moonveil::widget::{labeled, pick_list, rule, scrollable, text};
+use moonveil::widget::{Space, column, labeled, pick_list, row, rule, scrollable, text};
 use moonveil::{
     Color, Element, Theme, spacing,
     widget::{Column, Row, button, container},

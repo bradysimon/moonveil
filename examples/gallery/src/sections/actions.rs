@@ -2,9 +2,9 @@ use crate::message::Message;
 use crate::ui::{matrix_label, page, panel, section_heading};
 use iced::Alignment;
 use iced::Length::Fill;
-use iced::widget::{column, row};
 use moonveil::widget::text::TextExt as _;
 use moonveil::widget::{button, container, text};
+use moonveil::widget::{column, row};
 use moonveil::{Element, spacing, token::Intent};
 
 pub(super) fn actions() -> Element<'static, Message> {

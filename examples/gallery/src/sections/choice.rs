@@ -3,7 +3,7 @@ use crate::message::Message;
 use crate::shared::Environment;
 use crate::ui::{band, divided, page, panel, section_heading};
 use iced::Length::Fill;
-use iced::widget::{column, row};
+use moonveil::widget::{column, row};
 use iced::{Alignment, Length};
 use moonveil::widget::combo_box::ComboBoxExt as _;
 use moonveil::widget::text::TextExt as _;

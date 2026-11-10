@@ -2,7 +2,7 @@ use crate::gallery::Gallery;
 use crate::message::Message;
 use crate::ui::{band, page, panel, section_heading, PANEL_PADDING};
 use iced::Length::Fill;
-use iced::widget::column;
+use moonveil::widget::column;
 use moonveil::widget::text::TextExt as _;
 use moonveil::widget::text_editor::TextEditorExt as _;
 use moonveil::widget::{container, markdown, scrollable, text, text_editor, Row};

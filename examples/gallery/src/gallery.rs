@@ -1,13 +1,12 @@
-use crate::shared::{Environment, Field, PreviewTab, Rounding, ThemeChoice};
-use crate::ui;
 use crate::message::Message;
 use crate::section::Section;
 use crate::sections;
+use crate::shared::{Environment, Field, PreviewTab, Rounding, ThemeChoice};
+use crate::ui;
 use iced::Length::Fill;
-use iced::widget::row;
 use moonveil::widget::text::{self, TextExt as _, text};
 use moonveil::widget::{
-    button, combo_box, container, dialog, markdown, rule, snackbar, text_editor,
+    button, combo_box, container, dialog, markdown, row, rule, snackbar, text_editor,
 };
 use moonveil::{Element, Theme};
 

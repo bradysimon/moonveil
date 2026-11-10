@@ -4,7 +4,7 @@ use crate::shared::Edge;
 use crate::ui::{page, palette_heading, panel, PANEL_PADDING};
 use iced::{font, Border, Font};
 use iced::Length::Fill;
-use iced::widget::{column, row};
+use moonveil::widget::{column, row};
 use moonveil::widget::text::TextExt as _;
 use moonveil::widget::{container, text, Space};
 use moonveil::{Color, Element, Theme, spacing};

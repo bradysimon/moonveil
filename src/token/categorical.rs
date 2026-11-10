@@ -341,7 +341,7 @@ fn weighted_oklab(color: Color) -> [f32; 3] {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Definition, Polarity, Theme};
+    use crate::{Definition, Polarity, Theme, color};
 
     fn oklab_distance(first: Color, second: Color) -> f32 {
         let lab = |color: Color| {
@@ -457,11 +457,7 @@ mod tests {
     #[test]
     fn authored_colors_lead_and_generated_colors_fill_the_rest() {
         let definition = Definition::default_for(Polarity::Dark);
-        let authored = [
-            Color::from_rgb8(0xc4, 0xa7, 0xe7),
-            Color::from_rgb8(0x9c, 0xcf, 0xd8),
-            Color::from_rgb8(0xf6, 0xc1, 0x77),
-        ];
+        let authored = [color!(0xc4a7e7), color!(0x9ccfd8), color!(0xf6c177)];
         let colors = base_colors(&definition.seed, &authored);
 
         assert_eq!(colors[..3], authored);
@@ -473,10 +469,7 @@ mod tests {
 
     #[test]
     fn exposes_only_authored_slots_through_authored() {
-        let authored = [
-            Color::from_rgb8(0xc4, 0xa7, 0xe7),
-            Color::from_rgb8(0x9c, 0xcf, 0xd8),
-        ];
+        let authored = [color!(0xc4a7e7), color!(0x9ccfd8)];
         let theme =
             Theme::new(Definition::default_for(Polarity::Dark).with_categorical(authored)).unwrap();
         let categorical = theme.colors().categorical;
@@ -566,8 +559,7 @@ mod tests {
     fn authored_count_switches_at_the_animation_midpoint() {
         let start = Theme::default_dark().colors().categorical;
         let end = Theme::new(
-            Definition::default_for(Polarity::Dark)
-                .with_categorical([Color::from_rgb8(0xc4, 0xa7, 0xe7)]),
+            Definition::default_for(Polarity::Dark).with_categorical([color!(0xc4a7e7)]),
         )
         .unwrap()
         .colors()

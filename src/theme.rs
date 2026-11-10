@@ -9,7 +9,7 @@ use std::{
 };
 
 use crate::{
-    Color, Contrast, ResolveError,
+    Color, Contrast, ResolveError, color,
     contrast::composite,
     token::{Categorical, Colors, Interaction, Surface},
 };
@@ -57,11 +57,11 @@ pub struct Seed {
 /// chroma. See [`Categorical`] for how the resolved slots are used.
 ///
 /// ```
-/// # use moonveil::{Color, Definition, Polarity};
+/// # use moonveil::{color, Definition, Polarity};
 /// let definition = Definition::default_for(Polarity::Dark).with_categorical([
-///     Color::from_rgb8(0xc4, 0xa7, 0xe7),
-///     Color::from_rgb8(0x9c, 0xcf, 0xd8),
-///     Color::from_rgb8(0xf6, 0xc1, 0x77),
+///     color!(0xc4a7e7),
+///     color!(0x9ccfd8),
+///     color!(0xf6c177),
 /// ]);
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -213,15 +213,14 @@ impl Definition {
                 Polarity::Light,
                 Contrast::Standard,
                 Seed {
-                    background: Color::from_rgb8(0xF1, 0xF3, 0xF6),
-                    foreground: Color::from_rgb8(0x1B, 0x1E, 0x24),
-                    tint: Color::from_rgb8(0xFF, 0xFF, 0xFF),
-                    shade: Color::from_rgb8(0x23, 0x27, 0x2C),
-                    // shade: Color::from_rgb8(0x77, 0x7C, 0x8A),
-                    accent: Color::from_rgb8(0x26, 0x72, 0x8F),
-                    success: Color::from_rgb8(0x3C, 0x7D, 0x36),
-                    warning: Color::from_rgb8(0x96, 0x65, 0x00),
-                    danger: Color::from_rgb8(0xAD, 0x31, 0x3E),
+                    background: color!(0xf1f3f6),
+                    foreground: color!(0x1b1e24),
+                    tint: color!(0xffffff),
+                    shade: color!(0x23272c),
+                    accent: color!(0x26728f),
+                    success: color!(0x3c7d36),
+                    warning: color!(0x966500),
+                    danger: color!(0xad313e),
                 },
             ),
         }
@@ -240,14 +239,14 @@ impl Definition {
             Polarity::Dark,
             Contrast::High,
             Seed {
-                background: Color::from_rgb8(0x09, 0x0a, 0x0c),
-                foreground: Color::from_rgb8(0xff, 0xff, 0xff),
-                tint: Color::from_rgb8(0xff, 0xff, 0xff),
-                shade: Color::from_rgb8(0x00, 0x00, 0x00),
-                accent: Color::from_rgb8(0x8d, 0xd2, 0xff),
-                success: Color::from_rgb8(0xa6, 0xe8, 0x9a),
-                warning: Color::from_rgb8(0xff, 0xd2, 0x7a),
-                danger: Color::from_rgb8(0xff, 0x90, 0x9b),
+                background: color!(0x090a0c),
+                foreground: color!(0xffffff),
+                tint: color!(0xffffff),
+                shade: color!(0x000000),
+                accent: color!(0x8dd2ff),
+                success: color!(0xa6e89a),
+                warning: color!(0xffd27a),
+                danger: color!(0xff909b),
             },
         )
         .with_border(BorderWidths::STRONG)
@@ -465,7 +464,7 @@ impl iced_anim::Animate for Theme {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Polarity, Seed};
+    use crate::{Polarity, Seed, color};
     use iced_core::theme::{Base, Mode};
 
     fn definition() -> Definition {
@@ -515,14 +514,8 @@ mod tests {
         assert_eq!(theme.definition(), &definition);
         assert_eq!(theme.name(), "Moonveil High Contrast");
         assert_eq!(theme.definition().profile, Contrast::High);
-        assert_eq!(
-            theme.definition().seed.background,
-            Color::from_rgb8(0x09, 0x0a, 0x0c)
-        );
-        assert_eq!(
-            theme.definition().seed.accent,
-            Color::from_rgb8(0x8d, 0xd2, 0xff)
-        );
+        assert_eq!(theme.definition().seed.background, color!(0x090a0c));
+        assert_eq!(theme.definition().seed.accent, color!(0x8dd2ff));
         assert_eq!(theme.appearance().border, BorderWidths::STRONG);
         assert_eq!(theme.appearance().radius, Radii::STANDARD);
     }

@@ -1,95 +1,95 @@
 //! A variety of different themes that you can use in the gallery.
 use std::sync::LazyLock;
 
-use moonveil::{CategoricalSeeds, Color, Contrast, Definition, Metadata, Polarity, Seed, Theme};
+use moonveil::{CategoricalSeeds, Contrast, Definition, Metadata, Polarity, Seed, Theme, color};
 
 const EVERFOREST_SEED: Seed = Seed {
-    background: Color::from_rgb8(0xf3, 0xf1, 0xe5),
-    foreground: Color::from_rgb8(0x5c, 0x6a, 0x72),
-    tint: Color::from_rgb8(0xff, 0xff, 0xf4),
-    shade: Color::from_rgb8(0x7f, 0x8c, 0x70),
-    accent: Color::from_rgb8(0x35, 0xa7, 0x7c),
-    success: Color::from_rgb8(0x8d, 0xa1, 0x01),
-    warning: Color::from_rgb8(0xdf, 0xa0, 0x00),
-    danger: Color::from_rgb8(0xf8, 0x55, 0x52),
+    background: color!(0xf3f1e5),
+    foreground: color!(0x5c6a72),
+    tint: color!(0xfffff4),
+    shade: color!(0x7f8c70),
+    accent: color!(0x35a77c),
+    success: color!(0x8da101),
+    warning: color!(0xdfa000),
+    danger: color!(0xf85552),
 };
 
 /// Everforest's seven accent hues; the eighth slot is generated.
 const EVERFOREST_CATEGORICAL: CategoricalSeeds = CategoricalSeeds::new([
-    Color::from_rgb8(0x3a, 0x94, 0xc5), // blue
-    Color::from_rgb8(0xf5, 0x7d, 0x26), // orange
-    Color::from_rgb8(0x8d, 0xa1, 0x01), // green
-    Color::from_rgb8(0xdf, 0x69, 0xba), // purple
-    Color::from_rgb8(0x35, 0xa7, 0x7c), // aqua
-    Color::from_rgb8(0xdf, 0xa0, 0x00), // yellow
-    Color::from_rgb8(0xf8, 0x55, 0x52), // red
+    color!(0x3a94c5), // blue
+    color!(0xf57d26), // orange
+    color!(0x8da101), // green
+    color!(0xdf69ba), // purple
+    color!(0x35a77c), // aqua
+    color!(0xdfa000), // yellow
+    color!(0xf85552), // red
 ]);
 
 const ROSE_PINE_SEED: Seed = Seed {
-    background: Color::from_rgb8(0x19, 0x17, 0x24),
-    foreground: Color::from_rgb8(0xe0, 0xde, 0xf4),
-    tint: Color::from_rgb8(0xf4, 0xf1, 0xff),
-    shade: Color::from_rgb8(0x0b, 0x0a, 0x12),
-    accent: Color::from_rgb8(0xc4, 0xa7, 0xe7),
-    success: Color::from_rgb8(0x9c, 0xcf, 0xd8),
-    warning: Color::from_rgb8(0xf6, 0xc1, 0x77),
-    danger: Color::from_rgb8(0xeb, 0x6f, 0x92),
+    background: color!(0x191724),
+    foreground: color!(0xe0def4),
+    tint: color!(0xf4f1ff),
+    shade: color!(0x0b0a12),
+    accent: color!(0xc4a7e7),
+    success: color!(0x9ccfd8),
+    warning: color!(0xf6c177),
+    danger: color!(0xeb6f92),
 };
 
 /// Rosé Pine's six accent hues; the last two slots are generated.
 const ROSE_PINE_CATEGORICAL: CategoricalSeeds = CategoricalSeeds::new([
-    Color::from_rgb8(0xc4, 0xa7, 0xe7), // iris
-    Color::from_rgb8(0x9c, 0xcf, 0xd8), // foam
-    Color::from_rgb8(0xf6, 0xc1, 0x77), // gold
-    Color::from_rgb8(0xeb, 0x6f, 0x92), // love
-    Color::from_rgb8(0xeb, 0xbc, 0xba), // rose
-    Color::from_rgb8(0x31, 0x74, 0x8f), // pine
+    color!(0xc4a7e7), // iris
+    color!(0x9ccfd8), // foam
+    color!(0xf6c177), // gold
+    color!(0xeb6f92), // love
+    color!(0xebbcba), // rose
+    color!(0x31748f), // pine
 ]);
 
 const CATPPUCCIN_LATTE_SEED: Seed = Seed {
-    background: Color::from_rgb8(0xef, 0xf1, 0xf5),
-    foreground: Color::from_rgb8(0x4c, 0x4f, 0x69),
-    tint: Color::from_rgb8(0xff, 0xff, 0xff),
-    shade: Color::from_rgb8(0x9c, 0xa0, 0xb0),
-    accent: Color::from_rgb8(0x1e, 0x66, 0xf5),
-    success: Color::from_rgb8(0x40, 0xa0, 0x2b),
-    warning: Color::from_rgb8(0xdf, 0x8e, 0x1d),
-    danger: Color::from_rgb8(0xd2, 0x0f, 0x39),
+    background: color!(0xeff1f5),
+    foreground: color!(0x4c4f69),
+    tint: color!(0xffffff),
+    shade: color!(0x9ca0b0),
+    accent: color!(0x1e66f5),
+    success: color!(0x40a02b),
+    warning: color!(0xdf8e1d),
+    danger: color!(0xd20f39),
 };
 
 /// Eight of Catppuccin Latte's fourteen accent colors.
 const CATPPUCCIN_LATTE_CATEGORICAL: CategoricalSeeds = CategoricalSeeds::new([
-    Color::from_rgb8(0x1e, 0x66, 0xf5), // blue
-    Color::from_rgb8(0xfe, 0x64, 0x0b), // peach
-    Color::from_rgb8(0x40, 0xa0, 0x2b), // green
-    Color::from_rgb8(0x88, 0x39, 0xef), // mauve
-    Color::from_rgb8(0x17, 0x92, 0x99), // teal
-    Color::from_rgb8(0xea, 0x76, 0xcb), // pink
-    Color::from_rgb8(0xdf, 0x8e, 0x1d), // yellow
-    Color::from_rgb8(0xd2, 0x0f, 0x39), // red
+    color!(0x1e66f5), // blue
+    color!(0xfe640b), // peach
+    color!(0x40a02b), // green
+    color!(0x8839ef), // mauve
+    color!(0x179299), // teal
+    color!(0xea76cb), // pink
+    color!(0xdf8e1d), // yellow
+    color!(0xd20f39), // red
 ]);
 
 const NORD_SEED: Seed = Seed {
-    background: Color::from_rgb8(0x2e, 0x34, 0x40),
-    foreground: Color::from_rgb8(0xd8, 0xde, 0xe9),
-    tint: Color::from_rgb8(0xec, 0xef, 0xf4),
-    shade: Color::from_rgb8(0x1b, 0x1f, 0x27),
-    accent: Color::from_rgb8(0x88, 0xc0, 0xd0),
-    success: Color::from_rgb8(0xa3, 0xbe, 0x8c),
-    warning: Color::from_rgb8(0xeb, 0xcb, 0x8b),
-    danger: Color::from_rgb8(0xbf, 0x61, 0x6a),
+    background: color!(0x2e3440),
+    foreground: color!(0xd8dee9),
+    tint: color!(0xeceff4),
+    shade: color!(0x1b1f27),
+    accent: color!(0x88c0d0),
+    success: color!(0xa3be8c),
+    warning: color!(0xebcb8b),
+    danger: color!(0xbf616a),
 };
 
 /// Nord's Frost and Aurora colors.
 const NORD_CATEGORICAL: CategoricalSeeds = CategoricalSeeds::new([
-    Color::from_rgb8(0x88, 0xc0, 0xd0), // nord8
-    Color::from_rgb8(0xd0, 0x87, 0x70), // nord12
-    Color::from_rgb8(0xa3, 0xbe, 0x8c), // nord14
-    Color::from_rgb8(0xb4, 0x8e, 0xad), // nord15
-    Color::from_rgb8(0xeb, 0xcb, 0x8b), // nord13
-    Color::from_rgb8(0x5e, 0x81, 0xac), // nord10
-    Color::from_rgb8(0x8f, 0xbc, 0xbb), // nord7
-    Color::from_rgb8(0xbf, 0x61, 0x6a), // nord11
+    color!(0x88c0d0), // nord8
+    color!(0xd08770), // nord12
+    color!(0xa3be8c), // nord14
+    color!(0xb48ead), // nord15
+    color!(0xebcb8b), // nord13
+    color!(0x5e81ac), // nord10
+    color!(0x8fbcbb), // nord7
+    color!(0xbf616a), // nord11
 ]);
 
 static EVERFOREST_THEME: LazyLock<Theme> = LazyLock::new(|| {

@@ -87,12 +87,32 @@ impl Color {
 
     /// Creates an opaque color from sRGB components.
     pub const fn from_rgb8(red: u8, green: u8, blue: u8) -> Self {
+        Self::from_rgba8(red, green, blue, 1.0)
+    }
+
+    /// Creates a color from sRGB components and a `[0, 1]` alpha value.
+    pub const fn from_rgba8(red: u8, green: u8, blue: u8, alpha: f32) -> Self {
         Self::from_rgba(
             red as f32 / 255.0,
             green as f32 / 255.0,
             blue as f32 / 255.0,
-            1.0,
+            alpha,
         )
+    }
+
+    /// Creates a [`Color`] from its RGB8 components packed in the lower bits of a `u32`.
+    pub const fn from_packed_rgb8(rgb: u32) -> Self {
+        Self::from_packed_rgba8(rgb, 1.0)
+    }
+
+    /// Creates a [`Color`] from its RGB8 components packed in the lower bits of a `u32`
+    /// and an alpha value.
+    pub const fn from_packed_rgba8(rgb: u32, a: f32) -> Self {
+        let r = (rgb & 0xff0000) >> 16;
+        let g = (rgb & 0xff00) >> 8;
+        let b = rgb & 0xff;
+
+        Self::from_rgba8(r as u8, g as u8, b as u8, a)
     }
 
     /// Creates a new [`Color`].
@@ -186,6 +206,43 @@ impl Color {
             None
         }
     }
+}
+
+/// Creates a [`Color`] with shorter and cleaner syntax.
+///
+/// # Examples
+///
+/// ```
+/// # use moonveil::{Color, color};
+/// assert_eq!(color!(0, 0, 0), Color::BLACK);
+/// assert_eq!(color!(0, 0, 0, 0.0), Color::TRANSPARENT);
+/// assert_eq!(color!(0xffffff), Color::from_rgb(1.0, 1.0, 1.0));
+/// assert_eq!(color!(0xffffff, 0.), Color::from_rgba(1.0, 1.0, 1.0, 0.0));
+/// assert_eq!(color!(0x0000ff), Color::from_rgba(0.0, 0.0, 1.0, 1.0));
+/// ```
+#[macro_export]
+macro_rules! color {
+    ($r:expr, $g:expr, $b:expr) => {
+        $crate::Color::from_rgb8($r, $g, $b)
+    };
+    ($r:expr, $g:expr, $b:expr, $a:expr) => {{ $crate::Color::from_rgba8($r, $g, $b, $a) }};
+    ($hex:literal) => {{ $crate::color!($hex, 1.0) }};
+    ($hex:literal, $a:expr) => {{
+        let mut hex = $hex as u32;
+
+        // Shorthand notation: 0x123
+        if stringify!($hex).len() == 5 {
+            let r = hex & 0xF00;
+            let g = hex & 0xF0;
+            let b = hex & 0xF;
+
+            hex = (r << 12) | (r << 8) | (g << 8) | (g << 4) | (b << 4) | b;
+        }
+
+        debug_assert!(hex <= 0xffffff, "color! value must not exceed 0xffffff");
+
+        $crate::Color::from_packed_rgba8(hex, $a)
+    }};
 }
 
 impl From<Color> for iced_core::Color {

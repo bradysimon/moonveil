@@ -1,14 +1,14 @@
 use crate::gallery::Gallery;
 use crate::message::Message;
-use crate::ui::{band, page, panel, section_heading, COLOR_MODE_ICON, PANEL_PADDING};
+use crate::ui::{COLOR_MODE_ICON, PANEL_PADDING, band, page, panel, section_heading};
 use iced::Alignment;
 use iced::Length::Fill;
-use moonveil::widget::{column, row};
 use moonveil::widget::text::TextExt as _;
 use moonveil::widget::{
-    button, container, context_menu, dropdown, popover, rule, snackbar, svg, text, toggler, tooltip,
-    Space,
+    Space, button, container, context_menu, dropdown, popover, rule, snackbar, svg, text, toggler,
+    tooltip,
 };
+use moonveil::widget::{column, row};
 use moonveil::{Element, spacing, token::Intent};
 
 pub(super) fn overlays(gallery: &Gallery) -> Element<'_, Message> {
@@ -334,28 +334,42 @@ fn popover_panel(gallery: &Gallery) -> Element<'_, Message> {
                 .class(text::Variant::Muted),
             rule::horizontal(1).class(rule::Variant::Subtle),
             row![
-                popover(
-                    button(text("Rollout  ↓"))
-                        .class(button::Variant::Secondary)
-                        .padding([7, 10])
-                        .on_press(Message::Action),
-                    settings,
-                )
-                .width(260),
+                popover(text("Rollout  ↓"), settings)
+                    .trigger_padding([7, 10])
+                    .width(260),
                 popover_button("Top", popover::Position::Top),
                 popover_button("Bottom end", popover::Position::BottomEnd),
                 popover_button("Left", popover::Position::Left),
                 popover_button("Right start", popover::Position::RightStart),
                 popover(
-                    button(text("Subtle"))
-                        .class(button::Variant::Ghost)
-                        .padding([7, 10])
-                        .on_press(Message::Action),
+                    text("Subtle"),
                     text("A quieter edge for dense surfaces.").size(text::Size::Label),
                 )
+                .trigger_class(button::Variant::Ghost)
+                .trigger_padding([7, 10])
                 .position(popover::Position::Bottom)
                 .padding([spacing::SM, spacing::MD])
                 .class(popover::Variant::Subtle),
+                popover::anchored(
+                    button(text("Release notes"))
+                        .class(button::Variant::Ghost)
+                        .padding([7, 10])
+                        .on_press(Message::ReleaseNotes(!gallery.release_notes_open)),
+                    column![
+                        text("Anchored and controlled").class(text::Variant::Primary),
+                        text("The app owns this button and the open state.")
+                            .size(text::Size::Label)
+                            .class(text::Variant::Muted),
+                        button(text("Got it").size(text::Size::Label))
+                            .class(button::Variant::Secondary)
+                            .on_press(Message::ReleaseNotes(false)),
+                    ]
+                    .spacing(spacing::SM),
+                    gallery.release_notes_open,
+                )
+                .on_close(Message::ReleaseNotes(false))
+                .position(popover::Position::BottomEnd)
+                .max_width(240),
             ]
             .spacing(spacing::SM)
             .align_y(Alignment::Center),
@@ -367,10 +381,7 @@ fn popover_panel(gallery: &Gallery) -> Element<'_, Message> {
 
 fn popover_button(label: &'static str, position: popover::Position) -> Element<'static, Message> {
     popover(
-        button(text(label))
-            .class(button::Variant::Outline)
-            .padding([7, 10])
-            .on_press(Message::Action),
+        text(label),
         column![
             text(label).class(text::Variant::Primary),
             text("Popovers flip and clamp to stay inside the window.")
@@ -380,6 +391,8 @@ fn popover_button(label: &'static str, position: popover::Position) -> Element<'
         .spacing(spacing::XS),
     )
     .position(position)
+    .trigger_class(button::Variant::Outline)
+    .trigger_padding([7, 10])
     .max_width(220)
     .into()
 }

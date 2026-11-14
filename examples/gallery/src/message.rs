@@ -19,6 +19,7 @@ pub(super) enum Message {
     SelectPreviewTab(PreviewTab),
     AutoRetry(bool),
     IncidentAlerts(bool),
+    ReleaseNotes(bool),
     ZoomChanged(f32),
     AlertThresholdChanged(f32),
     EditField(Field, String),

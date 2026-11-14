@@ -22,6 +22,7 @@ pub(super) struct Gallery {
     pub(super) preview_tab: PreviewTab,
     pub(super) auto_retry: bool,
     pub(super) incident_alerts: bool,
+    pub(super) release_notes_open: bool,
     pub(super) zoom: f32,
     pub(super) alert_threshold: f32,
     pub(super) request_name: String,
@@ -49,6 +50,7 @@ impl Gallery {
             preview_tab: PreviewTab::Overview,
             auto_retry: true,
             incident_alerts: true,
+            release_notes_open: false,
             zoom: 100.0,
             alert_threshold: 80.0,
             request_name: String::from("Production deploy"),
@@ -105,6 +107,7 @@ impl Gallery {
             Message::SelectPreviewTab(tab) => gallery.preview_tab = tab,
             Message::AutoRetry(value) => gallery.auto_retry = value,
             Message::IncidentAlerts(value) => gallery.incident_alerts = value,
+            Message::ReleaseNotes(open) => gallery.release_notes_open = open,
             Message::ZoomChanged(value) => gallery.zoom = value,
             Message::AlertThresholdChanged(value) => gallery.alert_threshold = value,
             Message::EditField(field, value) => match field {

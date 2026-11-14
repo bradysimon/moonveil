@@ -1,16 +1,24 @@
 //! Popovers show floating content anchored to a base element.
 //!
-//! Pressing the base toggles the popover. A press outside the panel or `Esc` closes it.
-//! Use [`Popover::is_open`] with [`Popover::on_open`] and [`Popover::on_close`] to control
-//! the open state from the application instead.
+//! [`popover`] draws a button-styled trigger that toggles its panel when pressed.
+//! [`anchored`] attaches a panel to any element and leaves opening it to the application.
+//! A press outside the panel or `Esc` closes either kind.
+//!
+//! Setting [`Popover::is_open`] makes the open state controlled: the popover then only
+//! publishes [`Popover::on_open`] and [`Popover::on_close`] and never changes it itself.
 
-use crate::{Element, Theme, spacing, widget::container};
+use crate::{
+    Element, Theme, spacing,
+    widget::{button, container},
+};
 use iced_core::{
-    Border, Event, Layout, Length, Padding, Pixels, Rectangle, Shell, Size, Vector, Widget,
+    Background, Border, Color, Event, Layout, Length, Padding, Pixels, Rectangle, Shell, Size,
+    Vector, Widget,
     keyboard::{self, key},
-    layout::Limits,
+    layout::{self, Limits},
     mouse, overlay, renderer, touch,
     widget::{Operation, Tree, tree},
+    window,
 };
 
 /// The appearance of a popover panel.
@@ -28,16 +36,32 @@ pub const DEFAULT_MAX_WIDTH: Pixels = Pixels(320.0);
 /// The minimum distance kept between a popover and the window edges.
 const EDGE_PADDING: f32 = 6.0;
 
-/// Creates a popover that shows `content` when `base` is pressed.
+/// Creates a popover with a button-styled trigger around `label` that toggles `content`.
 pub fn popover<'a, Message, Renderer>(
-    base: impl Into<Element<'a, Message, Renderer>>,
+    label: impl Into<Element<'a, Message, Renderer>>,
     content: impl Into<Element<'a, Message, Renderer>>,
 ) -> Popover<'a, Message, Renderer>
 where
     Message: Clone + 'a,
     Renderer: iced_core::Renderer + 'a,
 {
-    Popover::new(base, content)
+    Popover::new(label, content)
+}
+
+/// Creates a popover that shows `content` next to `base` while `is_open` is `true`.
+///
+/// The base keeps its own behavior. Use [`Popover::on_close`] to learn when the panel is
+/// dismissed with an outside press or `Esc`.
+pub fn anchored<'a, Message, Renderer>(
+    base: impl Into<Element<'a, Message, Renderer>>,
+    content: impl Into<Element<'a, Message, Renderer>>,
+    is_open: bool,
+) -> Popover<'a, Message, Renderer>
+where
+    Message: Clone + 'a,
+    Renderer: iced_core::Renderer + 'a,
+{
+    Popover::anchored(base, content, is_open)
 }
 
 /// Where a popover is placed relative to its base.
@@ -111,6 +135,14 @@ impl Position {
     }
 }
 
+/// How a popover's base behaves.
+enum Trigger<'a> {
+    /// The base is drawn inside a button-styled trigger that toggles the popover.
+    Button(<Theme as button::Catalog>::Class<'a>),
+    /// The base is an application-owned anchor that never opens the popover itself.
+    Anchor,
+}
+
 /// A floating panel of arbitrary content anchored to a base element.
 pub struct Popover<'a, Message, Renderer = iced_widget::Renderer>
 where
@@ -119,6 +151,9 @@ where
 {
     base: Element<'a, Message, Renderer>,
     content: Element<'a, Message, Renderer>,
+    trigger: Trigger<'a>,
+    trigger_padding: Padding,
+    status: Option<button::Status>,
     position: Position,
     gap: f32,
     padding: Padding,
@@ -136,14 +171,17 @@ where
     Message: Clone + 'a,
     Renderer: iced_core::Renderer + 'a,
 {
-    /// Creates a popover that shows `content` when `base` is pressed.
+    /// Creates a popover with a button-styled trigger around `label` that toggles `content`.
     pub fn new(
-        base: impl Into<Element<'a, Message, Renderer>>,
+        label: impl Into<Element<'a, Message, Renderer>>,
         content: impl Into<Element<'a, Message, Renderer>>,
     ) -> Self {
         Self {
-            base: base.into(),
+            base: label.into(),
             content: content.into(),
+            trigger: Trigger::Button(button::Variant::Secondary.into()),
+            trigger_padding: iced_widget::button::DEFAULT_PADDING,
+            status: None,
             position: Position::default(),
             gap: DEFAULT_GAP.0,
             padding: DEFAULT_PADDING,
@@ -155,6 +193,52 @@ where
             on_close: None,
             class: <Theme as Catalog>::default(),
         }
+    }
+
+    /// Creates a popover that shows `content` next to `base` while `is_open` is `true`.
+    ///
+    /// This lets you have a controlled popover with a fully custom trigger.
+    pub fn anchored(
+        base: impl Into<Element<'a, Message, Renderer>>,
+        content: impl Into<Element<'a, Message, Renderer>>,
+        is_open: bool,
+    ) -> Self {
+        Self {
+            trigger: Trigger::Anchor,
+            trigger_padding: Padding::ZERO,
+            is_open: Some(is_open),
+            ..Self::new(base, content)
+        }
+    }
+
+    /// Sets the button style of the trigger. Has no effect on [`anchored`] popovers.
+    #[must_use]
+    pub fn trigger_class(mut self, variant: button::Variant) -> Self {
+        if let Trigger::Button(class) = &mut self.trigger {
+            *class = variant.into();
+        }
+        self
+    }
+
+    /// Sets a custom trigger style function. Has no effect on [`anchored`] popovers.
+    #[must_use]
+    pub fn trigger_style(
+        mut self,
+        style: impl Fn(&Theme, button::Status) -> button::Style + 'a,
+    ) -> Self {
+        if let Trigger::Button(class) = &mut self.trigger {
+            *class = button::Class::Custom(Box::new(style));
+        }
+        self
+    }
+
+    /// Sets the padding around the trigger label. Has no effect on [`anchored`] popovers.
+    #[must_use]
+    pub fn trigger_padding(mut self, padding: impl Into<Padding>) -> Self {
+        if let Trigger::Button(_) = self.trigger {
+            self.trigger_padding = padding.into();
+        }
+        self
     }
 
     /// Sets where the popover is placed relative to its base.
@@ -199,9 +283,10 @@ where
         self
     }
 
-    /// Sets the externally controlled open state.
+    /// Controls the open state from the application.
     ///
-    /// Pair with [`Popover::on_open`] and [`Popover::on_close`] to keep it in sync.
+    /// The popover no longer opens or closes itself; handle [`Popover::on_open`] and
+    /// [`Popover::on_close`] to update it.
     #[must_use]
     pub fn is_open(mut self, is_open: bool) -> Self {
         self.is_open = Some(is_open);
@@ -234,6 +319,23 @@ where
     pub fn style(mut self, style: impl Fn(&Theme) -> Style + 'a) -> Self {
         self.class = Class::Custom(Box::new(style));
         self
+    }
+
+    fn trigger_status(
+        &self,
+        is_open: bool,
+        cursor: mouse::Cursor,
+        bounds: Rectangle,
+    ) -> button::Status {
+        if self.disabled {
+            button::Status::Disabled
+        } else if is_open {
+            button::Status::Pressed
+        } else if cursor.is_over(bounds) {
+            button::Status::Hovered
+        } else {
+            button::Status::Active
+        }
     }
 }
 
@@ -276,11 +378,18 @@ where
         }
         state.needs_relayout = true;
 
-        self.base
-            .as_widget_mut()
-            .layout(&mut tree.children[0], renderer, limits);
-        tree.size = tree.children[0].size;
-        tree.children[0].translation = Vector::ZERO;
+        let size = self.base.as_widget().size();
+        layout::padded(
+            tree,
+            limits,
+            size.width,
+            size.height,
+            self.trigger_padding,
+            |tree, limits| {
+                self.base.as_widget_mut().layout(tree, renderer, limits);
+                tree.size
+            },
+        );
     }
 
     fn update(
@@ -293,22 +402,36 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
+        let Tree {
+            state, children, ..
+        } = tree;
+        let (base_layout, base_tree) = layout.iter_mut(children).next().unwrap();
         self.base.as_widget_mut().update(
-            &mut tree.children[0],
+            base_tree,
             event,
-            layout,
+            base_layout,
             cursor,
             renderer,
             shell,
             viewport,
         );
 
-        let state = tree.state.downcast_mut::<State>();
-        if self.disabled || state.is_open {
+        if let Trigger::Anchor = self.trigger {
             return;
         }
 
-        // The base may capture the press (e.g. a button), so it is observed regardless.
+        let state = state.downcast_mut::<State>();
+        let status = self.trigger_status(state.is_open, cursor, layout.bounds());
+        if let Event::Window(window::Event::RedrawRequested(_)) = event {
+            self.status = Some(status);
+        } else if self.status.is_some_and(|current| current != status) {
+            shell.request_redraw();
+        }
+
+        if self.disabled || state.is_open || shell.is_event_captured() {
+            return;
+        }
+
         let pressed = match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 cursor.is_over(layout.bounds())
@@ -320,11 +443,14 @@ where
         };
 
         if pressed {
-            state.is_open = true;
-            state.needs_relayout = true;
+            if self.is_open.is_none() {
+                state.is_open = true;
+                state.needs_relayout = true;
+            }
             if let Some(message) = &self.on_open {
                 shell.publish(message.clone());
             }
+            shell.capture_event();
             shell.invalidate_overlay();
             shell.request_redraw();
         }
@@ -340,12 +466,43 @@ where
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
+        let base_style = match &self.trigger {
+            Trigger::Button(class) => {
+                let is_open = tree.state.downcast_ref::<State>().is_open;
+                let status = self.trigger_status(is_open, cursor, layout.bounds());
+                let appearance = <Theme as button::Catalog>::style(theme, class, status);
+
+                if appearance.background.is_some()
+                    || appearance.border.width > 0.0
+                    || appearance.shadow.color.a > 0.0
+                {
+                    renderer.fill_quad(
+                        renderer::Quad {
+                            bounds: layout.bounds(),
+                            border: appearance.border,
+                            shadow: appearance.shadow,
+                            snap: appearance.snap,
+                        },
+                        appearance
+                            .background
+                            .unwrap_or(Background::Color(Color::TRANSPARENT)),
+                    );
+                }
+
+                renderer::Style {
+                    text_color: appearance.text_color,
+                }
+            }
+            Trigger::Anchor => *style,
+        };
+
+        let (base_layout, base_tree) = layout.iter(&tree.children).next().unwrap();
         self.base.as_widget().draw(
-            &tree.children[0],
+            base_tree,
             renderer,
             theme,
-            style,
-            layout,
+            &base_style,
+            base_layout,
             cursor,
             viewport,
         );
@@ -359,22 +516,17 @@ where
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        let interaction = self.base.as_widget().mouse_interaction(
-            &tree.children[0],
-            layout,
-            cursor,
-            viewport,
-            renderer,
-        );
-
-        if !self.disabled
-            && interaction <= mouse::Interaction::Idle
+        if let Trigger::Button(_) = self.trigger
+            && !self.disabled
             && cursor.is_over(layout.bounds())
         {
-            mouse::Interaction::Pointer
-        } else {
-            interaction
+            return mouse::Interaction::Pointer;
         }
+
+        let (base_layout, base_tree) = layout.iter(&tree.children).next().unwrap();
+        self.base
+            .as_widget()
+            .mouse_interaction(base_tree, base_layout, cursor, viewport, renderer)
     }
 
     fn operate(
@@ -385,13 +537,10 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
-        self.base.as_widget_mut().operate(
-            &mut tree.children[0],
-            layout,
-            viewport,
-            renderer,
-            operation,
-        );
+        let (base_layout, base_tree) = layout.iter_mut(&mut tree.children).next().unwrap();
+        self.base
+            .as_widget_mut()
+            .operate(base_tree, base_layout, viewport, renderer, operation);
     }
 
     fn overlay<'b>(
@@ -409,10 +558,12 @@ where
         let [base_tree, content_tree] = children.as_mut_slice() else {
             return Vec::new();
         };
+        let base_layout =
+            Layout::new(base_tree.size).move_to(layout.bounds().position() + base_tree.translation);
 
         let mut overlays = self.base.as_widget_mut().overlay(
             base_tree,
-            layout,
+            base_layout,
             renderer,
             viewport,
             translation,
@@ -454,6 +605,10 @@ where
         );
         let content_layout =
             Layout::new(content_tree.size).move_to(panel.position() + content_tree.translation);
+        let anchor = match self.trigger {
+            Trigger::Button(_) => None,
+            Trigger::Anchor => Some(layout.bounds() + translation),
+        };
 
         overlays.push(overlay::Element::new(Box::new(PopoverOverlay {
             state,
@@ -461,6 +616,8 @@ where
             tree: content_tree,
             panel,
             content_layout,
+            anchor,
+            is_controlled: self.is_open.is_some(),
             on_close: self.on_close.as_ref(),
             class: &self.class,
             window,
@@ -485,6 +642,9 @@ struct PopoverOverlay<'a, 'b, Message, Renderer> {
     tree: &'b mut Tree,
     panel: Rectangle,
     content_layout: Layout,
+    /// Bounds of an application-owned anchor, whose presses pass through.
+    anchor: Option<Rectangle>,
+    is_controlled: bool,
     on_close: Option<&'b Message>,
     class: &'b <Theme as Catalog>::Class<'a>,
     window: Size,
@@ -492,7 +652,9 @@ struct PopoverOverlay<'a, 'b, Message, Renderer> {
 
 impl<Message: Clone, Renderer> PopoverOverlay<'_, '_, Message, Renderer> {
     fn close(&mut self, shell: &mut Shell<'_, Message>) {
-        self.state.is_open = false;
+        if !self.is_controlled {
+            self.state.is_open = false;
+        }
         if let Some(message) = self.on_close {
             shell.publish(message.clone());
         }
@@ -545,7 +707,7 @@ where
         if let Some(position) = press {
             if self.panel.contains(position) {
                 shell.capture_event();
-            } else {
+            } else if !self.anchor.is_some_and(|anchor| anchor.contains(position)) {
                 self.close(shell);
             }
         }

@@ -1,11 +1,12 @@
 //! Popovers show floating content anchored to a base element.
 //!
 //! [`popover`] draws a button-styled trigger that toggles its panel when pressed.
-//! [`anchored`] attaches a panel to any element and leaves opening it to the application.
+//! [`anchored`] creates a controlled popover with a custom trigger.
 //! A press outside the panel or `Esc` closes either kind.
 //!
-//! Setting [`Popover::is_open`] makes the open state controlled: the popover then only
-//! publishes [`Popover::on_open`] and [`Popover::on_close`] and never changes it itself.
+//! A [`popover`] manages its own open state by default. Setting [`Popover::is_open`]
+//! makes it controlled; listen to [`Popover::on_open`] and [`Popover::on_close`]
+//! to manage the state yourself.
 
 use crate::{
     Element, Theme, spacing,
@@ -50,18 +51,18 @@ where
 
 /// Creates a popover that shows `content` next to `base` while `is_open` is `true`.
 ///
-/// The base keeps its own behavior. Use [`Popover::on_close`] to learn when the panel is
+/// The base keeps its own behavior. Use [`Anchored::on_close`] to learn when the panel is
 /// dismissed with an outside press or `Esc`.
 pub fn anchored<'a, Message, Renderer>(
     base: impl Into<Element<'a, Message, Renderer>>,
     content: impl Into<Element<'a, Message, Renderer>>,
     is_open: bool,
-) -> Popover<'a, Message, Renderer>
+) -> Anchored<'a, Message, Renderer>
 where
     Message: Clone + 'a,
     Renderer: iced_core::Renderer + 'a,
 {
-    Popover::anchored(base, content, is_open)
+    Anchored::new(base, content, is_open)
 }
 
 /// Where a popover is placed relative to its base.
@@ -195,23 +196,7 @@ where
         }
     }
 
-    /// Creates a popover that shows `content` next to `base` while `is_open` is `true`.
-    ///
-    /// This lets you have a controlled popover with a fully custom trigger.
-    pub fn anchored(
-        base: impl Into<Element<'a, Message, Renderer>>,
-        content: impl Into<Element<'a, Message, Renderer>>,
-        is_open: bool,
-    ) -> Self {
-        Self {
-            trigger: Trigger::Anchor,
-            trigger_padding: Padding::ZERO,
-            is_open: Some(is_open),
-            ..Self::new(base, content)
-        }
-    }
-
-    /// Sets the button style of the trigger. Has no effect on [`anchored`] popovers.
+    /// Sets the button style of the trigger.
     #[must_use]
     pub fn trigger_class(mut self, variant: button::Variant) -> Self {
         if let Trigger::Button(class) = &mut self.trigger {
@@ -220,7 +205,7 @@ where
         self
     }
 
-    /// Sets a custom trigger style function. Has no effect on [`anchored`] popovers.
+    /// Sets a custom trigger style function.
     #[must_use]
     pub fn trigger_style(
         mut self,
@@ -232,7 +217,7 @@ where
         self
     }
 
-    /// Sets the padding around the trigger label. Has no effect on [`anchored`] popovers.
+    /// Sets the padding around the trigger label.
     #[must_use]
     pub fn trigger_padding(mut self, padding: impl Into<Padding>) -> Self {
         if let Trigger::Button(_) = self.trigger {
@@ -633,6 +618,90 @@ where
 {
     fn from(popover: Popover<'a, Message, Renderer>) -> Self {
         Element::new(popover)
+    }
+}
+
+/// A controlled popover with a custom trigger. Create with [`anchored`].
+pub struct Anchored<'a, Message, Renderer = iced_widget::Renderer>(Popover<'a, Message, Renderer>)
+where
+    Message: Clone + 'a,
+    Renderer: iced_core::Renderer + 'a;
+
+impl<'a, Message, Renderer> Anchored<'a, Message, Renderer>
+where
+    Message: Clone + 'a,
+    Renderer: iced_core::Renderer + 'a,
+{
+    /// Creates a popover that shows `content` next to `base` while `is_open` is `true`.
+    pub fn new(
+        base: impl Into<Element<'a, Message, Renderer>>,
+        content: impl Into<Element<'a, Message, Renderer>>,
+        is_open: bool,
+    ) -> Self {
+        Self(Popover {
+            trigger: Trigger::Anchor,
+            trigger_padding: Padding::ZERO,
+            is_open: Some(is_open),
+            ..Popover::new(base, content)
+        })
+    }
+
+    /// Sets where the popover is placed relative to its base.
+    #[must_use]
+    pub fn position(self, position: Position) -> Self {
+        Self(self.0.position(position))
+    }
+
+    /// Sets the distance between the base and the popover.
+    #[must_use]
+    pub fn gap(self, gap: impl Into<Pixels>) -> Self {
+        Self(self.0.gap(gap))
+    }
+
+    /// Sets the padding around the popover content.
+    #[must_use]
+    pub fn padding(self, padding: impl Into<Padding>) -> Self {
+        Self(self.0.padding(padding))
+    }
+
+    /// Sets the width of the popover panel.
+    #[must_use]
+    pub fn width(self, width: impl Into<Length>) -> Self {
+        Self(self.0.width(width))
+    }
+
+    /// Sets the maximum width of the popover panel.
+    #[must_use]
+    pub fn max_width(self, max_width: impl Into<Pixels>) -> Self {
+        Self(self.0.max_width(max_width))
+    }
+
+    /// Sets the message published when an outside press or `Esc` dismisses the popover.
+    #[must_use]
+    pub fn on_close(self, message: Message) -> Self {
+        Self(self.0.on_close(message))
+    }
+
+    /// Sets a built-in Moonveil popover variant.
+    #[must_use]
+    pub fn class(self, variant: Variant) -> Self {
+        Self(self.0.class(variant))
+    }
+
+    /// Sets a custom popover style function.
+    #[must_use]
+    pub fn style(self, style: impl Fn(&Theme) -> Style + 'a) -> Self {
+        Self(self.0.style(style))
+    }
+}
+
+impl<'a, Message, Renderer> From<Anchored<'a, Message, Renderer>> for Element<'a, Message, Renderer>
+where
+    Message: Clone + 'a,
+    Renderer: iced_core::Renderer + 'a,
+{
+    fn from(anchored: Anchored<'a, Message, Renderer>) -> Self {
+        anchored.0.into()
     }
 }
 

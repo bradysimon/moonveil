@@ -1,12 +1,12 @@
 use crate::gallery::Gallery;
 use crate::message::Message;
 use crate::shared::Edge;
-use crate::ui::{page, palette_heading, panel, PANEL_PADDING};
-use iced::{font, Border, Font};
+use crate::ui::{PANEL_PADDING, page, palette_heading, panel};
 use iced::Length::Fill;
-use moonveil::widget::{column, row};
+use iced::{Border, Font, font};
 use moonveil::widget::text::TextExt as _;
-use moonveil::widget::{container, text, Space};
+use moonveil::widget::{Space, container, text};
+use moonveil::widget::{column, row};
 use moonveil::{Color, Element, Theme, spacing};
 
 pub(super) fn overview(gallery: &Gallery) -> Element<'_, Message> {
@@ -26,7 +26,8 @@ pub(super) fn overview(gallery: &Gallery) -> Element<'_, Message> {
                     .class(text::Variant::Decorative),
                 text(definition.metadata.name.as_str())
                     .size(text::Size::Headline.lg())
-                    .class(text::Variant::Primary),
+                    .class(text::Variant::Primary)
+                    .line_height(1.0),
                 text(description)
                     .size(text::Size::Title)
                     .class(text::Variant::Secondary),

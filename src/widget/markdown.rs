@@ -20,8 +20,11 @@ pub fn settings() -> Settings {
         inline_code_size: text::Size::Label.into(),
         code_block_size: text::Size::Label.into(),
         h1_size: text::Size::Headline.px(text::Scale::Large),
-        h2_size: text::Size::Title.px(text::Scale::Medium),
-        h3_size: text::Size::Body.px(text::Scale::Small),
+        h2_size: text::Size::Title.px(text::Scale::Large),
+        h3_size: text::Size::Title.px(text::Scale::Medium),
+        h4_size: text::Size::Body.px(text::Scale::Medium),
+        h5_size: text::Size::Body.px(text::Scale::Medium),
+        h6_size: text::Size::Body.px(text::Scale::Medium),
         spacing: Pixels(spacing::MD),
         ..Settings::with_text_size(text::Size::Body)
     }
@@ -99,6 +102,10 @@ mod tests {
             settings.h1_size,
             text::Size::Headline.px(text::Scale::Large)
         );
-        assert_eq!(settings.h4_size, text::Size::Body.px(text::Scale::Small));
+        assert_eq!(settings.h2_size, text::Size::Title.px(text::Scale::Large));
+        assert_eq!(settings.h3_size, text::Size::Title.px(text::Scale::Medium));
+        assert_eq!(settings.h4_size, settings.text_size);
+        assert_eq!(settings.h5_size, settings.text_size);
+        assert_eq!(settings.h6_size, settings.text_size);
     }
 }

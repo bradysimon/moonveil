@@ -5,9 +5,10 @@
 //! until close animations are fully complete.
 
 use crate::{
-    Element, Theme, icon,
-    widget::{button, column, container, row, svg, text},
+    Element, Theme, Widget, icon,
+    widget::{Compose, Composed, button, column, container, row, svg, text},
 };
+use iced_core::Widget as _;
 use iced_core::{
     Alignment, Animation, Color, Event, Length, Rectangle, Size, Vector,
     alignment::Horizontal::Right,
@@ -236,13 +237,13 @@ pub fn appearance(theme: &Theme, variant: Variant) -> Style {
 ///
 /// Wrap other layered widgets (such as a snackbar) in `base` so they render beneath the scrim.
 pub fn dialog<'a, Message, Renderer>(
-    base: impl Into<Element<'a, Message, Renderer>>,
+    base: impl iced_core::Widget<Message, crate::Theme, Renderer> + 'a,
     state: &'a State,
     config: Option<Config<'a, Message, Renderer>>,
 ) -> Dialog<'a, Message, Renderer>
 where
     Message: Clone + 'a,
-    Renderer: iced_core::Renderer + 'a,
+    Renderer: iced_core::text::Renderer + iced_core::svg::Renderer + 'a,
 {
     Dialog::new(base, state, config)
 }
@@ -274,12 +275,12 @@ where
     Renderer: iced_core::Renderer + 'a,
 {
     /// Creates a new [`Config`] with the given body content.
-    pub fn new(content: impl Into<Element<'a, Message, Renderer>>) -> Self {
+    pub fn new(content: impl iced_core::Widget<Message, crate::Theme, Renderer> + 'a) -> Self {
         Self {
             title: None,
             close_label: None,
             width: DEFAULT_WIDTH,
-            content: content.into(),
+            content: iced_core::Widget::_boxed(content),
             actions: Vec::new(),
         }
     }
@@ -310,8 +311,11 @@ where
 
     /// Adds an action element to the dialog footer.
     #[must_use]
-    pub fn push_action(mut self, action: impl Into<Element<'a, Message, Renderer>>) -> Self {
-        self.actions.push(action.into());
+    pub fn push_action(
+        mut self,
+        action: impl iced_core::Widget<Message, crate::Theme, Renderer> + 'a,
+    ) -> Self {
+        self.actions.push(iced_core::Widget::_boxed(action));
         self
     }
 
@@ -334,6 +338,14 @@ where
 pub struct Dialog<'a, Message, Renderer = iced_widget::Renderer>
 where
     Message: Clone + 'a,
+    Renderer: iced_core::text::Renderer + iced_core::svg::Renderer + 'a,
+{
+    inner: Composed<Settings<'a, Message, Renderer>>,
+}
+
+struct Settings<'a, Message, Renderer>
+where
+    Message: Clone + 'a,
     Renderer: iced_core::Renderer + 'a,
 {
     base: Element<'a, Message, Renderer>,
@@ -353,11 +365,11 @@ where
 impl<'a, Message, Renderer> Dialog<'a, Message, Renderer>
 where
     Message: Clone + 'a,
-    Renderer: iced_core::Renderer + 'a,
+    Renderer: iced_core::text::Renderer + iced_core::svg::Renderer + 'a,
 {
     /// Creates a new [`Dialog`] with the given base element and optional config.
     pub fn new(
-        base: impl Into<Element<'a, Message, Renderer>>,
+        base: impl iced_core::Widget<Message, crate::Theme, Renderer> + 'a,
         state: &State,
         config: Option<Config<'a, Message, Renderer>>,
     ) -> Self {
@@ -370,57 +382,72 @@ where
                 config.actions,
                 state.is_open(),
             ),
-            None => (space().into(), None, None, DEFAULT_WIDTH, Vec::new(), false),
+            None => (
+                iced_core::Widget::_boxed(space()),
+                None,
+                None,
+                DEFAULT_WIDTH,
+                Vec::new(),
+                false,
+            ),
         };
 
         Self {
-            base: base.into(),
-            content,
-            open,
-            on_update: None,
-            title,
-            close_label,
-            width,
-            backdrop_close: true,
-            esc_close: true,
-            animate: state.is_animated(),
-            actions,
-            class: <Theme as Catalog>::default(),
+            inner: Settings {
+                base: iced_core::Widget::_boxed(base),
+                content,
+                open,
+                on_update: None,
+                title,
+                close_label,
+                width,
+                backdrop_close: true,
+                esc_close: true,
+                animate: state.is_animated(),
+                actions,
+                class: <Theme as Catalog>::default(),
+            }
+            .into(),
         }
     }
 
     /// Sets the app message mapper for dialog lifecycle events.
     #[must_use]
     pub fn on_update(mut self, mapper: impl Fn(self::Message) -> Message + 'a) -> Self {
-        self.on_update = Some(Box::new(mapper));
+        self.inner
+            .configure(|settings| settings.on_update = Some(Box::new(mapper)));
         self
     }
 
     /// Sets whether clicking the backdrop will close the dialog.
     #[must_use]
     pub fn backdrop_close(mut self, enabled: bool) -> Self {
-        self.backdrop_close = enabled;
+        self.inner
+            .configure(|settings| settings.backdrop_close = enabled);
         self
     }
 
     /// Sets whether pressing `Esc` will close the dialog.
     #[must_use]
     pub fn esc_close(mut self, enabled: bool) -> Self {
-        self.esc_close = enabled;
+        self.inner
+            .configure(|settings| settings.esc_close = enabled);
         self
     }
 
     /// Sets a built-in Moonveil dialog variant.
     #[must_use]
     pub fn class(mut self, variant: Variant) -> Self {
-        self.class = Class::Variant(variant);
+        self.inner
+            .configure(|settings| settings.class = Class::Variant(variant));
         self
     }
 
     /// Sets a custom dialog style function.
     #[must_use]
     pub fn style(mut self, style: impl Fn(&Theme) -> Style + 'a) -> Self {
-        self.class = Class::Custom(Box::new(style));
+        self.inner
+            .configure(|settings| settings.class = Class::Custom(Box::new(style)));
         self
     }
 
@@ -445,18 +472,18 @@ where
                     .width(14)
                     .height(14)
                     .class(svg::Variant::Primary)
-                    .into(),
-                text(label).size(14).into(),
+                    ._boxed(),
+                text(label).size(14)._boxed(),
             ])
             .spacing(6)
             .align_y(Alignment::Center)
-            .into()
+            ._boxed()
         } else {
             svg(icon::close())
                 .width(16)
                 .height(16)
                 .class(svg::Variant::Primary)
-                .into()
+                ._boxed()
         };
 
         let close_button: Element<'a, Message, Renderer> = {
@@ -465,97 +492,129 @@ where
                 .class(button::Variant::Ghost);
 
             if let Some(message) = close_message.clone() {
-                control.on_press(message).into()
+                control.on_press(message)._boxed()
             } else {
-                control.into()
+                control._boxed()
             }
         };
 
         let title: Element<'a, Message, Renderer> = title_text
-            .map(|title| text(title).size(18).into())
-            .unwrap_or_else(|| space().into());
+            .map(|title| text(title).size(18)._boxed())
+            .unwrap_or_else(|| space()._boxed());
 
         let header =
-            row(vec![title, space::horizontal().into(), close_button]).align_y(Alignment::Center);
-        let mut body = column(vec![header.into(), content]).spacing(8);
-
-        if !actions.is_empty() {
-            body = body.push(
+            row(vec![title, space::horizontal()._boxed(), close_button]).align_y(Alignment::Center);
+        // let mut body = column(vec![header._boxed(), content])
+        let body = column![
+            header,
+            content,
+            (!actions.is_empty()).then(move || {
                 container(row(actions).spacing(8).align_y(Alignment::Center))
                     .width(Length::Fill)
-                    .align_x(Right),
-            );
-        }
+                    .align_x(Right)
+                    .boxed()
+            })
+        ]
+        .spacing(8);
 
         let panel: Element<'a, Message, Renderer> = container(body)
             .padding(16)
             .width(width)
             .class(container::Variant::Modal)
-            .into();
+            ._boxed();
 
         let backdrop_target = if backdrop_close {
             if let Some(message) = close_message {
                 iced_widget::mouse_area(space().width(Length::Fill).height(Length::Fill))
                     .on_press(message)
-                    .into()
+                    ._boxed()
             } else {
-                space().width(Length::Fill).height(Length::Fill).into()
+                space().width(Length::Fill).height(Length::Fill)._boxed()
             }
         } else {
-            space().width(Length::Fill).height(Length::Fill).into()
+            space().width(Length::Fill).height(Length::Fill)._boxed()
         };
 
         (backdrop_target, panel)
     }
 }
 
-impl<'a, Message, Renderer> From<Dialog<'a, Message, Renderer>> for Element<'a, Message, Renderer>
+impl<'a, Message, Renderer> iced_core::widget::Meta for Dialog<'a, Message, Renderer>
+where
+    Message: Clone + 'a,
+    Renderer: iced_core::text::Renderer + iced_core::svg::Renderer + 'a,
+{
+    super::delegate::meta!(inner);
+}
+
+impl<'a, Message, Renderer> iced_core::Widget<Message, Theme, Renderer>
+    for Dialog<'a, Message, Renderer>
+where
+    Message: Clone + 'a,
+    Renderer: iced_core::text::Renderer + iced_core::svg::Renderer + 'a,
+{
+    super::delegate::widget!(inner);
+}
+
+impl<'a, Message, Renderer> Compose for Settings<'a, Message, Renderer>
+where
+    Message: Clone + 'a,
+    Renderer: iced_core::text::Renderer + iced_core::svg::Renderer + 'a,
+{
+    type View = ResolvedDialog<'a, Message, Renderer>;
+
+    fn view(self) -> Self::View {
+        build(self)
+    }
+}
+
+fn build<'a, Message, Renderer>(
+    dialog: Settings<'a, Message, Renderer>,
+) -> ResolvedDialog<'a, Message, Renderer>
 where
     Message: Clone + 'a,
     Renderer: iced_core::Renderer + iced_core::svg::Renderer + iced_core::text::Renderer + 'a,
 {
-    fn from(dialog: Dialog<'a, Message, Renderer>) -> Self {
-        let Dialog {
-            base,
-            content,
-            open,
-            on_update,
-            title,
-            close_label,
-            width,
-            backdrop_close,
-            esc_close,
-            animate,
-            actions,
-            class,
-        } = dialog;
+    let Settings {
+        base,
+        content,
+        open,
+        on_update,
+        title,
+        close_label,
+        width,
+        backdrop_close,
+        esc_close,
+        animate,
+        actions,
+        class,
+    } = dialog;
 
-        let close_intent_message = on_update.as_ref().map(|map| map(self::Message::Close));
-        let on_opened = on_update.as_ref().map(|map| map(self::Message::Opened));
-        let on_closed = on_update.as_ref().map(|map| map(self::Message::Closed));
+    let close_intent_message = on_update.as_ref().map(|map| map(self::Message::Close));
+    let on_opened = on_update.as_ref().map(|map| map(self::Message::Opened));
+    let on_closed = on_update.as_ref().map(|map| map(self::Message::Closed));
 
-        let (backdrop_target, panel) = Dialog::build_overlay_parts(
-            content,
-            title,
-            close_label,
-            width,
-            actions,
-            close_intent_message.clone(),
-            backdrop_close,
-        );
+    let (backdrop_target, panel) = Dialog::build_overlay_parts(
+        content,
+        title,
+        close_label,
+        width,
+        actions,
+        close_intent_message.clone(),
+        backdrop_close,
+    );
 
-        Element::new(ResolvedDialog {
-            base,
-            backdrop_target,
-            panel,
-            open,
-            on_opened,
-            on_close_intent: close_intent_message,
-            on_closed,
-            esc_close,
-            animate,
-            class,
-        })
+    ResolvedDialog {
+        base,
+        backdrop_target,
+        panel,
+        open,
+        on_opened,
+        on_close_intent: close_intent_message,
+        on_closed,
+        esc_close,
+        animate,
+        class,
     }
 }
 
@@ -638,6 +697,13 @@ where
     }
 }
 
+impl<Message, Renderer> iced_core::widget::Meta for ResolvedDialog<'_, Message, Renderer>
+where
+    Message: Clone,
+    Renderer: iced_core::Renderer,
+{
+}
+
 impl<Message, Renderer> iced_core::Widget<Message, Theme, Renderer>
     for ResolvedDialog<'_, Message, Renderer>
 where
@@ -657,22 +723,19 @@ where
     }
 
     fn size(&self) -> Size<Length> {
-        self.base.as_widget().size()
+        self.base.size()
     }
 
     fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &Limits) {
-        self.base
-            .as_widget_mut()
-            .layout(&mut tree.children[0], renderer, limits);
+        self.base.layout(&mut tree.children[0], renderer, limits);
         let size = tree.children[0].size;
         let overlay_limits = Limits::new(Size::ZERO, size);
-        self.backdrop_target.as_widget_mut().layout(
+        self.backdrop_target.layout(
             &mut tree.children[1],
             renderer,
             &overlay_limits.width(Length::Fill).height(Length::Fill),
         );
         self.panel
-            .as_widget_mut()
             .layout(&mut tree.children[2], renderer, &overlay_limits);
 
         let panel = tree.children[2].size;
@@ -763,7 +826,7 @@ where
 
             if !is_transitioning {
                 if !panel_press {
-                    self.backdrop_target.as_widget_mut().update(
+                    self.backdrop_target.update(
                         &mut tree.children[1],
                         event,
                         backdrop_layout,
@@ -774,7 +837,7 @@ where
                     );
                 }
 
-                self.panel.as_widget_mut().update(
+                self.panel.update(
                     &mut tree.children[2],
                     event,
                     panel_layout,
@@ -814,7 +877,7 @@ where
 
             // Keep base animations (e.g. snackbars) ticking without exposing input.
             if let Event::Window(_) = event {
-                self.base.as_widget_mut().update(
+                self.base.update(
                     &mut tree.children[0],
                     event,
                     base_layout,
@@ -828,7 +891,7 @@ where
             return;
         }
 
-        self.base.as_widget_mut().update(
+        self.base.update(
             &mut tree.children[0],
             event,
             base_layout,
@@ -860,7 +923,7 @@ where
             cursor
         };
 
-        self.base.as_widget().draw(
+        self.base.draw(
             &tree.children[0],
             renderer,
             theme,
@@ -894,7 +957,7 @@ where
 
         let y_offset = (1.0 - progress) * 18.0;
         renderer.with_translation(Vector::new(0.0, y_offset), |renderer| {
-            self.panel.as_widget().draw(
+            self.panel.draw(
                 &tree.children[2],
                 renderer,
                 theme,
@@ -932,7 +995,7 @@ where
                 return mouse::Interaction::None;
             }
 
-            let panel_interaction = self.panel.as_widget().mouse_interaction(
+            let panel_interaction = self.panel.mouse_interaction(
                 &tree.children[2],
                 panel_layout,
                 cursor,
@@ -943,7 +1006,7 @@ where
             if panel_interaction != mouse::Interaction::None {
                 panel_interaction
             } else {
-                self.backdrop_target.as_widget().mouse_interaction(
+                self.backdrop_target.mouse_interaction(
                     &tree.children[1],
                     backdrop_layout,
                     cursor,
@@ -952,13 +1015,8 @@ where
                 )
             }
         } else {
-            self.base.as_widget().mouse_interaction(
-                &tree.children[0],
-                base_layout,
-                cursor,
-                viewport,
-                renderer,
-            )
+            self.base
+                .mouse_interaction(&tree.children[0], base_layout, cursor, viewport, renderer)
         }
     }
 
@@ -973,17 +1031,12 @@ where
         let mut children = layout.iter_mut(&mut tree.children);
 
         if let Some((base_layout, base_tree)) = children.next() {
-            self.base.as_widget_mut().operate(
-                base_tree,
-                base_layout,
-                viewport,
-                renderer,
-                operation,
-            );
+            self.base
+                .operate(base_tree, base_layout, viewport, renderer, operation);
         }
 
         if let Some((backdrop_layout, backdrop_tree)) = children.next() {
-            self.backdrop_target.as_widget_mut().operate(
+            self.backdrop_target.operate(
                 backdrop_tree,
                 backdrop_layout,
                 viewport,
@@ -993,13 +1046,8 @@ where
         }
 
         if let Some((panel_layout, panel_tree)) = children.next() {
-            self.panel.as_widget_mut().operate(
-                panel_tree,
-                panel_layout,
-                viewport,
-                renderer,
-                operation,
-            );
+            self.panel
+                .operate(panel_tree, panel_layout, viewport, renderer, operation);
         }
     }
 
@@ -1024,7 +1072,7 @@ where
             return Vec::new();
         };
 
-        let mut overlays = self.base.as_widget_mut().overlay(
+        let mut overlays = self.base.overlay(
             base_tree,
             base_layout,
             renderer,
@@ -1034,7 +1082,7 @@ where
         );
 
         if show_panel_overlay {
-            overlays.extend(self.panel.as_widget_mut().overlay(
+            overlays.extend(self.panel.overlay(
                 panel_tree,
                 panel_layout,
                 renderer,

@@ -4,12 +4,13 @@ use crate::shared::Edge;
 use crate::ui::{PANEL_PADDING, page, palette_heading, panel};
 use iced::Length::Fill;
 use iced::{Border, Font, font};
+use moonveil::Widget;
 use moonveil::widget::text::TextExt as _;
 use moonveil::widget::{Space, container, text};
 use moonveil::widget::{column, row};
-use moonveil::{Color, Element, Theme, spacing};
+use moonveil::{Color, Theme, spacing};
 
-pub(super) fn overview(gallery: &Gallery) -> Element<'_, Message> {
+pub(super) fn overview(gallery: &Gallery) -> impl Widget<Message> + '_ {
     let definition = gallery.theme.definition();
     let seed = definition.seed;
     let description = definition
@@ -43,7 +44,7 @@ pub(super) fn overview(gallery: &Gallery) -> Element<'_, Message> {
         .class(container::Variant::Raised)
         .padding(PANEL_PADDING)
         .width(Fill)
-        .into(),
+        .boxed(),
         panel(
             column![
                 palette_heading("SEED COLORS", "The authored colors that shape this theme"),
@@ -64,12 +65,12 @@ pub(super) fn overview(gallery: &Gallery) -> Element<'_, Message> {
             ]
             .spacing(spacing::SM),
         )
-        .into(),
-        panel(categorical_swatches(gallery)).into(),
+        .boxed(),
+        panel(categorical_swatches(gallery)).boxed(),
     ])
 }
 
-fn categorical_swatches(gallery: &Gallery) -> Element<'_, Message> {
+fn categorical_swatches(gallery: &Gallery) -> impl Widget<Message> + '_ {
     let categorical = gallery.theme.colors().categorical;
     let authored = categorical.authored().len();
     let edge = |index| match index {
@@ -99,7 +100,7 @@ fn categorical_swatches(gallery: &Gallery) -> Element<'_, Message> {
         .style(move |theme| color_style(pair.color, pair.text, theme, edge(index), false))
         .padding(10)
         .width(Fill)
-        .into()
+        .boxed()
     };
 
     column![
@@ -110,16 +111,14 @@ fn categorical_swatches(gallery: &Gallery) -> Element<'_, Message> {
         column![row((0..4).map(swatch)), row((4..8).map(swatch))],
     ]
     .spacing(spacing::SM)
-    .into()
 }
 
-fn palette_bar(color: Color, edge: Option<Edge>) -> Element<'static, Message> {
+fn palette_bar(color: Color, edge: Option<Edge>) -> impl Widget<Message> + 'static {
     let text_color = color.on_color();
     container(Space::new())
         .style(move |theme| color_style(color, text_color, theme, edge, true))
         .height(10)
         .width(Fill)
-        .into()
 }
 
 fn color_swatch<'a>(
@@ -127,7 +126,7 @@ fn color_swatch<'a>(
     color: Color,
     edge: Option<Edge>,
     sharp: bool,
-) -> Element<'a, Message> {
+) -> impl Widget<Message> + 'a {
     let spacing = Space::new().height(54);
     let title = text(label).font(Font {
         weight: font::Weight::Semibold,
@@ -139,7 +138,6 @@ fn color_swatch<'a>(
         .padding(10)
         .width(Fill)
         .height(112)
-        .into()
 }
 
 fn color_style(

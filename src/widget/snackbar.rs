@@ -8,8 +8,9 @@ use std::rc::Rc;
 use crate::{
     Element, Theme, icon, spacing,
     token::{Intent, Surface},
-    widget::{button, column, container, row, scrollable, svg, text},
+    widget::{Compose, Composed, button, column, container, row, scrollable, svg, text},
 };
+use iced_core::Widget as _;
 use iced_core::{
     Alignment, Animation, Background, Border, Color, Event,
     Length::{Fill, Fit, Shrink},
@@ -368,11 +369,11 @@ pub fn appearance(theme: &Theme, variant: Variant) -> Style {
 /// Creates a new [`Snackbar`] overlay wrapping the given content.
 pub fn snackbar<'a, Message, Renderer>(
     state: &'a State<Message>,
-    base: impl Into<Element<'a, Message, Renderer>>,
+    base: impl iced_core::Widget<Message, crate::Theme, Renderer> + 'a,
 ) -> Snackbar<'a, Message, Renderer>
 where
     Message: Clone + 'a,
-    Renderer: iced_core::Renderer + 'a,
+    Renderer: iced_core::svg::Renderer + iced_core::text::Renderer + 'a,
 {
     Snackbar::new(state, base)
 }
@@ -381,55 +382,125 @@ where
 pub struct Snackbar<'a, Message, Renderer = iced_widget::Renderer>
 where
     Message: Clone + 'a,
+    Renderer: iced_core::svg::Renderer + iced_core::text::Renderer + 'a,
+{
+    inner: Composed<Settings<'a, Message, Renderer>>,
+}
+
+struct Settings<'a, Message, Renderer>
+where
+    Message: Clone + 'a,
     Renderer: iced_core::Renderer + 'a,
 {
     base: Element<'a, Message, Renderer>,
     state: &'a State<Message>,
     on_update: Option<Box<dyn Fn(self::Message) -> Message + 'a>>,
     max_width: f32,
-    class: Option<Class<'a>>,
+    class: Option<SharedClass<'a>>,
 }
 
 impl<'a, Message, Renderer> Snackbar<'a, Message, Renderer>
 where
     Message: Clone + 'a,
-    Renderer: iced_core::Renderer + 'a,
+    Renderer: iced_core::svg::Renderer + iced_core::text::Renderer + 'a,
 {
-    pub fn new(state: &'a State<Message>, base: impl Into<Element<'a, Message, Renderer>>) -> Self {
+    pub fn new(
+        state: &'a State<Message>,
+        base: impl iced_core::Widget<Message, crate::Theme, Renderer> + 'a,
+    ) -> Self {
         Self {
-            base: base.into(),
-            state,
-            on_update: None,
-            max_width: DEFAULT_MAX_WIDTH,
-            class: None,
+            inner: Settings {
+                base: iced_core::Widget::_boxed(base),
+                state,
+                on_update: None,
+                max_width: DEFAULT_MAX_WIDTH,
+                class: None,
+            }
+            .into(),
         }
     }
 
     #[must_use]
     pub fn on_update(mut self, mapper: impl Fn(self::Message) -> Message + 'a) -> Self {
-        self.on_update = Some(Box::new(mapper));
+        self.inner
+            .configure(|settings| settings.on_update = Some(Box::new(mapper)));
         self
     }
 
     #[must_use]
     pub fn max_width(mut self, width: f32) -> Self {
-        self.max_width = width.max(MIN_WIDTH);
+        self.inner
+            .configure(|settings| settings.max_width = width.max(MIN_WIDTH));
         self
     }
 
     /// Overrides every entry's built-in visual variant.
     #[must_use]
     pub fn class(mut self, variant: Variant) -> Self {
-        self.class = Some(Class::Variant(variant));
+        self.inner
+            .configure(|settings| settings.class = Some(SharedClass::Variant(variant)));
         self
     }
 
     /// Overrides every entry with a custom resolved style.
     #[must_use]
     pub fn style(mut self, style: impl Fn(&Theme) -> Style + 'a) -> Self {
-        self.class = Some(Class::Custom(Box::new(style)));
+        self.inner
+            .configure(|settings| settings.class = Some(SharedClass::Custom(Rc::new(style))));
         self
     }
+}
+
+impl<'a, Message, Renderer> iced_core::widget::Meta for Snackbar<'a, Message, Renderer>
+where
+    Message: Clone + 'a,
+    Renderer: iced_core::svg::Renderer + iced_core::text::Renderer + 'a,
+{
+    super::delegate::meta!(inner);
+}
+
+impl<'a, Message, Renderer> iced_core::Widget<Message, Theme, Renderer>
+    for Snackbar<'a, Message, Renderer>
+where
+    Message: Clone + 'a,
+    Renderer: iced_core::svg::Renderer + iced_core::text::Renderer + 'a,
+{
+    super::delegate::widget!(inner);
+}
+
+impl<'a, Message, Renderer> Compose for Settings<'a, Message, Renderer>
+where
+    Message: Clone + 'a,
+    Renderer: iced_core::svg::Renderer + iced_core::text::Renderer + 'a,
+{
+    type View = ResolvedSnackbar<'a, Message, Renderer>;
+
+    fn view(self) -> Self::View {
+        let stack = build_stack(
+            self.state,
+            self.on_update.as_deref(),
+            self.max_width,
+            self.class.as_ref(),
+        );
+
+        ResolvedSnackbar {
+            base: self.base,
+            stack,
+            position: self.state.position(),
+            has_entries: !self.state.is_empty(),
+        }
+    }
+}
+
+struct ResolvedSnackbar<'a, Message, Renderer>
+where
+    Message: Clone + 'a,
+    Renderer: iced_core::Renderer + 'a,
+{
+    base: Element<'a, Message, Renderer>,
+    stack: Element<'a, Message, Renderer>,
+    position: Position,
+    has_entries: bool,
 }
 
 fn build_stack<'a, Message, Renderer>(
@@ -443,7 +514,7 @@ where
     Renderer: iced_core::Renderer + iced_core::svg::Renderer + iced_core::text::Renderer + 'a,
 {
     if state.is_empty() {
-        return space().into();
+        return space()._boxed();
     }
 
     let entries = if state.position().is_top() {
@@ -482,7 +553,7 @@ where
             .width(max_width),
     )
     .height(Fit.max(MAX_STACK_HEIGHT))
-    .into()
+    ._boxed()
 }
 
 fn snackbar_card<'a, Message, Renderer>(
@@ -493,7 +564,7 @@ fn snackbar_card<'a, Message, Renderer>(
     position: Position,
     max_width: f32,
     class: SharedClass<'a>,
-) -> Element<'a, Message, Renderer>
+) -> impl iced_core::Widget<Message, Theme, Renderer> + 'a
 where
     Message: Clone + 'a,
     Renderer: iced_core::Renderer + iced_core::svg::Renderer + iced_core::text::Renderer + 'a,
@@ -504,7 +575,7 @@ where
                 .padding([6, 10])
                 .class(button::Variant::Secondary)
                 .on_press_maybe(action_message.clone())
-                .into()
+                ._boxed()
         });
 
     let dismiss_button: Option<Element<'a, Message, Renderer>> = dismiss_message.map(|message| {
@@ -517,7 +588,7 @@ where
         .padding(6)
         .class(button::Variant::Ghost)
         .on_press(message)
-        .into()
+        ._boxed()
     });
 
     let title_class = class.clone();
@@ -527,8 +598,9 @@ where
         .width(Fill)
         .style(move |theme| iced_widget::text::Style {
             color: Some(title_class.style(theme).title),
+            ..Default::default()
         })
-        .into();
+        ._boxed();
 
     let description_class = class.clone();
     let description: Option<Element<'a, Message, Renderer>> =
@@ -537,14 +609,15 @@ where
                 .size(14)
                 .style(move |theme| iced_widget::text::Style {
                     color: Some(description_class.style(theme).description),
+                    ..Default::default()
                 })
-                .into()
+                ._boxed()
         });
 
     let header = row([
-        icon_badge(entry.variant, class.clone()),
+        icon_badge(entry.variant, class.clone())._boxed(),
         title,
-        dismiss_button.unwrap_or_else(|| space().into()),
+        dismiss_button.unwrap_or_else(|| space()._boxed()),
     ])
     .spacing(HEADER_SPACING)
     .align_y(Alignment::Center);
@@ -552,7 +625,7 @@ where
     let description: Option<Element<'a, Message, Renderer>> = description.map(|description| {
         container(description)
             .padding(iced_core::padding::left(ICON_SIZE - INDICATOR_WIDTH))
-            .into()
+            ._boxed()
     });
 
     let footer: Option<Element<'a, Message, Renderer>> = action_button.map(|action_button| {
@@ -560,10 +633,10 @@ where
             .width(Fill)
             .align_x(iced_core::alignment::Horizontal::Right)
             .padding(iced_core::padding::left(ICON_SIZE + HEADER_SPACING))
-            .into()
+            ._boxed()
     });
 
-    let mut content = column([header.into()]).spacing(4);
+    let mut content = column([header._boxed()]).spacing(4);
     if let Some(description) = description {
         content = content.push(description);
     }
@@ -589,13 +662,12 @@ where
         position,
         entry.created_at,
     )
-    .into()
 }
 
 fn icon_badge<'a, Message, Renderer>(
     variant: Variant,
     class: SharedClass<'a>,
-) -> Element<'a, Message, Renderer>
+) -> impl iced_core::Widget<Message, Theme, Renderer> + 'a
 where
     Message: Clone + 'a,
     Renderer: iced_core::Renderer + iced_core::svg::Renderer + iced_core::text::Renderer + 'a,
@@ -620,11 +692,10 @@ where
     .height(ICON_SIZE)
     .center_x(Shrink)
     .center_y(Shrink)
-    .into()
 }
 
 fn animated_card<'a, Message, Renderer>(
-    content: impl Into<Element<'a, Message, Renderer>>,
+    content: impl iced_core::Widget<Message, crate::Theme, Renderer> + 'a,
     animate: bool,
     position: Position,
     created_at: Instant,
@@ -634,7 +705,7 @@ where
     Renderer: iced_core::Renderer + 'a,
 {
     AnimatedCard {
-        content: content.into(),
+        content: iced_core::Widget::_boxed(content),
         animate,
         position,
         created_at,
@@ -670,6 +741,13 @@ impl AnimatedCardState {
     }
 }
 
+impl<Message, Renderer> iced_core::widget::Meta for AnimatedCard<'_, Message, Renderer>
+where
+    Message: Clone,
+    Renderer: iced_core::Renderer,
+{
+}
+
 impl<Message, Renderer> iced_core::Widget<Message, Theme, Renderer>
     for AnimatedCard<'_, Message, Renderer>
 where
@@ -689,13 +767,11 @@ where
     }
 
     fn size(&self) -> Size<iced_core::Length> {
-        self.content.as_widget().size()
+        self.content.size()
     }
 
     fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &Limits) {
-        self.content
-            .as_widget_mut()
-            .layout(&mut tree.children[0], renderer, limits);
+        self.content.layout(&mut tree.children[0], renderer, limits);
         tree.size = tree.children[0].size;
     }
 
@@ -734,7 +810,7 @@ where
             shell.request_redraw();
         }
 
-        self.content.as_widget_mut().update(
+        self.content.update(
             &mut tree.children[0],
             event,
             layout,
@@ -765,7 +841,7 @@ where
         renderer.with_translation(
             Vector::new(0.0, slide_offset(self.position, progress)),
             |renderer| {
-                self.content.as_widget().draw(
+                self.content.draw(
                     &tree.children[0],
                     renderer,
                     theme,
@@ -786,13 +862,8 @@ where
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.content.as_widget().mouse_interaction(
-            &tree.children[0],
-            layout,
-            cursor,
-            viewport,
-            renderer,
-        )
+        self.content
+            .mouse_interaction(&tree.children[0], layout, cursor, viewport, renderer)
     }
 
     fn operate(
@@ -803,13 +874,8 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
-        self.content.as_widget_mut().operate(
-            &mut tree.children[0],
-            layout,
-            viewport,
-            renderer,
-            operation,
-        );
+        self.content
+            .operate(&mut tree.children[0], layout, viewport, renderer, operation);
     }
 
     fn overlay<'b>(
@@ -821,7 +887,7 @@ where
         translation: Vector,
         window: Size,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
-        self.content.as_widget_mut().overlay(
+        self.content.overlay(
             &mut tree.children[0],
             layout,
             renderer,
@@ -832,19 +898,8 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<AnimatedCard<'a, Message, Renderer>>
-    for Element<'a, Message, Renderer>
-where
-    Message: Clone + 'a,
-    Renderer: iced_core::Renderer + 'a,
-{
-    fn from(card: AnimatedCard<'a, Message, Renderer>) -> Self {
-        Element::new(card)
-    }
-}
-
 fn accented_card<'a, Message, Renderer>(
-    content: impl Into<Element<'a, Message, Renderer>>,
+    content: impl iced_core::Widget<Message, crate::Theme, Renderer> + 'a,
     class: SharedClass<'a>,
 ) -> AccentedCard<'a, Message, Renderer>
 where
@@ -852,7 +907,7 @@ where
     Renderer: iced_core::Renderer + 'a,
 {
     AccentedCard {
-        content: content.into(),
+        content: iced_core::Widget::_boxed(content),
         class,
     }
 }
@@ -866,6 +921,13 @@ where
     class: SharedClass<'a>,
 }
 
+impl<Message, Renderer> iced_core::widget::Meta for AccentedCard<'_, Message, Renderer>
+where
+    Message: Clone,
+    Renderer: iced_core::Renderer,
+{
+}
+
 impl<Message, Renderer> iced_core::Widget<Message, Theme, Renderer>
     for AccentedCard<'_, Message, Renderer>
 where
@@ -877,13 +939,11 @@ where
     }
 
     fn size(&self) -> Size<iced_core::Length> {
-        self.content.as_widget().size()
+        self.content.size()
     }
 
     fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &Limits) {
-        self.content
-            .as_widget_mut()
-            .layout(&mut tree.children[0], renderer, limits);
+        self.content.layout(&mut tree.children[0], renderer, limits);
         tree.size = tree.children[0].size;
     }
 
@@ -897,7 +957,7 @@ where
         shell: &mut iced_core::Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        self.content.as_widget_mut().update(
+        self.content.update(
             &mut tree.children[0],
             event,
             layout,
@@ -947,7 +1007,7 @@ where
             background,
         );
 
-        self.content.as_widget().draw(
+        self.content.draw(
             &tree.children[0],
             renderer,
             theme,
@@ -966,13 +1026,8 @@ where
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.content.as_widget().mouse_interaction(
-            &tree.children[0],
-            layout,
-            cursor,
-            viewport,
-            renderer,
-        )
+        self.content
+            .mouse_interaction(&tree.children[0], layout, cursor, viewport, renderer)
     }
 
     fn operate(
@@ -983,13 +1038,8 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
-        self.content.as_widget_mut().operate(
-            &mut tree.children[0],
-            layout,
-            viewport,
-            renderer,
-            operation,
-        );
+        self.content
+            .operate(&mut tree.children[0], layout, viewport, renderer, operation);
     }
 
     fn overlay<'b>(
@@ -1001,7 +1051,7 @@ where
         translation: Vector,
         window: Size,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
-        self.content.as_widget_mut().overlay(
+        self.content.overlay(
             &mut tree.children[0],
             layout,
             renderer,
@@ -1012,17 +1062,6 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<AccentedCard<'a, Message, Renderer>>
-    for Element<'a, Message, Renderer>
-where
-    Message: Clone + 'a,
-    Renderer: iced_core::Renderer + 'a,
-{
-    fn from(card: AccentedCard<'a, Message, Renderer>) -> Self {
-        Element::new(card)
-    }
-}
-
 fn slide_offset(position: Position, progress: f32) -> f32 {
     let distance = (1.0 - progress.clamp(0.0, 1.0)) * SLIDE_DISTANCE;
     if position.is_top() {
@@ -1030,17 +1069,6 @@ fn slide_offset(position: Position, progress: f32) -> f32 {
     } else {
         distance
     }
-}
-
-struct ResolvedSnackbar<'a, Message, Renderer>
-where
-    Message: Clone + 'a,
-    Renderer: iced_core::Renderer + 'a,
-{
-    base: Element<'a, Message, Renderer>,
-    stack: Element<'a, Message, Renderer>,
-    position: Position,
-    has_entries: bool,
 }
 
 impl<Message, Renderer> ResolvedSnackbar<'_, Message, Renderer>
@@ -1072,30 +1100,11 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Snackbar<'a, Message, Renderer>> for Element<'a, Message, Renderer>
+impl<Message, Renderer> iced_core::widget::Meta for ResolvedSnackbar<'_, Message, Renderer>
 where
-    Message: Clone + 'a,
-    Renderer: iced_core::Renderer + iced_core::svg::Renderer + iced_core::text::Renderer + 'a,
+    Message: Clone,
+    Renderer: iced_core::Renderer,
 {
-    fn from(snackbar: Snackbar<'a, Message, Renderer>) -> Self {
-        let Snackbar {
-            base,
-            state,
-            on_update,
-            max_width,
-            class,
-        } = snackbar;
-
-        let class = class.map(SharedClass::from);
-        let stack = build_stack(state, on_update.as_deref(), max_width, class.as_ref());
-
-        Element::new(ResolvedSnackbar {
-            base,
-            stack,
-            position: state.position(),
-            has_entries: !state.is_empty(),
-        })
-    }
 }
 
 impl<Message, Renderer> iced_core::Widget<Message, Theme, Renderer>
@@ -1109,17 +1118,14 @@ where
     }
 
     fn size(&self) -> Size<iced_core::Length> {
-        self.base.as_widget().size()
+        self.base.size()
     }
 
     fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &Limits) {
-        self.base
-            .as_widget_mut()
-            .layout(&mut tree.children[0], renderer, limits);
+        self.base.layout(&mut tree.children[0], renderer, limits);
         let size = tree.children[0].size;
         let overlay_limits = Limits::new(Size::ZERO, size);
         self.stack
-            .as_widget_mut()
             .layout(&mut tree.children[1], renderer, &overlay_limits);
 
         tree.size = size;
@@ -1147,7 +1153,7 @@ where
         drop(children);
 
         if self.has_entries {
-            self.stack.as_widget_mut().update(
+            self.stack.update(
                 &mut tree.children[1],
                 event,
                 stack_layout,
@@ -1175,7 +1181,7 @@ where
         let base_cursor = self.base_cursor(cursor, stack_layout.bounds());
 
         if !shell.is_event_captured() {
-            self.base.as_widget_mut().update(
+            self.base.update(
                 &mut tree.children[0],
                 event,
                 base_layout,
@@ -1206,7 +1212,7 @@ where
             .map(|stack_layout| self.base_cursor(cursor, stack_layout.bounds()))
             .unwrap_or(cursor);
 
-        self.base.as_widget().draw(
+        self.base.draw(
             &tree.children[0],
             renderer,
             theme,
@@ -1225,7 +1231,7 @@ where
         };
 
         renderer.start_layer(layout.bounds());
-        self.stack.as_widget().draw(
+        self.stack.draw(
             &tree.children[1],
             renderer,
             theme,
@@ -1256,7 +1262,7 @@ where
         let base_cursor = self.base_cursor(cursor, stack_layout.bounds());
 
         if self.has_entries {
-            let interaction = self.stack.as_widget().mouse_interaction(
+            let interaction = self.stack.mouse_interaction(
                 &tree.children[1],
                 stack_layout,
                 cursor,
@@ -1272,7 +1278,7 @@ where
             }
         }
 
-        self.base.as_widget().mouse_interaction(
+        self.base.mouse_interaction(
             &tree.children[0],
             base_layout,
             base_cursor,
@@ -1292,23 +1298,13 @@ where
         let mut children = layout.iter_mut(&mut tree.children);
 
         if let Some((base_layout, base_tree)) = children.next() {
-            self.base.as_widget_mut().operate(
-                base_tree,
-                base_layout,
-                viewport,
-                renderer,
-                operation,
-            );
+            self.base
+                .operate(base_tree, base_layout, viewport, renderer, operation);
         }
 
         if let Some((stack_layout, stack_tree)) = children.next() {
-            self.stack.as_widget_mut().operate(
-                stack_tree,
-                stack_layout,
-                viewport,
-                renderer,
-                operation,
-            );
+            self.stack
+                .operate(stack_tree, stack_layout, viewport, renderer, operation);
         }
     }
 
@@ -1328,7 +1324,7 @@ where
             return Vec::new();
         };
 
-        let mut overlays = self.base.as_widget_mut().overlay(
+        let mut overlays = self.base.overlay(
             base_tree,
             base_layout,
             renderer,
@@ -1338,7 +1334,7 @@ where
         );
 
         if self.has_entries {
-            overlays.extend(self.stack.as_widget_mut().overlay(
+            overlays.extend(self.stack.overlay(
                 stack_tree,
                 stack_layout,
                 renderer,

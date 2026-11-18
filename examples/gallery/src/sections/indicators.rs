@@ -2,26 +2,33 @@ use crate::message::Message;
 use crate::ui::{band, matrix_label, page, panel, section_heading};
 use iced::Alignment;
 use iced::Length::Fill;
-use moonveil::widget::{column, row};
+use moonveil::Widget;
 use moonveil::widget::text::TextExt as _;
-use moonveil::widget::{alert, badge, button, container, progress, progress_bar, rule, text, Space};
-use moonveil::{Element, spacing, token::Intent};
+use moonveil::widget::{
+    Space, alert, badge, button, container, progress, progress_bar, rule, text,
+};
+use moonveil::widget::{column, row};
+use moonveil::{spacing, token::Intent};
 
-pub(super) fn indicators() -> Element<'static, Message> {
+pub(super) fn indicators() -> impl Widget<Message> + 'static {
     page([
         panel(section_heading(
             "CONTENT CATALOGS",
             "Badges, alerts, separation, and progress",
             None,
         ))
-        .into(),
-        band([badge_specimens(), badge_matrix()]),
-        alert_specimens(),
-        band([operation_progress(), quota_progress()]),
-        progress_matrix(),
-        indeterminate_matrix(),
-        band([indeterminate_in_context(), indeterminate_sizes()]),
-        rule_specimens(),
+        .boxed(),
+        band([badge_specimens().boxed(), badge_matrix().boxed()]).boxed(),
+        alert_specimens().boxed(),
+        band([operation_progress().boxed(), quota_progress().boxed()]).boxed(),
+        progress_matrix().boxed(),
+        indeterminate_matrix().boxed(),
+        band([
+            indeterminate_in_context().boxed(),
+            indeterminate_sizes().boxed(),
+        ])
+        .boxed(),
+        rule_specimens().boxed(),
     ])
 }
 
@@ -35,7 +42,7 @@ const COMPACT_SHAPES: [(&str, progress::Shape); 7] = [
     ("PULSE", progress::Shape::Pulse),
 ];
 
-fn indeterminate_matrix() -> Element<'static, Message> {
+fn indeterminate_matrix() -> impl Widget<Message> + 'static {
     let variant_row = |label: &'static str, variant: progress::Variant| {
         let mut cells = row![
             text(label)
@@ -47,7 +54,11 @@ fn indeterminate_matrix() -> Element<'static, Message> {
         .align_y(Alignment::Center);
 
         for (_, shape) in COMPACT_SHAPES {
-            cells = cells.push(container(progress().shape(shape).class(variant)).center_x(Fill));
+            cells = cells.push(
+                container(progress().shape(shape).class(variant))
+                    .center_x(Fill)
+                    .boxed(),
+            );
         }
 
         column![
@@ -72,7 +83,7 @@ fn indeterminate_matrix() -> Element<'static, Message> {
     .align_y(Alignment::Center);
 
     for (label, _) in COMPACT_SHAPES {
-        heading = heading.push(matrix_label(label));
+        heading = heading.push(matrix_label(label).boxed());
     }
 
     panel(
@@ -85,10 +96,9 @@ fn indeterminate_matrix() -> Element<'static, Message> {
         ]
         .spacing(spacing::LG),
     )
-    .into()
 }
 
-fn indeterminate_in_context() -> Element<'static, Message> {
+fn indeterminate_in_context() -> impl Widget<Message> + 'static {
     let small = |shape| progress().shape(shape).size(progress::Size::Small);
 
     panel(
@@ -144,10 +154,9 @@ fn indeterminate_in_context() -> Element<'static, Message> {
         ]
         .spacing(spacing::MD),
     )
-    .into()
 }
 
-fn indeterminate_sizes() -> Element<'static, Message> {
+fn indeterminate_sizes() -> impl Widget<Message> + 'static {
     let sizes = |shape| {
         row![
             progress().shape(shape).size(progress::Size::Small),
@@ -170,10 +179,9 @@ fn indeterminate_sizes() -> Element<'static, Message> {
         ]
         .spacing(spacing::MD),
     )
-    .into()
 }
 
-fn badge_specimens() -> Element<'static, Message> {
+fn badge_specimens() -> impl Widget<Message> + 'static {
     let soft = |intent| badge::Variant::Semantic {
         intent,
         style: badge::SemanticStyle::Soft,
@@ -226,10 +234,9 @@ fn badge_specimens() -> Element<'static, Message> {
         ]
         .spacing(spacing::MD),
     )
-    .into()
 }
 
-fn badge_matrix() -> Element<'static, Message> {
+fn badge_matrix() -> impl Widget<Message> + 'static {
     let intent_row = |label: &'static str, intent| {
         row![
             text(label)
@@ -296,16 +303,13 @@ fn badge_matrix() -> Element<'static, Message> {
         ]
         .spacing(spacing::MD),
     )
-    .into()
 }
 
-fn badge_cell(variant: badge::Variant) -> Element<'static, Message> {
-    container(badge("Label").class(variant))
-        .center_x(Fill)
-        .into()
+fn badge_cell(variant: badge::Variant) -> impl Widget<Message> + 'static {
+    container(badge("Label").class(variant)).center_x(Fill)
 }
 
-fn alert_specimens() -> Element<'static, Message> {
+fn alert_specimens() -> impl Widget<Message> + 'static {
     panel(
         column![
             alert("A new version of the CLI is available."),
@@ -322,10 +326,9 @@ fn alert_specimens() -> Element<'static, Message> {
         ]
         .spacing(spacing::SM),
     )
-    .into()
 }
 
-fn operation_progress() -> Element<'static, Message> {
+fn operation_progress() -> impl Widget<Message> + 'static {
     panel(
         column![
             row![
@@ -354,10 +357,9 @@ fn operation_progress() -> Element<'static, Message> {
         ]
         .spacing(spacing::MD),
     )
-    .into()
 }
 
-fn quota_progress() -> Element<'static, Message> {
+fn quota_progress() -> impl Widget<Message> + 'static {
     panel(
         column![
             row![
@@ -386,10 +388,9 @@ fn quota_progress() -> Element<'static, Message> {
         ]
         .spacing(spacing::MD),
     )
-    .into()
 }
 
-fn progress_matrix() -> Element<'static, Message> {
+fn progress_matrix() -> impl Widget<Message> + 'static {
     panel(
         column![
             row![
@@ -422,14 +423,13 @@ fn progress_matrix() -> Element<'static, Message> {
         ]
         .spacing(spacing::MD),
     )
-    .into()
 }
 
 fn progress_row(
     label: &'static str,
     variant: progress_bar::Variant,
     partial: f32,
-) -> Element<'static, Message> {
+) -> impl Widget<Message> + 'static {
     row![
         text(label)
             .size(text::Size::Label)
@@ -441,17 +441,13 @@ fn progress_row(
     ]
     .spacing(spacing::MD)
     .align_y(Alignment::Center)
-    .into()
 }
 
-fn progress_cell(value: f32, variant: progress_bar::Variant) -> Element<'static, Message> {
-    progress_bar(0.0..=100.0, value)
-        .class(variant)
-        .girth(8)
-        .into()
+fn progress_cell(value: f32, variant: progress_bar::Variant) -> impl Widget<Message> + 'static {
+    progress_bar(0.0..=100.0, value).class(variant).girth(8)
 }
 
-fn rule_specimens() -> Element<'static, Message> {
+fn rule_specimens() -> impl Widget<Message> + 'static {
     band([
         panel(
             column![
@@ -468,7 +464,7 @@ fn rule_specimens() -> Element<'static, Message> {
             ]
             .spacing(10),
         )
-        .into(),
+        .boxed(),
         panel(
             row![
                 column![
@@ -495,6 +491,6 @@ fn rule_specimens() -> Element<'static, Message> {
             ]
             .spacing(spacing::LG),
         )
-        .into(),
+        .boxed(),
     ])
 }

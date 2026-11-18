@@ -1,30 +1,38 @@
 use crate::gallery::Gallery;
 use crate::message::Message;
 use crate::shared::{Environment, PreviewTab};
-use crate::ui::{band, page, panel, section_heading, COLOR_MODE_ICON};
-use iced::{Alignment, Length};
+use crate::ui::{COLOR_MODE_ICON, band, page, panel, section_heading};
 use iced::Length::Fill;
-use moonveil::widget::{column, row};
+use iced::{Alignment, Length};
+use moonveil::Widget;
 use moonveil::widget::text::TextExt as _;
-use moonveil::widget::{checkbox, container, radio, rule, slider, svg, tab_bar, text, toggler, Column, Space};
-use moonveil::{Element, spacing, token::Intent};
+use moonveil::widget::{
+    Column, Space, checkbox, container, radio, rule, slider, svg, tab_bar, text, toggler,
+};
+use moonveil::widget::{column, row};
+use moonveil::{spacing, token::Intent};
 
-pub(super) fn selection(gallery: &Gallery) -> Element<'_, Message> {
+pub(super) fn selection(gallery: &Gallery) -> impl Widget<Message> + '_ {
     page([
         panel(section_heading(
             "CONTROL CATALOGS",
             "Controls and selection",
             None,
         ))
-        .into(),
-        band([live_selection(gallery), svg_specimens()]),
-        tab_bar_specimens(gallery),
-        band([checkbox_matrix(), radio_matrix(), toggler_matrix()]),
-        slider_specimens(gallery),
+        .boxed(),
+        band([live_selection(gallery).boxed(), svg_specimens().boxed()]).boxed(),
+        tab_bar_specimens(gallery).boxed(),
+        band([
+            checkbox_matrix().boxed(),
+            radio_matrix().boxed(),
+            toggler_matrix().boxed(),
+        ])
+        .boxed(),
+        slider_specimens(gallery).boxed(),
     ])
 }
 
-fn tab_bar_specimens(gallery: &Gallery) -> Element<'_, Message> {
+fn tab_bar_specimens(gallery: &Gallery) -> impl Widget<Message> + '_ {
     panel(
         row![
             column![
@@ -69,10 +77,9 @@ fn tab_bar_specimens(gallery: &Gallery) -> Element<'_, Message> {
         ]
         .spacing(spacing::LG),
     )
-    .into()
 }
 
-fn live_selection(gallery: &Gallery) -> Element<'_, Message> {
+fn live_selection(gallery: &Gallery) -> impl Widget<Message> + '_ {
     let environments =
         Environment::ALL
             .iter()
@@ -134,10 +141,9 @@ fn live_selection(gallery: &Gallery) -> Element<'_, Message> {
         .spacing(spacing::LG),
     )
     .width(Length::FillPortion(3))
-    .into()
 }
 
-fn svg_specimens() -> Element<'static, Message> {
+fn svg_specimens() -> impl Widget<Message> + 'static {
     panel(
         column![
             text("SVG color modes").class(text::Variant::Primary),
@@ -164,10 +170,9 @@ fn svg_specimens() -> Element<'static, Message> {
         .spacing(spacing::MD),
     )
     .width(Length::FillPortion(2))
-    .into()
 }
 
-fn live_icon(label: &'static str, variant: svg::Variant) -> Element<'static, Message> {
+fn live_icon(label: &'static str, variant: svg::Variant) -> impl Widget<Message> + 'static {
     column![
         svg(svg::Handle::from_memory(COLOR_MODE_ICON))
             .class(variant)
@@ -179,14 +184,13 @@ fn live_icon(label: &'static str, variant: svg::Variant) -> Element<'static, Mes
     ]
     .spacing(5)
     .align_x(Alignment::Center)
-    .into()
 }
 
 fn forced_icon(
     label: &'static str,
     variant: svg::Variant,
     status: svg::Status,
-) -> Element<'static, Message> {
+) -> impl Widget<Message> + 'static {
     row![
         svg(svg::Handle::from_memory(COLOR_MODE_ICON))
             .style(move |theme, _| svg::appearance(theme, status, variant))
@@ -198,10 +202,9 @@ fn forced_icon(
     ]
     .spacing(5)
     .align_y(Alignment::Center)
-    .into()
 }
 
-fn checkbox_matrix() -> Element<'static, Message> {
+fn checkbox_matrix() -> impl Widget<Message> + 'static {
     state_matrix(
         "Checkbox",
         column![
@@ -214,7 +217,10 @@ fn checkbox_matrix() -> Element<'static, Message> {
     )
 }
 
-fn checkbox_state_row(label: &'static str, status: checkbox::Status) -> Element<'static, Message> {
+fn checkbox_state_row(
+    label: &'static str,
+    status: checkbox::Status,
+) -> impl Widget<Message> + 'static {
     let checked_status = match status {
         checkbox::Status::Active { .. } => checkbox::Status::Active { is_checked: true },
         checkbox::Status::Hovered { .. } => checkbox::Status::Hovered { is_checked: true },
@@ -231,17 +237,15 @@ fn checkbox_state_row(label: &'static str, status: checkbox::Status) -> Element<
     ]
     .spacing(spacing::SM)
     .align_y(Alignment::Center)
-    .into()
 }
 
-fn forced_checkbox(is_checked: bool, status: checkbox::Status) -> Element<'static, Message> {
+fn forced_checkbox(is_checked: bool, status: checkbox::Status) -> impl Widget<Message> + 'static {
     checkbox(is_checked)
         .style(move |theme, _| checkbox::appearance(theme, status, checkbox::Variant::Standard))
         .size(16)
-        .into()
 }
 
-fn radio_matrix() -> Element<'static, Message> {
+fn radio_matrix() -> impl Widget<Message> + 'static {
     state_matrix(
         "Radio",
         column![
@@ -256,7 +260,7 @@ fn radio_matrix() -> Element<'static, Message> {
     )
 }
 
-fn radio_state_row(label: &'static str, status: radio::Status) -> Element<'static, Message> {
+fn radio_state_row(label: &'static str, status: radio::Status) -> impl Widget<Message> + 'static {
     let selected_status = match status {
         radio::Status::Active { .. } => radio::Status::Active { is_selected: true },
         radio::Status::Hovered { .. } => radio::Status::Hovered { is_selected: true },
@@ -272,17 +276,15 @@ fn radio_state_row(label: &'static str, status: radio::Status) -> Element<'stati
     ]
     .spacing(spacing::SM)
     .align_y(Alignment::Center)
-    .into()
 }
 
-fn forced_radio(is_selected: bool, status: radio::Status) -> Element<'static, Message> {
+fn forced_radio(is_selected: bool, status: radio::Status) -> impl Widget<Message> + 'static {
     radio("", true, is_selected.then_some(true), |_| Message::Action)
         .style(move |theme, _| radio::appearance(theme, status, radio::Variant::Standard))
         .size(16)
-        .into()
 }
 
-fn toggler_matrix() -> Element<'static, Message> {
+fn toggler_matrix() -> impl Widget<Message> + 'static {
     state_matrix(
         "Toggler",
         column![
@@ -301,7 +303,7 @@ fn toggler_matrix() -> Element<'static, Message> {
     )
 }
 
-fn toggler_size_row(label: &'static str, size: f32) -> Element<'static, Message> {
+fn toggler_size_row(label: &'static str, size: f32) -> impl Widget<Message> + 'static {
     row![
         text(label)
             .size(text::Size::Label)
@@ -311,10 +313,12 @@ fn toggler_size_row(label: &'static str, size: f32) -> Element<'static, Message>
     ]
     .spacing(spacing::SM)
     .align_y(Alignment::Center)
-    .into()
 }
 
-fn toggler_state_row(label: &'static str, status: toggler::Status) -> Element<'static, Message> {
+fn toggler_state_row(
+    label: &'static str,
+    status: toggler::Status,
+) -> impl Widget<Message> + 'static {
     let toggled_status = match status {
         toggler::Status::Active { .. } => toggler::Status::Active { is_toggled: true },
         toggler::Status::Hovered { .. } => toggler::Status::Hovered { is_toggled: true },
@@ -331,20 +335,18 @@ fn toggler_state_row(label: &'static str, status: toggler::Status) -> Element<'s
     ]
     .spacing(spacing::SM)
     .align_y(Alignment::Center)
-    .into()
 }
 
-fn forced_toggler(is_toggled: bool, status: toggler::Status) -> Element<'static, Message> {
+fn forced_toggler(is_toggled: bool, status: toggler::Status) -> impl Widget<Message> + 'static {
     toggler(is_toggled)
         .style(move |theme, _| toggler::appearance(theme, status, toggler::Variant::Standard))
-        .into()
 }
 
 fn state_header(
     state: &'static str,
     off: &'static str,
     on: &'static str,
-) -> Element<'static, Message> {
+) -> impl Widget<Message> + 'static {
     row![
         text(state)
             .size(text::Size::Label.sm())
@@ -362,30 +364,28 @@ fn state_header(
         ),
     ]
     .spacing(spacing::SM)
-    .into()
 }
 
-fn state_cell(content: impl Into<Element<'static, Message>>) -> Element<'static, Message> {
-    container(content).width(Fill).center_x(Length::Fill).into()
+fn state_cell(content: impl Widget<Message> + 'static) -> impl Widget<Message> + 'static {
+    container(content).width(Fill).center_x(Length::Fill)
 }
 
 fn state_matrix(
     title: &'static str,
-    content: impl Into<Element<'static, Message>>,
-) -> Element<'static, Message> {
+    content: impl Widget<Message> + 'static,
+) -> impl Widget<Message> + 'static {
     panel(
         column![
             text(title)
                 .size(text::Size::Title.sm())
                 .class(text::Variant::Primary),
-            content.into()
+            content.boxed()
         ]
         .spacing(10),
     )
-    .into()
 }
 
-fn slider_specimens(gallery: &Gallery) -> Element<'_, Message> {
+fn slider_specimens(gallery: &Gallery) -> impl Widget<Message> + '_ {
     band([
         panel(
             column![
@@ -412,7 +412,7 @@ fn slider_specimens(gallery: &Gallery) -> Element<'_, Message> {
             .spacing(spacing::MD),
         )
         .width(Length::FillPortion(2))
-        .into(),
+        .boxed(),
         panel(
             column![
                 text("Explicit states")
@@ -426,7 +426,7 @@ fn slider_specimens(gallery: &Gallery) -> Element<'_, Message> {
             .spacing(spacing::SM),
         )
         .width(Length::FillPortion(3))
-        .into(),
+        .boxed(),
     ])
 }
 
@@ -437,7 +437,7 @@ fn slider_control<'a>(
     suffix: &'static str,
     variant: slider::Variant,
     on_change: impl Fn(f32) -> Message + 'a,
-) -> Element<'a, Message> {
+) -> impl Widget<Message> + 'a {
     column![
         row![
             text(label)
@@ -452,10 +452,9 @@ fn slider_control<'a>(
         slider(range, value, on_change).class(variant).step(1.0),
     ]
     .spacing(5)
-    .into()
 }
 
-fn slider_header() -> Element<'static, Message> {
+fn slider_header() -> impl Widget<Message> + 'static {
     row![
         text("STATE")
             .size(text::Size::Label.sm())
@@ -478,10 +477,9 @@ fn slider_header() -> Element<'static, Message> {
         ),
     ]
     .spacing(spacing::SM)
-    .into()
 }
 
-fn slider_state_row(label: &'static str, status: slider::Status) -> Element<'static, Message> {
+fn slider_state_row(label: &'static str, status: slider::Status) -> impl Widget<Message> + 'static {
     row![
         text(label)
             .size(text::Size::Label)
@@ -493,12 +491,10 @@ fn slider_state_row(label: &'static str, status: slider::Status) -> Element<'sta
     ]
     .spacing(spacing::SM)
     .align_y(Alignment::Center)
-    .into()
 }
 
-fn forced_slider(value: f32, status: slider::Status) -> Element<'static, Message> {
+fn forced_slider(value: f32, status: slider::Status) -> impl Widget<Message> + 'static {
     slider(0.0..=100.0, value, |_| Message::Action)
         .style(move |theme, _| slider::appearance(theme, status, slider::Variant::Standard))
         .width(Fill)
-        .into()
 }

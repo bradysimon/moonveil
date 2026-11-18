@@ -1,7 +1,7 @@
 //! A button using Moonveil's concrete theme and resolved tokens.
 
 use crate::{
-    Color, Element, Theme,
+    Color, Theme,
     token::{Fill, Interaction, Pair, Semantic, Surface},
 };
 use iced_core::{Background, Border};
@@ -11,16 +11,10 @@ pub use iced_widget::button::{Catalog, Status, Style};
 
 pub type StyleFn<'a> = iced_widget::button::StyleFn<'a, Theme>;
 
-pub type Button<'a, Message, Renderer = iced_widget::Renderer> =
-    iced_widget::Button<'a, Message, Theme, Renderer>;
+pub type Button<'a, Message, W> = iced_widget::Button<'a, Message, W, Theme>;
 
 /// Creates a button using Moonveil's concrete theme.
-pub fn button<'a, Message, Renderer>(
-    content: impl Into<Element<'a, Message, Renderer>>,
-) -> Button<'a, Message, Renderer>
-where
-    Renderer: iced_core::Renderer,
-{
+pub fn button<'a, Message, W>(content: W) -> Button<'a, Message, W> {
     Button::new(content)
 }
 

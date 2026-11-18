@@ -1,16 +1,11 @@
 //! Columns containing elements that use Moonveil's concrete theme.
 
-use crate::{Element, Theme};
+pub type Column<W> = iced_widget::Column<W>;
 
-pub type Column<'a, Message, Renderer = iced_widget::Renderer> =
-    iced_widget::Column<'a, Message, Theme, Renderer>;
-
-/// Creates a column from an iterator of Moonveil elements.
-pub fn column<'a, Message, Renderer>(
-    children: impl IntoIterator<Item = Element<'a, Message, Renderer>>,
-) -> Column<'a, Message, Renderer>
+/// Creates a column from an iterator of widgets.
+pub fn column<W>(children: impl IntoIterator<Item = W>) -> Column<W>
 where
-    Renderer: iced_core::Renderer,
+    W: iced_core::widget::Meta,
 {
     Column::with_children(children)
 }
@@ -24,6 +19,6 @@ macro_rules! column {
         $crate::widget::Column::new()
     );
     ($($x:expr),+ $(,)?) => (
-        $crate::widget::Column::with_children([$($crate::Element::from($x)),+])
+        $crate::widget::Column::with_children([$($crate::Widget::boxed($x)),+])
     );
 }

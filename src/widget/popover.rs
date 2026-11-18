@@ -39,8 +39,8 @@ const EDGE_PADDING: f32 = 6.0;
 
 /// Creates a popover with a button-styled trigger around `label` that toggles `content`.
 pub fn popover<'a, Message, Renderer>(
-    label: impl Into<Element<'a, Message, Renderer>>,
-    content: impl Into<Element<'a, Message, Renderer>>,
+    label: impl iced_core::Widget<Message, crate::Theme, Renderer> + 'a,
+    content: impl iced_core::Widget<Message, crate::Theme, Renderer> + 'a,
 ) -> Popover<'a, Message, Renderer>
 where
     Message: Clone + 'a,
@@ -54,8 +54,8 @@ where
 /// The base keeps its own behavior. Use [`Anchored::on_close`] to learn when the panel is
 /// dismissed with an outside press or `Esc`.
 pub fn anchored<'a, Message, Renderer>(
-    base: impl Into<Element<'a, Message, Renderer>>,
-    content: impl Into<Element<'a, Message, Renderer>>,
+    base: impl iced_core::Widget<Message, crate::Theme, Renderer> + 'a,
+    content: impl iced_core::Widget<Message, crate::Theme, Renderer> + 'a,
     is_open: bool,
 ) -> Anchored<'a, Message, Renderer>
 where
@@ -174,12 +174,12 @@ where
 {
     /// Creates a popover with a button-styled trigger around `label` that toggles `content`.
     pub fn new(
-        label: impl Into<Element<'a, Message, Renderer>>,
-        content: impl Into<Element<'a, Message, Renderer>>,
+        label: impl iced_core::Widget<Message, crate::Theme, Renderer> + 'a,
+        content: impl iced_core::Widget<Message, crate::Theme, Renderer> + 'a,
     ) -> Self {
         Self {
-            base: label.into(),
-            content: content.into(),
+            base: iced_core::Widget::_boxed(label),
+            content: iced_core::Widget::_boxed(content),
             trigger: Trigger::Button(button::Variant::Secondary.into()),
             trigger_padding: iced_widget::button::DEFAULT_PADDING,
             status: None,
@@ -331,6 +331,13 @@ struct State {
     panel: Size,
 }
 
+impl<Message, Renderer> iced_core::widget::Meta for Popover<'_, Message, Renderer>
+where
+    Message: Clone,
+    Renderer: iced_core::Renderer,
+{
+}
+
 impl<Message, Renderer> Widget<Message, Theme, Renderer> for Popover<'_, Message, Renderer>
 where
     Message: Clone,
@@ -350,7 +357,7 @@ where
     }
 
     fn size(&self) -> Size<Length> {
-        self.base.as_widget().size()
+        self.base.size()
     }
 
     fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &Limits) {
@@ -363,7 +370,7 @@ where
         }
         state.needs_relayout = true;
 
-        let size = self.base.as_widget().size();
+        let size = self.base.size();
         layout::padded(
             tree,
             limits,
@@ -371,7 +378,7 @@ where
             size.height,
             self.trigger_padding,
             |tree, limits| {
-                self.base.as_widget_mut().layout(tree, renderer, limits);
+                self.base.layout(tree, renderer, limits);
                 tree.size
             },
         );
@@ -391,7 +398,7 @@ where
             state, children, ..
         } = tree;
         let (base_layout, base_tree) = layout.iter_mut(children).next().unwrap();
-        self.base.as_widget_mut().update(
+        self.base.update(
             base_tree,
             event,
             base_layout,
@@ -482,7 +489,7 @@ where
         };
 
         let (base_layout, base_tree) = layout.iter(&tree.children).next().unwrap();
-        self.base.as_widget().draw(
+        self.base.draw(
             base_tree,
             renderer,
             theme,
@@ -510,7 +517,6 @@ where
 
         let (base_layout, base_tree) = layout.iter(&tree.children).next().unwrap();
         self.base
-            .as_widget()
             .mouse_interaction(base_tree, base_layout, cursor, viewport, renderer)
     }
 
@@ -524,7 +530,6 @@ where
     ) {
         let (base_layout, base_tree) = layout.iter_mut(&mut tree.children).next().unwrap();
         self.base
-            .as_widget_mut()
             .operate(base_tree, base_layout, viewport, renderer, operation);
     }
 
@@ -546,7 +551,7 @@ where
         let base_layout =
             Layout::new(base_tree.size).move_to(layout.bounds().position() + base_tree.translation);
 
-        let mut overlays = self.base.as_widget_mut().overlay(
+        let mut overlays = self.base.overlay(
             base_tree,
             base_layout,
             renderer,
@@ -567,11 +572,8 @@ where
             );
             let limits = Limits::new(Size::ZERO, available).width(self.width);
 
-            self.content.as_widget_mut().layout(
-                content_tree,
-                renderer,
-                &limits.shrink(self.padding),
-            );
+            self.content
+                .layout(content_tree, renderer, &limits.shrink(self.padding));
             content_tree.translation = Vector::new(self.padding.left, self.padding.top);
             state.panel = limits.resolve(
                 self.width,
@@ -611,21 +613,14 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Popover<'a, Message, Renderer>> for Element<'a, Message, Renderer>
+/// A controlled popover with a custom trigger. Create with [`anchored`].
+pub struct Anchored<'a, Message, Renderer = iced_widget::Renderer>
 where
     Message: Clone + 'a,
     Renderer: iced_core::Renderer + 'a,
 {
-    fn from(popover: Popover<'a, Message, Renderer>) -> Self {
-        Element::new(popover)
-    }
+    inner: Popover<'a, Message, Renderer>,
 }
-
-/// A controlled popover with a custom trigger. Create with [`anchored`].
-pub struct Anchored<'a, Message, Renderer = iced_widget::Renderer>(Popover<'a, Message, Renderer>)
-where
-    Message: Clone + 'a,
-    Renderer: iced_core::Renderer + 'a;
 
 impl<'a, Message, Renderer> Anchored<'a, Message, Renderer>
 where
@@ -634,75 +629,99 @@ where
 {
     /// Creates a popover that shows `content` next to `base` while `is_open` is `true`.
     pub fn new(
-        base: impl Into<Element<'a, Message, Renderer>>,
-        content: impl Into<Element<'a, Message, Renderer>>,
+        base: impl iced_core::Widget<Message, crate::Theme, Renderer> + 'a,
+        content: impl iced_core::Widget<Message, crate::Theme, Renderer> + 'a,
         is_open: bool,
     ) -> Self {
-        Self(Popover {
-            trigger: Trigger::Anchor,
-            trigger_padding: Padding::ZERO,
-            is_open: Some(is_open),
-            ..Popover::new(base, content)
-        })
+        Self {
+            inner: Popover {
+                trigger: Trigger::Anchor,
+                trigger_padding: Padding::ZERO,
+                is_open: Some(is_open),
+                ..Popover::new(base, content)
+            },
+        }
     }
 
     /// Sets where the popover is placed relative to its base.
     #[must_use]
     pub fn position(self, position: Position) -> Self {
-        Self(self.0.position(position))
+        Self {
+            inner: self.inner.position(position),
+        }
     }
 
     /// Sets the distance between the base and the popover.
     #[must_use]
     pub fn gap(self, gap: impl Into<Pixels>) -> Self {
-        Self(self.0.gap(gap))
+        Self {
+            inner: self.inner.gap(gap),
+        }
     }
 
     /// Sets the padding around the popover content.
     #[must_use]
     pub fn padding(self, padding: impl Into<Padding>) -> Self {
-        Self(self.0.padding(padding))
+        Self {
+            inner: self.inner.padding(padding),
+        }
     }
 
     /// Sets the width of the popover panel.
     #[must_use]
     pub fn width(self, width: impl Into<Length>) -> Self {
-        Self(self.0.width(width))
+        Self {
+            inner: self.inner.width(width),
+        }
     }
 
     /// Sets the maximum width of the popover panel.
     #[must_use]
     pub fn max_width(self, max_width: impl Into<Pixels>) -> Self {
-        Self(self.0.max_width(max_width))
+        Self {
+            inner: self.inner.max_width(max_width),
+        }
     }
 
     /// Sets the message published when an outside press or `Esc` dismisses the popover.
     #[must_use]
     pub fn on_close(self, message: Message) -> Self {
-        Self(self.0.on_close(message))
+        Self {
+            inner: self.inner.on_close(message),
+        }
     }
 
     /// Sets a built-in Moonveil popover variant.
     #[must_use]
     pub fn class(self, variant: Variant) -> Self {
-        Self(self.0.class(variant))
+        Self {
+            inner: self.inner.class(variant),
+        }
     }
 
     /// Sets a custom popover style function.
     #[must_use]
     pub fn style(self, style: impl Fn(&Theme) -> Style + 'a) -> Self {
-        Self(self.0.style(style))
+        Self {
+            inner: self.inner.style(style),
+        }
     }
 }
 
-impl<'a, Message, Renderer> From<Anchored<'a, Message, Renderer>> for Element<'a, Message, Renderer>
+impl<'a, Message, Renderer> iced_core::widget::Meta for Anchored<'a, Message, Renderer>
 where
     Message: Clone + 'a,
     Renderer: iced_core::Renderer + 'a,
 {
-    fn from(anchored: Anchored<'a, Message, Renderer>) -> Self {
-        anchored.0.into()
-    }
+    super::delegate::meta!(inner);
+}
+
+impl<'a, Message, Renderer> Widget<Message, Theme, Renderer> for Anchored<'a, Message, Renderer>
+where
+    Message: Clone + 'a,
+    Renderer: iced_core::Renderer + 'a,
+{
+    super::delegate::widget!(inner);
 }
 
 struct PopoverOverlay<'a, 'b, Message, Renderer> {
@@ -746,7 +765,7 @@ where
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
     ) {
-        self.content.as_widget_mut().update(
+        self.content.update(
             self.tree,
             event,
             self.content_layout,
@@ -788,7 +807,6 @@ where
         }
 
         self.content
-            .as_widget()
             .mouse_interaction(
                 self.tree,
                 self.content_layout,
@@ -811,7 +829,7 @@ where
 
         renderer.with_layer(viewport, |renderer| {
             iced_widget::container::draw_background(renderer, &style, self.panel);
-            self.content.as_widget().draw(
+            self.content.draw(
                 self.tree,
                 renderer,
                 theme,
@@ -828,7 +846,7 @@ where
     fn operate(&mut self, renderer: &Renderer, operation: &mut dyn Operation) {
         operation.container(None, self.panel, &self.panel);
         operation.traverse(&mut |operation| {
-            self.content.as_widget_mut().operate(
+            self.content.operate(
                 self.tree,
                 self.content_layout,
                 &Rectangle::with_size(self.window),
@@ -842,7 +860,7 @@ where
         &'c mut self,
         renderer: &Renderer,
     ) -> Vec<overlay::Element<'c, Message, Theme, Renderer>> {
-        self.content.as_widget_mut().overlay(
+        self.content.overlay(
             self.tree,
             self.content_layout,
             renderer,

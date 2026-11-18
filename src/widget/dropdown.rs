@@ -38,7 +38,7 @@ pub const PADDING: Padding = Padding {
 
 /// Creates a dropdown around a base element and menu items.
 pub fn dropdown<'a, Message, Renderer>(
-    base: impl Into<Element<'a, Message, Renderer>>,
+    base: impl iced_core::Widget<Message, crate::Theme, Renderer> + 'a,
     items: impl IntoIterator<Item = Item<'a, Message>>,
 ) -> Dropdown<'a, Message, Renderer>
 where
@@ -105,11 +105,11 @@ where
 {
     /// Creates a dropdown around a base element and menu items.
     pub fn new(
-        base: impl Into<Element<'a, Message, Renderer>>,
+        base: impl iced_core::Widget<Message, crate::Theme, Renderer> + 'a,
         items: impl IntoIterator<Item = Item<'a, Message>>,
     ) -> Self {
         Self {
-            base: base.into(),
+            base: iced_core::Widget::_boxed(base),
             items: items.into_iter().collect(),
             padding: PADDING,
             width: None,
@@ -259,6 +259,13 @@ impl State {
     }
 }
 
+impl<Message, Renderer> iced_core::widget::Meta for Dropdown<'_, Message, Renderer>
+where
+    Message: Clone,
+    Renderer: text::Renderer,
+{
+}
+
 impl<Message, Renderer> Widget<Message, Theme, Renderer> for Dropdown<'_, Message, Renderer>
 where
     Message: Clone,
@@ -267,15 +274,19 @@ where
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State>()
     }
+
     fn state(&self) -> tree::State {
         tree::State::new(State::new())
     }
+
     fn diff(&mut self, tree: &mut Tree) {
         tree.diff_children(std::slice::from_mut(&mut self.base));
     }
+
     fn size(&self) -> Size<Length> {
-        self.base.as_widget().size()
+        self.base.size()
     }
+
     fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
         if let Some(open) = self.is_open {
             let state = tree.state.downcast_mut::<State>();
@@ -292,11 +303,12 @@ where
             Length::Fit,
             self.padding,
             |tree, limits| {
-                self.base.as_widget_mut().layout(tree, renderer, limits);
+                self.base.layout(tree, renderer, limits);
                 tree.size
             },
         );
     }
+
     fn update(
         &mut self,
         tree: &mut Tree,
@@ -317,14 +329,17 @@ where
         } else {
             Status::Active
         };
+
         if let Event::Window(window::Event::RedrawRequested(_)) = event {
             self.status = Some(current_status);
         } else if self.status.is_some_and(|status| status != current_status) {
             shell.request_redraw();
         }
+
         if state.is_open {
             return;
         }
+
         if !self.disabled
             && matches!(
                 event,
@@ -342,8 +357,9 @@ where
             shell.request_redraw();
             return;
         }
+
         let (child_layout, child_tree) = layout.iter_mut(&mut tree.children).next().unwrap();
-        self.base.as_widget_mut().update(
+        self.base.update(
             child_tree,
             event,
             child_layout,
@@ -353,6 +369,7 @@ where
             viewport,
         );
     }
+
     fn draw(
         &self,
         tree: &Tree,
@@ -373,6 +390,7 @@ where
         } else {
             Status::Active
         };
+
         let appearance = <Theme as Catalog>::style(theme, &self.class, status);
         renderer.fill_quad(
             Quad {
@@ -383,8 +401,9 @@ where
             },
             appearance.background,
         );
+
         let (child_layout, child_tree) = layout.iter(&tree.children).next().unwrap();
-        self.base.as_widget().draw(
+        self.base.draw(
             child_tree,
             renderer,
             theme,
@@ -396,6 +415,7 @@ where
             viewport,
         );
     }
+
     fn mouse_interaction(
         &self,
         tree: &Tree,
@@ -408,15 +428,11 @@ where
             mouse::Interaction::Pointer
         } else {
             let (child_layout, child_tree) = layout.iter(&tree.children).next().unwrap();
-            self.base.as_widget().mouse_interaction(
-                child_tree,
-                child_layout,
-                cursor,
-                viewport,
-                renderer,
-            )
+            self.base
+                .mouse_interaction(child_tree, child_layout, cursor, viewport, renderer)
         }
     }
+
     fn operate(
         &mut self,
         tree: &mut Tree,
@@ -427,9 +443,9 @@ where
     ) {
         let (child_layout, child_tree) = layout.iter_mut(&mut tree.children).next().unwrap();
         self.base
-            .as_widget_mut()
             .operate(child_tree, child_layout, viewport, renderer, operation);
     }
+
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
@@ -442,7 +458,7 @@ where
         let state = tree.state.downcast_mut::<State>();
         if !state.is_open {
             let (child_layout, child_tree) = layout.iter_mut(&mut tree.children).next().unwrap();
-            return self.base.as_widget_mut().overlay(
+            return self.base.overlay(
                 child_tree,
                 child_layout,
                 renderer,
@@ -465,16 +481,6 @@ where
         let menu = overlay.menu();
         menu::clamp_scroll_offset(&mut overlay.state.scroll_offset, &menu);
         vec![overlay::Element::new(Box::new(overlay))]
-    }
-}
-
-impl<'a, Message, Renderer> From<Dropdown<'a, Message, Renderer>> for Element<'a, Message, Renderer>
-where
-    Message: Clone + 'a,
-    Renderer: text::Renderer + 'a,
-{
-    fn from(value: Dropdown<'a, Message, Renderer>) -> Self {
-        Element::new(value)
     }
 }
 
@@ -661,6 +667,7 @@ where
             shell.invalidate_overlay();
         }
     }
+
     fn mouse_interaction(&self, cursor: mouse::Cursor, _renderer: &Renderer) -> mouse::Interaction {
         let menu = self.menu();
         if self.state.scroll_drag.is_some() {
@@ -678,6 +685,7 @@ where
             Hit::Outside => mouse::Interaction::default(),
         }
     }
+
     fn draw(
         &self,
         renderer: &mut Renderer,

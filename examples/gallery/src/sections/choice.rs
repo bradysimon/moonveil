@@ -3,28 +3,33 @@ use crate::message::Message;
 use crate::shared::Environment;
 use crate::ui::{band, divided, page, panel, section_heading};
 use iced::Length::Fill;
-use moonveil::widget::{column, row};
 use iced::{Alignment, Length};
+use moonveil::Widget;
+use moonveil::spacing;
 use moonveil::widget::combo_box::ComboBoxExt as _;
 use moonveil::widget::text::TextExt as _;
+use moonveil::widget::{column, row};
 use moonveil::widget::{combo_box, container, pick_list, scrollable, text};
-use moonveil::{Element, spacing};
 
-pub(super) fn choice(gallery: &Gallery) -> Element<'_, Message> {
+pub(super) fn choice(gallery: &Gallery) -> impl Widget<Message> + '_ {
     page([
         panel(section_heading(
             "CHOICE & NAVIGATION",
             "Menus and bounded regions",
             None,
         ))
-        .into(),
-        band([pick_list_specimens(gallery), pick_list_matrix()]),
-        combo_box_specimens(gallery),
-        scrollable_specimens(),
+        .boxed(),
+        band([
+            pick_list_specimens(gallery).boxed(),
+            pick_list_matrix().boxed(),
+        ])
+        .boxed(),
+        combo_box_specimens(gallery).boxed(),
+        scrollable_specimens().boxed(),
     ])
 }
 
-fn pick_list_specimens(gallery: &Gallery) -> Element<'_, Message> {
+fn pick_list_specimens(gallery: &Gallery) -> impl Widget<Message> + '_ {
     panel(
         column![
             text("Live environment selector").class(text::Variant::Primary),
@@ -56,10 +61,9 @@ fn pick_list_specimens(gallery: &Gallery) -> Element<'_, Message> {
         .spacing(9),
     )
     .width(Length::FillPortion(2))
-    .into()
 }
 
-fn pick_list_matrix() -> Element<'static, Message> {
+fn pick_list_matrix() -> impl Widget<Message> + 'static {
     panel(
         column![
             text("Explicit states")
@@ -77,10 +81,12 @@ fn pick_list_matrix() -> Element<'static, Message> {
         .spacing(spacing::SM),
     )
     .width(Length::FillPortion(3))
-    .into()
 }
 
-fn pick_list_state(label: &'static str, status: pick_list::Status) -> Element<'static, Message> {
+fn pick_list_state(
+    label: &'static str,
+    status: pick_list::Status,
+) -> impl Widget<Message> + 'static {
     row![
         text(label)
             .size(text::Size::Label)
@@ -99,10 +105,9 @@ fn pick_list_state(label: &'static str, status: pick_list::Status) -> Element<'s
     ]
     .spacing(spacing::SM)
     .align_y(Alignment::Center)
-    .into()
 }
 
-fn combo_box_specimens(gallery: &Gallery) -> Element<'_, Message> {
+fn combo_box_specimens(gallery: &Gallery) -> impl Widget<Message> + '_ {
     panel(
         column![
             text("Searchable environment selector").class(text::Variant::Primary),
@@ -133,10 +138,9 @@ fn combo_box_specimens(gallery: &Gallery) -> Element<'_, Message> {
         ]
         .spacing(9),
     )
-    .into()
 }
 
-fn scrollable_specimens() -> Element<'static, Message> {
+fn scrollable_specimens() -> impl Widget<Message> + 'static {
     band([
         scroll_panel(
             "Vertical",
@@ -154,7 +158,8 @@ fn scrollable_specimens() -> Element<'static, Message> {
             .class(scrollable::Variant::Standard)
             .height(104)
             .width(Fill),
-        ),
+        )
+        .boxed(),
         scroll_panel(
             "Horizontal",
             scrollable(metrics([
@@ -167,7 +172,8 @@ fn scrollable_specimens() -> Element<'static, Message> {
             .class(scrollable::Variant::Subtle)
             .height(104)
             .width(Fill),
-        ),
+        )
+        .boxed(),
         scroll_panel(
             "Both axes",
             scrollable(
@@ -197,14 +203,15 @@ fn scrollable_specimens() -> Element<'static, Message> {
             .class(scrollable::Variant::Standard)
             .height(104)
             .width(Fill),
-        ),
+        )
+        .boxed(),
     ])
 }
 
 fn scroll_panel(
     title: &'static str,
-    content: scrollable::Scrollable<'static, Message>,
-) -> Element<'static, Message> {
+    content: impl Widget<Message> + 'static,
+) -> impl Widget<Message> + 'static {
     panel(
         column![
             text(title)
@@ -214,10 +221,9 @@ fn scroll_panel(
         ]
         .spacing(spacing::SM),
     )
-    .into()
 }
 
-fn log_line(time: &'static str, event: &'static str) -> Element<'static, Message> {
+fn log_line(time: &'static str, event: &'static str) -> impl Widget<Message> + 'static {
     row![
         text(time)
             .size(text::Size::Label)
@@ -228,10 +234,9 @@ fn log_line(time: &'static str, event: &'static str) -> Element<'static, Message
             .class(text::Variant::Secondary),
     ]
     .spacing(6)
-    .into()
 }
 
-fn metrics(items: [(&'static str, &'static str); 4]) -> Element<'static, Message> {
+fn metrics(items: [(&'static str, &'static str); 4]) -> impl Widget<Message> + 'static {
     divided(items.map(|(label, value)| {
         container(
             column![
@@ -246,7 +251,6 @@ fn metrics(items: [(&'static str, &'static str); 4]) -> Element<'static, Message
         )
         .padding([2.0, spacing::MD])
         .width(132)
-        .into()
+        .boxed()
     }))
-    .into()
 }

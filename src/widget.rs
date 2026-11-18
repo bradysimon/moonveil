@@ -7,8 +7,10 @@ pub mod canvas;
 pub mod checkbox;
 pub mod column;
 pub mod combo_box;
+mod composed;
 pub mod container;
 pub mod context_menu;
+mod delegate;
 pub mod dialog;
 pub mod dropdown;
 mod field;
@@ -61,6 +63,7 @@ pub use canvas::{Canvas, canvas};
 pub use checkbox::{Checkbox, checkbox};
 pub use column::{Column, column};
 pub use combo_box::{ComboBox, combo_box};
+pub use composed::{Compose, Composed};
 pub use container::{
     Container, bottom, bottom_center, bottom_right, center, center_x, center_y, container, right,
     right_center,

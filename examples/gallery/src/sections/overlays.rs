@@ -3,30 +3,31 @@ use crate::message::Message;
 use crate::ui::{COLOR_MODE_ICON, PANEL_PADDING, band, page, panel, section_heading};
 use iced::Alignment;
 use iced::Length::Fill;
+use moonveil::Widget;
 use moonveil::widget::text::TextExt as _;
 use moonveil::widget::{
     Space, button, container, context_menu, dropdown, popover, rule, snackbar, svg, text, toggler,
     tooltip,
 };
 use moonveil::widget::{column, row};
-use moonveil::{Element, spacing, token::Intent};
+use moonveil::{spacing, token::Intent};
 
-pub(super) fn overlays(gallery: &Gallery) -> Element<'_, Message> {
+pub(super) fn overlays(gallery: &Gallery) -> impl Widget<Message> + '_ {
     page([
         panel(section_heading(
             "OVERLAY CATALOGS",
             "Deployment controls",
             Some("A focused release workspace for transient feedback, action menus, and modal confirmation."),
         ))
-        .into(),
-        deployment_summary(gallery),
-        band([feedback_panel(), action_menu_panel()]),
-        tooltip_panel(),
-        popover_panel(gallery),
+        .boxed(),
+        deployment_summary(gallery).boxed(),
+        band([feedback_panel().boxed(), action_menu_panel().boxed()]).boxed(),
+        tooltip_panel().boxed(),
+        popover_panel(gallery).boxed(),
     ])
 }
 
-fn deployment_summary(gallery: &Gallery) -> Element<'_, Message> {
+fn deployment_summary(gallery: &Gallery) -> impl Widget<Message> + '_ {
     container(
         row![
             container(text("PROD").size(text::Size::Label))
@@ -70,10 +71,9 @@ fn deployment_summary(gallery: &Gallery) -> Element<'_, Message> {
     .class(container::Variant::Raised)
     .padding(PANEL_PADDING)
     .width(Fill)
-    .into()
 }
 
-fn feedback_panel() -> Element<'static, Message> {
+fn feedback_panel() -> impl Widget<Message> + 'static {
     panel(
         column![
             text("01  TRANSIENT FEEDBACK")
@@ -104,10 +104,9 @@ fn feedback_panel() -> Element<'static, Message> {
         ]
         .spacing(spacing::SM),
     )
-    .into()
 }
 
-fn snackbar_button(label: &str, variant: snackbar::Variant) -> Element<'_, Message> {
+fn snackbar_button(label: &str, variant: snackbar::Variant) -> impl Widget<Message> + '_ {
     let button_variant = match variant {
         snackbar::Variant::Primary => button::Variant::Primary,
         snackbar::Variant::Secondary => button::Variant::Secondary,
@@ -123,10 +122,9 @@ fn snackbar_button(label: &str, variant: snackbar::Variant) -> Element<'_, Messa
         .padding([7, 10])
         .width(Fill)
         .on_press(Message::ShowSnackbar(variant))
-        .into()
 }
 
-fn action_menu_panel() -> Element<'static, Message> {
+fn action_menu_panel() -> impl Widget<Message> + 'static {
     panel(
         column![
             text("02  CONTEXTUAL ACTIONS")
@@ -202,7 +200,6 @@ fn action_menu_panel() -> Element<'static, Message> {
         ]
         .spacing(spacing::SM),
     )
-    .into()
 }
 
 // Long enough to exceed the context menu's max height so the submenu scrolls.
@@ -229,7 +226,7 @@ const DEPLOY_REGIONS: &[&str] = &[
     "ap-southeast-2",
 ];
 
-fn tooltip_panel() -> Element<'static, Message> {
+fn tooltip_panel() -> impl Widget<Message> + 'static {
     panel(
         column![
             text("03  TOOLTIP PLACEMENT")
@@ -284,14 +281,13 @@ fn tooltip_panel() -> Element<'static, Message> {
         ]
         .spacing(spacing::SM),
     )
-    .into()
 }
 
 fn tooltip_button(
     label: &'static str,
     hint: &'static str,
     position: tooltip::Position,
-) -> Element<'static, Message> {
+) -> impl Widget<Message> + 'static {
     tooltip(
         button(text(label))
             .class(button::Variant::Outline)
@@ -300,10 +296,9 @@ fn tooltip_button(
         text(hint).size(text::Size::Label),
         position,
     )
-    .into()
 }
 
-fn popover_panel(gallery: &Gallery) -> Element<'_, Message> {
+fn popover_panel(gallery: &Gallery) -> impl Widget<Message> + '_ {
     let settings = column![
         text("Rollout settings").class(text::Variant::Primary),
         text("Applies to the next production deploy.")
@@ -376,10 +371,12 @@ fn popover_panel(gallery: &Gallery) -> Element<'_, Message> {
         ]
         .spacing(spacing::SM),
     )
-    .into()
 }
 
-fn popover_button(label: &'static str, position: popover::Position) -> Element<'static, Message> {
+fn popover_button(
+    label: &'static str,
+    position: popover::Position,
+) -> impl Widget<Message> + 'static {
     popover(
         text(label),
         column![
@@ -394,5 +391,4 @@ fn popover_button(label: &'static str, position: popover::Position) -> Element<'
     .trigger_class(button::Variant::Outline)
     .trigger_padding([7, 10])
     .max_width(220)
-    .into()
 }

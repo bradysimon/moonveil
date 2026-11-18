@@ -1,21 +1,15 @@
 //! Make elements float over other content with Moonveil elevation shadows.
 
-use crate::{Element, Theme};
+use crate::Theme;
 
 pub use iced_widget::float::{Catalog, Style};
 
 pub type StyleFn<'a> = iced_widget::float::StyleFn<'a, Theme>;
 
-pub type Float<'a, Message, Renderer = iced_widget::Renderer> =
-    iced_widget::Float<'a, Message, Theme, Renderer>;
+pub type Float<'a, W> = iced_widget::Float<'a, W, Theme>;
 
 /// Creates a [`Float`] containing an element.
-pub fn float<'a, Message, Renderer>(
-    content: impl Into<Element<'a, Message, Renderer>>,
-) -> Float<'a, Message, Renderer>
-where
-    Renderer: iced_core::Renderer,
-{
+pub fn float<'a, W>(content: W) -> Float<'a, W> {
     Float::new(content)
 }
 

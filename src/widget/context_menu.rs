@@ -33,7 +33,7 @@ pub use shortcut::{Key, Shortcut};
 
 /// Creates a context menu around a base element and menu items.
 pub fn context_menu<'a, Message, Renderer>(
-    base: impl Into<Element<'a, Message, Renderer>>,
+    base: impl iced_core::Widget<Message, crate::Theme, Renderer> + 'a,
     items: impl IntoIterator<Item = Item<'a, Message>>,
 ) -> ContextMenu<'a, Message, Renderer>
 where
@@ -101,11 +101,11 @@ where
 {
     /// Creates a context menu around a base element and menu items.
     pub fn new(
-        base: impl Into<Element<'a, Message, Renderer>>,
+        base: impl iced_core::Widget<Message, crate::Theme, Renderer> + 'a,
         items: impl IntoIterator<Item = Item<'a, Message>>,
     ) -> Self {
         Self {
-            base: base.into(),
+            base: iced_core::Widget::_boxed(base),
             items: items.into_iter().collect(),
             width: DEFAULT_WIDTH,
             max_height: MAX_HEIGHT,
@@ -275,6 +275,13 @@ impl State {
     }
 }
 
+impl<Message, Renderer> iced_core::widget::Meta for ContextMenu<'_, Message, Renderer>
+where
+    Message: Clone,
+    Renderer: text::Renderer + svg::Renderer,
+{
+}
+
 impl<Message, Renderer> Widget<Message, Theme, Renderer> for ContextMenu<'_, Message, Renderer>
 where
     Message: Clone,
@@ -293,13 +300,11 @@ where
     }
 
     fn size(&self) -> Size<Length> {
-        self.base.as_widget().size()
+        self.base.size()
     }
 
     fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
-        self.base
-            .as_widget_mut()
-            .layout(&mut tree.children[0], renderer, limits);
+        self.base.layout(&mut tree.children[0], renderer, limits);
         tree.size = tree.children[0].size;
     }
 
@@ -317,7 +322,7 @@ where
             return;
         }
 
-        self.base.as_widget_mut().update(
+        self.base.update(
             &mut tree.children[0],
             event,
             layout,
@@ -362,7 +367,7 @@ where
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        self.base.as_widget().draw(
+        self.base.draw(
             &tree.children[0],
             renderer,
             theme,
@@ -381,13 +386,8 @@ where
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.base.as_widget().mouse_interaction(
-            &tree.children[0],
-            layout,
-            cursor,
-            viewport,
-            renderer,
-        )
+        self.base
+            .mouse_interaction(&tree.children[0], layout, cursor, viewport, renderer)
     }
 
     fn operate(
@@ -398,13 +398,8 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
-        self.base.as_widget_mut().operate(
-            &mut tree.children[0],
-            layout,
-            viewport,
-            renderer,
-            operation,
-        );
+        self.base
+            .operate(&mut tree.children[0], layout, viewport, renderer, operation);
     }
 
     fn overlay<'b>(
@@ -419,7 +414,7 @@ where
         let state = tree.state.downcast_mut::<State>();
 
         if !state.is_open() {
-            return self.base.as_widget_mut().overlay(
+            return self.base.overlay(
                 &mut tree.children[0],
                 layout,
                 renderer,
@@ -446,17 +441,6 @@ where
         );
 
         vec![overlay::Element::new(Box::new(overlay))]
-    }
-}
-
-impl<'a, Message, Renderer> From<ContextMenu<'a, Message, Renderer>>
-    for Element<'a, Message, Renderer>
-where
-    Message: Clone + 'a,
-    Renderer: text::Renderer + svg::Renderer + 'a,
-{
-    fn from(menu: ContextMenu<'a, Message, Renderer>) -> Self {
-        Element::new(menu)
     }
 }
 

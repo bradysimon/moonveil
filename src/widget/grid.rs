@@ -1,18 +1,13 @@
 //! Distribute content on a grid.
 
-use crate::{Element, Theme};
-
 pub use iced_widget::grid::{Sizing, aspect_ratio};
 
-pub type Grid<'a, Message, Renderer = iced_widget::Renderer> =
-    iced_widget::Grid<'a, Message, Theme, Renderer>;
+pub type Grid<W> = iced_widget::Grid<W>;
 
-/// Creates a grid from an iterator of Moonveil elements.
-pub fn grid<'a, Message, Renderer>(
-    children: impl IntoIterator<Item = Element<'a, Message, Renderer>>,
-) -> Grid<'a, Message, Renderer>
+/// Creates a grid from an iterator of widgets.
+pub fn grid<W>(children: impl IntoIterator<Item = W>) -> Grid<W>
 where
-    Renderer: iced_core::Renderer,
+    W: iced_core::widget::Meta,
 {
     Grid::with_children(children)
 }

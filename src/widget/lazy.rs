@@ -1,18 +1,14 @@
 //! Only rebuild content when its dependency changes.
 
-use crate::{Element, Theme};
-
-pub type Lazy<'a, Message, Dependency, View, Renderer = iced_widget::Renderer> =
-    iced_widget::Lazy<'a, Message, Theme, Renderer, Dependency, View>;
+pub type Lazy<'a, W, Dependency> = iced_widget::Lazy<'a, W, Dependency>;
 
 /// Creates a [`Lazy`] widget that rebuilds `view` only when `dependency`'s hash changes.
-pub fn lazy<'a, Message, Renderer, Dependency, View>(
+pub fn lazy<'a, Dependency, View>(
     dependency: Dependency,
     view: impl Fn(&Dependency) -> View + 'a,
-) -> Lazy<'a, Message, Dependency, View, Renderer>
+) -> Lazy<'a, View, Dependency>
 where
     Dependency: std::hash::Hash + 'a,
-    View: Into<Element<'static, Message, Renderer>>,
 {
     Lazy::new(dependency, view)
 }

@@ -3,8 +3,8 @@
 //! By default, the tooltip is displayed immediately, however, this can be adjusted
 //! with [`Tooltip::delay`].
 
-use crate::{Element, Theme, spacing, widget::container};
-use iced_core::{Padding, Pixels, text, time::Duration};
+use crate::{spacing, widget::container};
+use iced_core::{Padding, Pixels, time::Duration};
 
 pub use iced_widget::tooltip::Position;
 
@@ -22,24 +22,21 @@ pub const DEFAULT_PADDING: Padding = Padding {
 /// The default delay before a tooltip appears.
 pub const DEFAULT_DELAY: Duration = Duration::from_millis(400);
 
-pub type Tooltip<'a, Message, Renderer = iced_widget::Renderer> =
-    iced_widget::Tooltip<'a, Message, Theme, Renderer>;
+pub type Tooltip<W, V> = iced_widget::Tooltip<W, V>;
 
 /// Creates a tooltip using Moonveil's floating surface treatment.
-pub fn tooltip<'a, Message: 'a, Renderer>(
-    content: impl Into<Element<'a, Message, Renderer>>,
-    tooltip: impl Into<Element<'a, Message, Renderer>>,
+pub fn tooltip<'a, W, V>(
+    content: W,
+    tooltip: V,
     position: Position,
-) -> Tooltip<'a, Message, Renderer>
-where
-    Renderer: text::Renderer + 'a,
-{
+) -> Tooltip<W, container::Container<'a, V>> {
     Tooltip::new(
         content,
-        container::Container::new(tooltip).padding(DEFAULT_PADDING),
-        position,
+        container::Container::new(tooltip)
+            .padding(DEFAULT_PADDING)
+            .class(container::Variant::Popover),
     )
-    .class(container::Variant::Popover)
+    .position(position)
     .gap(DEFAULT_GAP)
     .delay(DEFAULT_DELAY)
 }

@@ -1,33 +1,36 @@
 //! Horizontal tab navigation helpers.
 
+use crate::Widget as _;
+use crate::widget::{Compose, Composed, Row, button, column, rule, stack};
 use crate::{
     Color, Element, Theme,
-    widget::{container, stack, text},
+    widget::{container, text},
 };
 use iced_core::{Alignment, Background, Border, Length, Padding};
-use iced_widget::{Row, button, column, rule};
+use std::marker::PhantomData;
 
 pub use iced_widget::button::{Status, Style};
 
 /// Creates a tab bar from selectable options.
-pub fn tab_bar<'a, T, Message>(
+pub fn tab_bar<'a, T, Message, Renderer>(
     options: impl IntoIterator<Item = T>,
     selected: Option<T>,
     on_select: impl Fn(T) -> Message + 'a,
-) -> TabBar<'a, T, Message>
+) -> TabBar<'a, T, Message, Renderer>
 where
     T: Clone + PartialEq + ToString + 'a,
     Message: Clone + 'a,
+    Renderer: iced_core::text::Renderer + 'a,
 {
     TabBar::new(options, selected, on_select)
 }
 
 /// A horizontal collection of mutually exclusive tabs.
-pub struct TabBar<'a, T, Message>
-where
-    T: Clone + PartialEq + ToString + 'a,
-    Message: Clone + 'a,
-{
+pub type TabBar<'a, T, Message, Renderer = iced_widget::Renderer> =
+    Composed<Settings<'a, T, Message, Renderer>>;
+
+/// The configuration a [`TabBar`] is built from.
+pub struct Settings<'a, T, Message, Renderer> {
     options: Vec<T>,
     selected: Option<T>,
     on_select: Box<dyn Fn(T) -> Message + 'a>,
@@ -35,12 +38,14 @@ where
     spacing: f32,
     padding: Padding,
     width: Length,
+    renderer: PhantomData<fn() -> Renderer>,
 }
 
-impl<'a, T, Message> TabBar<'a, T, Message>
+impl<'a, T, Message, Renderer> TabBar<'a, T, Message, Renderer>
 where
     T: Clone + PartialEq + ToString + 'a,
     Message: Clone + 'a,
+    Renderer: iced_core::text::Renderer + 'a,
 {
     /// Creates a tab bar from selectable options.
     pub fn new(
@@ -48,7 +53,7 @@ where
         selected: Option<T>,
         on_select: impl Fn(T) -> Message + 'a,
     ) -> Self {
-        Self {
+        Settings {
             options: options.into_iter().collect(),
             selected,
             on_select: Box::new(on_select),
@@ -56,34 +61,36 @@ where
             spacing: 4.0,
             padding: Padding::from([4.0, 8.0]),
             width: Length::Shrink,
+            renderer: PhantomData,
         }
+        .into()
     }
 
     /// Sets the visual treatment of the tabs.
     #[must_use]
     pub fn class(mut self, variant: Variant) -> Self {
-        self.variant = variant;
+        self.configure(|settings| settings.variant = variant);
         self
     }
 
     /// Sets the spacing between tabs.
     #[must_use]
     pub fn spacing(mut self, spacing: impl Into<iced_core::Pixels>) -> Self {
-        self.spacing = spacing.into().0;
+        self.configure(|settings| settings.spacing = spacing.into().0);
         self
     }
 
     /// Sets the padding within each tab.
     #[must_use]
     pub fn padding(mut self, padding: impl Into<Padding>) -> Self {
-        self.padding = padding.into();
+        self.configure(|settings| settings.padding = padding.into());
         self
     }
 
     /// Sets the width of the complete tab bar.
     #[must_use]
     pub fn width(mut self, width: impl Into<Length>) -> Self {
-        self.width = width.into();
+        self.configure(|settings| settings.width = width.into());
         self
     }
 }
@@ -170,18 +177,26 @@ fn tab_spacing(variant: Variant, spacing: f32) -> f32 {
     }
 }
 
-impl<'a, T, Message> From<TabBar<'a, T, Message>> for Element<'a, Message>
+impl<'a, T, Message, Renderer> Compose for Settings<'a, T, Message, Renderer>
 where
     T: Clone + PartialEq + ToString + 'a,
     Message: Clone + 'a,
+    Renderer: iced_core::text::Renderer + 'a,
 {
-    fn from(tab_bar: TabBar<'a, T, Message>) -> Self {
-        let selected = tab_bar.selected;
-        let on_select = tab_bar.on_select;
-        let variant = tab_bar.variant;
-        let padding = tab_bar.padding;
-        let width = tab_bar.width;
-        let tabs = tab_bar.options.into_iter().map(move |option| {
+    type View = Element<'a, Message, Renderer>;
+
+    fn view(self) -> Self::View {
+        let Self {
+            options,
+            selected,
+            on_select,
+            variant,
+            spacing,
+            padding,
+            width,
+            ..
+        } = self;
+        let tabs = Row::from_iter(options.into_iter().map(|option| {
             let is_selected = selected.as_ref() == Some(&option);
             let label = text(option.to_string()).size(text::Size::Body);
             let button_padding = match variant {
@@ -193,7 +208,7 @@ where
                 },
                 Variant::ActiveUnderline | Variant::Rounded => padding,
             };
-            let content: Element<'a, Message> = match variant {
+            let content: Element<'a, Message, Renderer> = match variant {
                 Variant::FullUnderline => column![
                     container(label).padding(Padding {
                         top: 0.0,
@@ -208,7 +223,7 @@ where
                     )),
                 ]
                 .spacing(4)
-                .into(),
+                .boxed(),
                 Variant::ActiveUnderline => column![
                     label,
                     rule::horizontal(2).style(move |theme| indicator_style(
@@ -218,38 +233,34 @@ where
                     )),
                 ]
                 .spacing(4)
-                .into(),
-                Variant::Rounded => label.into(),
+                .boxed(),
+                Variant::Rounded => label.boxed(),
             };
 
             button(content)
                 .on_press(on_select(option))
                 .padding(button_padding)
                 .style(move |theme, status| appearance(theme, status, variant, is_selected))
-                .into()
-        });
-
-        let tabs = Row::from_iter(tabs)
-            .spacing(tab_spacing(variant, tab_bar.spacing))
-            .width(width);
+        }))
+        .spacing(tab_spacing(variant, spacing))
+        .width(width);
 
         match variant {
-            Variant::FullUnderline => stack([tabs.into()])
+            Variant::FullUnderline => stack([tabs.boxed()])
                 .push_under(
                     container(rule::horizontal(2).style(rail_style))
                         .padding(Padding {
-                            top: 0.0,
-                            right: 0.0,
                             bottom: padding.bottom,
-                            left: 0.0,
+                            ..Padding::ZERO
                         })
                         .width(Length::Fill)
                         .height(Length::Fill)
-                        .align_y(Alignment::End),
+                        .align_y(Alignment::End)
+                        .boxed(),
                 )
                 .width(width)
-                .into(),
-            Variant::ActiveUnderline | Variant::Rounded => tabs.into(),
+                .boxed(),
+            Variant::ActiveUnderline | Variant::Rounded => tabs.boxed(),
         }
     }
 }

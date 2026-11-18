@@ -2,20 +2,21 @@ use crate::message::Message;
 use crate::ui::{matrix_label, page, panel, section_heading};
 use iced::Alignment;
 use iced::Length::Fill;
+use moonveil::Widget;
 use moonveil::widget::text::TextExt as _;
 use moonveil::widget::{button, container, text};
 use moonveil::widget::{column, row};
-use moonveil::{Element, spacing, token::Intent};
+use moonveil::{spacing, token::Intent};
 
-pub(super) fn actions() -> Element<'static, Message> {
+pub(super) fn actions() -> impl Widget<Message> + 'static {
     page([
         panel(section_heading(
             "BUTTON CATALOG",
             "Actions and explicit states",
             None,
         ))
-        .into(),
-        panel(live_actions()).into(),
+        .boxed(),
+        panel(live_actions()).boxed(),
         panel(
             column![
                 matrix_heading(),
@@ -47,11 +48,11 @@ pub(super) fn actions() -> Element<'static, Message> {
             ]
             .spacing(spacing::SM),
         )
-        .into(),
+        .boxed(),
     ])
 }
 
-fn live_actions() -> Element<'static, Message> {
+fn live_actions() -> impl Widget<Message> + 'static {
     container(
         column![
             row![
@@ -98,10 +99,9 @@ fn live_actions() -> Element<'static, Message> {
     )
     .class(container::Variant::Transparent)
     .width(Fill)
-    .into()
 }
 
-fn matrix_heading() -> Element<'static, Message> {
+fn matrix_heading() -> impl Widget<Message> + 'static {
     row![
         text("VARIANT")
             .size(text::Size::Label)
@@ -114,10 +114,9 @@ fn matrix_heading() -> Element<'static, Message> {
     ]
     .spacing(spacing::SM)
     .align_y(Alignment::Center)
-    .into()
 }
 
-fn variant_row(label: &'static str, variant: button::Variant) -> Element<'static, Message> {
+fn variant_row(label: &'static str, variant: button::Variant) -> impl Widget<Message> + 'static {
     row![
         text(label)
             .size(text::Size::Label)
@@ -130,17 +129,15 @@ fn variant_row(label: &'static str, variant: button::Variant) -> Element<'static
     ]
     .spacing(spacing::SM)
     .align_y(Alignment::Center)
-    .into()
 }
 
 fn forced_button(
     label: &'static str,
     variant: button::Variant,
     status: button::Status,
-) -> Element<'static, Message> {
+) -> impl Widget<Message> + 'static {
     button(text(label).size(text::Size::Label))
         .style(move |theme, _runtime_status| button::appearance(theme, status, variant))
         .padding([6, 10])
         .width(Fill)
-        .into()
 }

@@ -100,6 +100,10 @@ impl<'a> From<StyleFn<'a>> for Class<'a> {
 }
 
 impl Catalog for Theme {
+    fn selection(&self) -> iced_core::Color {
+        self.colors().interaction.text_selection.into()
+    }
+
     type Class<'a> = Class<'a>;
 
     fn default<'a>() -> Self::Class<'a> {
@@ -133,5 +137,6 @@ pub fn appearance(theme: &Theme, variant: Variant) -> Style {
 
     Style {
         color: color.map(Into::into),
+        ..Style::default()
     }
 }

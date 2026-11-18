@@ -1,7 +1,7 @@
 //! Containers using Moonveil's concrete theme and resolved surface tokens.
 
 use crate::{
-    Color, Element, Theme,
+    Color, Theme,
     token::{Intent, Surface},
 };
 use iced_core::{Background, Border, Length};
@@ -10,100 +10,54 @@ pub use iced_widget::container::{Catalog, Style};
 
 pub type StyleFn<'a> = iced_widget::container::StyleFn<'a, Theme>;
 
-pub type Container<'a, Message, Renderer = iced_widget::Renderer> =
-    iced_widget::Container<'a, Message, Theme, Renderer>;
+pub type Container<'a, W> = iced_widget::Container<'a, W, Theme>;
 
 /// Creates a container using Moonveil's concrete theme.
-pub fn container<'a, Message, Renderer>(
-    content: impl Into<Element<'a, Message, Renderer>>,
-) -> Container<'a, Message, Renderer>
-where
-    Renderer: iced_core::Renderer,
-{
+pub fn container<'a, W>(content: W) -> Container<'a, W> {
     Container::new(content)
 }
 
 /// Creates a container that fills all available space and centers its content.
-pub fn center<'a, Message, Renderer>(
-    content: impl Into<Element<'a, Message, Renderer>>,
-) -> Container<'a, Message, Renderer>
-where
-    Renderer: iced_core::Renderer,
-{
+pub fn center<'a, W>(content: W) -> Container<'a, W> {
     container(content).center(Length::Fill)
 }
 
 /// Creates a container that fills the available width and centers its content horizontally.
-pub fn center_x<'a, Message, Renderer>(
-    content: impl Into<Element<'a, Message, Renderer>>,
-) -> Container<'a, Message, Renderer>
-where
-    Renderer: iced_core::Renderer,
-{
+pub fn center_x<'a, W>(content: W) -> Container<'a, W> {
     container(content).center_x(Length::Fill)
 }
 
 /// Creates a container that fills the available height and centers its content vertically.
-pub fn center_y<'a, Message, Renderer>(
-    content: impl Into<Element<'a, Message, Renderer>>,
-) -> Container<'a, Message, Renderer>
-where
-    Renderer: iced_core::Renderer,
-{
+pub fn center_y<'a, W>(content: W) -> Container<'a, W> {
     container(content).center_y(Length::Fill)
 }
 
 /// Creates a container that fills the available width and right-aligns its content.
-pub fn right<'a, Message, Renderer>(
-    content: impl Into<Element<'a, Message, Renderer>>,
-) -> Container<'a, Message, Renderer>
-where
-    Renderer: iced_core::Renderer,
-{
+pub fn right<'a, W>(content: W) -> Container<'a, W> {
     container(content).align_right(Length::Fill)
 }
 
 /// Creates a container that fills all available space and aligns its content to the right center.
-pub fn right_center<'a, Message, Renderer>(
-    content: impl Into<Element<'a, Message, Renderer>>,
-) -> Container<'a, Message, Renderer>
-where
-    Renderer: iced_core::Renderer,
-{
+pub fn right_center<'a, W>(content: W) -> Container<'a, W> {
     container(content)
         .align_right(Length::Fill)
         .center_y(Length::Fill)
 }
 
 /// Creates a container that fills the available height and bottom-aligns its content.
-pub fn bottom<'a, Message, Renderer>(
-    content: impl Into<Element<'a, Message, Renderer>>,
-) -> Container<'a, Message, Renderer>
-where
-    Renderer: iced_core::Renderer,
-{
+pub fn bottom<'a, W>(content: W) -> Container<'a, W> {
     container(content).align_bottom(Length::Fill)
 }
 
 /// Creates a container that fills all available space and aligns its content to the bottom center.
-pub fn bottom_center<'a, Message, Renderer>(
-    content: impl Into<Element<'a, Message, Renderer>>,
-) -> Container<'a, Message, Renderer>
-where
-    Renderer: iced_core::Renderer,
-{
+pub fn bottom_center<'a, W>(content: W) -> Container<'a, W> {
     container(content)
         .center_x(Length::Fill)
         .align_bottom(Length::Fill)
 }
 
 /// Creates a container that fills all available space and aligns its content to the bottom right.
-pub fn bottom_right<'a, Message, Renderer>(
-    content: impl Into<Element<'a, Message, Renderer>>,
-) -> Container<'a, Message, Renderer>
-where
-    Renderer: iced_core::Renderer,
-{
+pub fn bottom_right<'a, W>(content: W) -> Container<'a, W> {
     container(content)
         .align_right(Length::Fill)
         .align_bottom(Length::Fill)

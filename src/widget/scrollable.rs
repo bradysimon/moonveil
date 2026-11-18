@@ -1,6 +1,6 @@
 //! Scrollable regions using Moonveil's concrete theme and resolved surface tokens.
 
-use crate::{Element, Theme, token::Surface};
+use crate::{Theme, token::Surface};
 use iced_core::{Background, Border};
 
 pub use iced_core::widget::Id;
@@ -13,8 +13,7 @@ pub use iced_widget::scrollable::{
 pub type StyleFn<'a> = iced_widget::scrollable::StyleFn<'a, Theme>;
 
 /// An Iced scrollable region using Moonveil's concrete theme.
-pub type Scrollable<'a, Message, Renderer = iced_widget::Renderer> =
-    iced_widget::Scrollable<'a, Message, Theme, Renderer>;
+pub type Scrollable<'a, Message, W> = iced_widget::Scrollable<'a, Message, W, Theme>;
 
 const SCROLLBAR_WIDTH: f32 = 8.0;
 
@@ -28,12 +27,7 @@ pub fn scrollbar() -> Scrollbar {
 
 /// Creates a vertical scrollable region using Moonveil's concrete theme and
 /// default scrollbar geometry.
-pub fn scrollable<'a, Message, Renderer>(
-    content: impl Into<Element<'a, Message, Renderer>>,
-) -> Scrollable<'a, Message, Renderer>
-where
-    Renderer: iced_core::text::Renderer,
-{
+pub fn scrollable<'a, Message, W>(content: W) -> Scrollable<'a, Message, W> {
     Scrollable::with_direction(content, Direction::Vertical(scrollbar()))
 }
 

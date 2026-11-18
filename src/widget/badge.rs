@@ -1,10 +1,11 @@
 //! Badges are compact, non-interactive labels for small bits of data.
 
 use crate::{
-    Element, Theme,
+    Theme,
     token::Intent,
     widget::{
-        container::{self, Container},
+        Compose, Composed,
+        container::{self, Container, container},
         text::{self, IntoFragment, Text},
     },
 };
@@ -20,7 +21,10 @@ pub fn badge<'a>(label: impl IntoFragment<'a>) -> Badge<'a> {
 }
 
 /// A compact label describing nearby content.
-pub struct Badge<'a> {
+pub type Badge<'a> = Composed<Settings<'a>>;
+
+/// The configuration a [`Badge`] is built from.
+pub struct Settings<'a> {
     label: Text<'a>,
     class: Class<'a>,
     shape: Shape,
@@ -31,33 +35,34 @@ pub struct Badge<'a> {
 impl<'a> Badge<'a> {
     /// Creates a badge displaying `label`.
     pub fn new(label: impl IntoFragment<'a>) -> Self {
-        Self {
+        Settings {
             label: text::text(label),
             class: Class::default(),
             shape: Shape::default(),
             size: Size::default(),
             width: Length::Shrink,
         }
+        .into()
     }
 
     /// Sets the style of the badge.
     #[must_use]
     pub fn class(mut self, class: impl Into<Class<'a>>) -> Self {
-        self.class = class.into();
+        self.configure(|settings| settings.class = class.into());
         self
     }
 
     /// Sets the corner treatment of built-in variants.
     #[must_use]
     pub fn shape(mut self, shape: Shape) -> Self {
-        self.shape = shape;
+        self.configure(|settings| settings.shape = shape);
         self
     }
 
     /// Sets the text size and padding of the badge.
     #[must_use]
     pub fn size(mut self, size: Size) -> Self {
-        self.size = size;
+        self.configure(|settings| settings.size = size);
         self
     }
 
@@ -66,8 +71,28 @@ impl<'a> Badge<'a> {
     /// A fixed width keeps badges of varying labels aligned in a list.
     #[must_use]
     pub fn width(mut self, width: impl Into<Length>) -> Self {
-        self.width = width.into();
+        self.configure(|settings| settings.width = width.into());
         self
+    }
+}
+
+impl<'a> Compose for Settings<'a> {
+    type View = Container<'a, Text<'a>>;
+
+    fn view(self) -> Self::View {
+        let shape = self.shape;
+        let class = match self.class {
+            Class::Variant(variant) => container::Class::Custom(Box::new(move |theme: &Theme| {
+                appearance(theme, variant, shape)
+            })),
+            Class::Custom(style) => container::Class::Custom(style),
+        };
+
+        container(self.label.size(self.size.text_size()))
+            .class(class)
+            .padding(self.size.padding())
+            .width(self.width)
+            .align_x(Alignment::Center)
     }
 }
 
@@ -214,29 +239,6 @@ pub fn appearance(theme: &Theme, variant: Variant, shape: Shape) -> Style {
             radius: radius.into(),
         },
         ..Style::default()
-    }
-}
-
-impl<'a, Message, Renderer> From<Badge<'a>> for Element<'a, Message, Renderer>
-where
-    Message: 'a,
-    Renderer: iced_core::text::Renderer + 'a,
-{
-    fn from(badge: Badge<'a>) -> Self {
-        let shape = badge.shape;
-        let class = match badge.class {
-            Class::Variant(variant) => container::Class::Custom(Box::new(move |theme: &Theme| {
-                appearance(theme, variant, shape)
-            })),
-            Class::Custom(style) => container::Class::Custom(style),
-        };
-
-        Container::new(badge.label.size(badge.size.text_size()))
-            .class(class)
-            .padding(badge.size.padding())
-            .width(badge.width)
-            .align_x(Alignment::Center)
-            .into()
     }
 }
 

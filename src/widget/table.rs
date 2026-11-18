@@ -1,6 +1,6 @@
 //! Display tables.
 
-use crate::{Element, Theme};
+use crate::Theme;
 use iced_core::Background;
 
 pub use iced_widget::table::{Catalog, Column, Style};
@@ -30,12 +30,12 @@ where
 /// The view function will be called for each row in a [`Table`] and it must
 /// produce the resulting contents of a cell.
 pub fn column<'a, 'b, T, E, Message, Renderer>(
-    header: impl Into<Element<'a, Message, Renderer>>,
+    header: impl iced_core::Widget<Message, Theme, Renderer> + 'a,
     view: impl Fn(T) -> E + 'b,
 ) -> Column<'a, 'b, T, Message, Theme, Renderer>
 where
     T: 'a,
-    E: Into<Element<'a, Message, Renderer>>,
+    E: iced_core::Widget<Message, Theme, Renderer> + 'a,
 {
     iced_widget::table::column(header, view)
 }

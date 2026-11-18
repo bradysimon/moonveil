@@ -1,12 +1,13 @@
 use crate::gallery::Gallery;
 use crate::message::Message;
-use crate::ui::{band, page, panel, section_heading, PANEL_PADDING};
+use crate::ui::{PANEL_PADDING, band, page, panel, section_heading};
 use iced::Length::Fill;
+use moonveil::Widget;
 use moonveil::widget::column;
 use moonveil::widget::text::TextExt as _;
 use moonveil::widget::text_editor::TextEditorExt as _;
-use moonveil::widget::{container, markdown, scrollable, text, text_editor, Row};
-use moonveil::{highlighter, Element, spacing};
+use moonveil::widget::{Row, container, markdown, scrollable, text, text_editor};
+use moonveil::{highlighter, spacing};
 
 pub(crate) const MARKDOWN_SAMPLE: &str = r#"# Release notes
 
@@ -54,20 +55,20 @@ canary = true
 | Staging | eu-west-1 | Rolling |
 "#;
 
-pub(super) fn markdown_section(gallery: &Gallery) -> Element<'_, Message> {
+pub(super) fn markdown_section(gallery: &Gallery) -> impl Widget<Message> + '_ {
     page([
         panel(section_heading(
             "DOCUMENT CATALOGS",
             "Markdown and syntax highlighting",
             Some("Edit the highlighted source to update the rendered preview. Code colors resolve from the active theme's syntax tokens."),
         ))
-        .into(),
-        band([markdown_source(gallery), markdown_preview(gallery)]),
-        syntax_legend(),
+        .boxed(),
+        band([markdown_source(gallery).boxed(), markdown_preview(gallery).boxed()]).boxed(),
+        syntax_legend().boxed(),
     ])
 }
 
-fn markdown_source(gallery: &Gallery) -> Element<'_, Message> {
+fn markdown_source(gallery: &Gallery) -> impl Widget<Message> + '_ {
     panel(
         column![
             text("Source").class(text::Variant::Primary),
@@ -85,10 +86,9 @@ fn markdown_source(gallery: &Gallery) -> Element<'_, Message> {
         ]
         .spacing(9),
     )
-    .into()
 }
 
-fn markdown_preview(gallery: &Gallery) -> Element<'_, Message> {
+fn markdown_preview(gallery: &Gallery) -> impl Widget<Message> + '_ {
     let preview = markdown::view(
         gallery.markdown.items(),
         markdown::settings(),
@@ -110,10 +110,9 @@ fn markdown_preview(gallery: &Gallery) -> Element<'_, Message> {
         ]
         .spacing(9),
     )
-    .into()
 }
 
-fn syntax_legend() -> Element<'static, Message> {
+fn syntax_legend() -> impl Widget<Message> + 'static {
     let tokens = [
         ("keyword", highlighter::Code::Keyword),
         ("Type", highlighter::Code::Type),
@@ -141,6 +140,7 @@ fn syntax_legend() -> Element<'static, Message> {
                         .size(text::Size::Label)
                         .style(move |theme| text::Style {
                             color: highlighter::highlight(code, theme).color,
+                            ..Default::default()
                         }),
                 )
             });
@@ -157,5 +157,4 @@ fn syntax_legend() -> Element<'static, Message> {
     .class(container::Variant::Sunken)
     .padding(PANEL_PADDING)
     .width(Fill)
-    .into()
 }

@@ -2,6 +2,7 @@
 use iced::Alignment::Center;
 use iced::Length::Fill;
 use iced::{Alignment, Length};
+use moonveil::Widget;
 use moonveil::widget::text::TextExt as _;
 use moonveil::widget::{Space, column, labeled, pick_list, row, rule, scrollable, text};
 use moonveil::{
@@ -23,7 +24,7 @@ pub(crate) const COLOR_MODE_ICON: &[u8] = br##"
 </svg>
 "##;
 
-pub(crate) fn sidebar(gallery: &Gallery) -> Element<'_, Message> {
+pub(crate) fn sidebar(gallery: &Gallery) -> impl Widget<Message> + '_ {
     let mut navigation = Column::new().spacing(spacing::XS);
 
     for section in Section::ALL {
@@ -54,7 +55,8 @@ pub(crate) fn sidebar(gallery: &Gallery) -> Element<'_, Message> {
                             Some(theme.colors().content.primary.into())
                         } else {
                             None
-                        }
+                        },
+                        ..Default::default()
                     })
                 ]
                 .align_y(Center)
@@ -90,10 +92,9 @@ pub(crate) fn sidebar(gallery: &Gallery) -> Element<'_, Message> {
     .padding(20)
     .width(230)
     .height(Fill)
-    .into()
 }
 
-pub(crate) fn workspace(gallery: &Gallery) -> Element<'_, Message> {
+pub(crate) fn workspace(gallery: &Gallery) -> impl Widget<Message> + '_ {
     container(column![
         toolbar(gallery),
         rule::horizontal(1).class(rule::Variant::Subtle),
@@ -102,10 +103,9 @@ pub(crate) fn workspace(gallery: &Gallery) -> Element<'_, Message> {
     .class(container::Variant::Surface)
     .width(Fill)
     .height(Fill)
-    .into()
 }
 
-pub(crate) fn toolbar(gallery: &Gallery) -> Element<'_, Message> {
+pub(crate) fn toolbar(gallery: &Gallery) -> impl Widget<Message> + '_ {
     let theme_picker = pick_list(Some(gallery.theme_choice), ThemeChoice::ALL, |choice| {
         choice.label().to_string()
     })
@@ -138,7 +138,6 @@ pub(crate) fn toolbar(gallery: &Gallery) -> Element<'_, Message> {
     .class(container::Variant::Raised)
     .padding([14, 20])
     .width(Fill)
-    .into()
 }
 
 pub(crate) const PANEL_PADDING: iced::Padding = iced::Padding {
@@ -149,47 +148,45 @@ pub(crate) const PANEL_PADDING: iced::Padding = iced::Padding {
 };
 
 /// Stacks full-width bands, divided by rules.
-pub(crate) fn page<'a>(
-    bands: impl IntoIterator<Item = Element<'a, Message>>,
-) -> Element<'a, Message> {
+pub(crate) fn page<'a, W: Widget<Message> + 'a>(
+    bands: impl IntoIterator<Item = W>,
+) -> impl Widget<Message> + 'a {
     let mut page = Column::new().width(Fill);
     for (index, band) in bands.into_iter().enumerate() {
         if index > 0 {
-            page = page.push(rule::horizontal(1).class(rule::Variant::Subtle));
+            page = page.push(rule::horizontal(1).class(rule::Variant::Subtle).boxed());
         }
-        page = page.push(band);
+        page = page.push(band.boxed());
     }
-    page.into()
+    page
 }
 
 /// Places items side by side, divided by rules.
-pub(crate) fn divided<'a>(
-    items: impl IntoIterator<Item = Element<'a, Message>>,
-) -> Row<'a, Message> {
+pub(crate) fn divided<'a, W: Widget<Message> + 'a>(
+    items: impl IntoIterator<Item = W>,
+) -> Row<Element<'a, Message>> {
     let mut row = Row::new();
     for (index, item) in items.into_iter().enumerate() {
         if index > 0 {
-            row = row.push(rule::vertical(1).class(rule::Variant::Subtle));
+            row = row.push(rule::vertical(1).class(rule::Variant::Subtle).boxed());
         }
-        row = row.push(item);
+        row = row.push(item.boxed());
     }
     // Rules fill the height, which would otherwise make the row fill it too.
     row.height(Length::Shrink)
 }
 
-pub(crate) fn band<'a>(
-    panels: impl IntoIterator<Item = Element<'a, Message>>,
-) -> Element<'a, Message> {
-    divided(panels).width(Fill).into()
+pub(crate) fn band<'a, W: Widget<Message> + 'a>(
+    panels: impl IntoIterator<Item = W>,
+) -> impl Widget<Message> + 'a {
+    divided(panels).width(Fill)
 }
 
-pub(crate) fn panel<'a>(
-    content: impl Into<Element<'a, Message>>,
-) -> container::Container<'a, Message> {
+pub(crate) fn panel<'a, W>(content: W) -> container::Container<'a, W> {
     container(content).padding(PANEL_PADDING).width(Fill)
 }
 
-pub(crate) fn matrix_label(label: &'static str) -> Element<'static, Message> {
+pub(crate) fn matrix_label(label: &'static str) -> impl Widget<Message> + 'static {
     container(
         text(label)
             .size(text::Size::Label)
@@ -197,13 +194,12 @@ pub(crate) fn matrix_label(label: &'static str) -> Element<'static, Message> {
     )
     .width(Fill)
     .center_x(Length::Fill)
-    .into()
 }
 
 pub(crate) fn palette_heading(
     title: &'static str,
     detail: &'static str,
-) -> Element<'static, Message> {
+) -> impl Widget<Message> + 'static {
     row![
         text(title)
             .size(text::Size::Label)
@@ -215,14 +211,13 @@ pub(crate) fn palette_heading(
     ]
     .spacing(spacing::SM)
     .align_y(Alignment::Center)
-    .into()
 }
 
 pub(crate) fn section_heading(
     eyebrow: &'static str,
     title: &'static str,
     detail: Option<&'static str>,
-) -> Element<'static, Message> {
+) -> impl Widget<Message> + 'static {
     column![
         text(eyebrow)
             .size(text::Size::Label)
@@ -233,5 +228,4 @@ pub(crate) fn section_heading(
         detail.map(|detail| text(detail).class(text::Variant::Secondary)),
     ]
     .spacing(5)
-    .into()
 }

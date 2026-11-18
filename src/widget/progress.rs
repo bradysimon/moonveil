@@ -5,7 +5,7 @@
 use std::f32::consts::{FRAC_PI_2, PI, TAU};
 use std::sync::OnceLock;
 
-use crate::{Element, Theme, token::Intent};
+use crate::{Theme, token::Intent};
 use iced_core::{
     Color, Event, Layout, Length, Point, Rectangle, Shell, Vector, Widget, layout, mouse, renderer,
     time::Instant,
@@ -289,6 +289,8 @@ struct State {
     now: Instant,
 }
 
+impl iced_core::widget::Meta for Progress<'_> {}
+
 impl<Message, Renderer> Widget<Message, Theme, Renderer> for Progress<'_>
 where
     Renderer: geometry::Renderer,
@@ -370,16 +372,6 @@ where
         renderer.with_translation(Vector::new(bounds.x, bounds.y), |renderer| {
             renderer.draw_geometry(geometry);
         });
-    }
-}
-
-impl<'a, Message, Renderer> From<Progress<'a>> for Element<'a, Message, Renderer>
-where
-    Message: 'a,
-    Renderer: geometry::Renderer + 'a,
-{
-    fn from(progress: Progress<'a>) -> Self {
-        Element::new(progress)
     }
 }
 

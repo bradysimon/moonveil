@@ -1,27 +1,29 @@
 use crate::message::Message;
-use crate::ui::{band, matrix_label, page, palette_heading, panel, section_heading, PANEL_PADDING};
+use crate::ui::{PANEL_PADDING, band, matrix_label, page, palette_heading, panel, section_heading};
 use iced::Alignment;
 use iced::Length::Fill;
-use moonveil::widget::{column, row};
+use moonveil::Widget;
 use moonveil::widget::text::TextExt as _;
+use moonveil::widget::{column, row};
 use moonveil::widget::{container, text};
-use moonveil::{Element, spacing, token::Intent};
+use moonveil::{spacing, token::Intent};
 
-pub(super) fn surfaces() -> Element<'static, Message> {
+pub(super) fn surfaces() -> impl Widget<Message> + 'static {
     page([
         panel(section_heading(
             "CONTENT FOUNDATIONS",
             "Planes and readable roles",
             None,
         ))
-        .into(),
-        panel(palette_heading("FLUSH", "Background surfaces")).into(),
+        .boxed(),
+        panel(palette_heading("FLUSH", "Background surfaces")).boxed(),
         band([
             plane_swatch("Canvas", "App chrome", container::Variant::Canvas),
             plane_swatch("Surface", "Primary plane", container::Variant::Surface),
             plane_swatch("Sunken", "Wells and output", container::Variant::Sunken),
             plane_swatch("Raised", "Toolbars and bands", container::Variant::Raised),
-        ]),
+        ])
+        .boxed(),
         panel(
             column![
                 palette_heading("FLOATING", "Content and field surfaces"),
@@ -45,7 +47,7 @@ pub(super) fn surfaces() -> Element<'static, Message> {
             ]
             .spacing(spacing::MD),
         )
-        .into(),
+        .boxed(),
         panel(
             row![
                 content_sample("Primary", text::Variant::Primary),
@@ -56,7 +58,7 @@ pub(super) fn surfaces() -> Element<'static, Message> {
             ]
             .spacing(spacing::LG),
         )
-        .into(),
+        .boxed(),
         panel(
             column![
                 row![
@@ -77,7 +79,7 @@ pub(super) fn surfaces() -> Element<'static, Message> {
             ]
             .spacing(spacing::MD),
         )
-        .into(),
+        .boxed(),
         panel(
             row![
                 semantic_sample("Success", Intent::Success),
@@ -86,7 +88,7 @@ pub(super) fn surfaces() -> Element<'static, Message> {
             ]
             .spacing(spacing::MD),
         )
-        .into(),
+        .boxed(),
     ])
 }
 
@@ -94,7 +96,7 @@ fn plane_swatch(
     title: &'static str,
     detail: &'static str,
     variant: container::Variant,
-) -> Element<'static, Message> {
+) -> impl Widget<Message> + 'static {
     container(
         column![
             text(title).class(text::Variant::Primary),
@@ -108,14 +110,13 @@ fn plane_swatch(
     .padding(PANEL_PADDING)
     .width(Fill)
     .height(112)
-    .into()
 }
 
 fn surface_swatch(
     title: &'static str,
     detail: &'static str,
     class: impl Into<container::Class<'static>>,
-) -> Element<'static, Message> {
+) -> impl Widget<Message> + 'static {
     container(
         column![
             text(title).class(text::Variant::Primary),
@@ -129,20 +130,18 @@ fn surface_swatch(
     .padding(14)
     .width(Fill)
     .height(92)
-    .into()
 }
 
-fn content_sample(label: &'static str, variant: text::Variant) -> Element<'static, Message> {
+fn content_sample(label: &'static str, variant: text::Variant) -> impl Widget<Message> + 'static {
     column![
         text("Aa").size(text::Size::Headline).class(variant),
         text(label).size(text::Size::Label).class(variant),
     ]
     .spacing(3)
     .width(Fill)
-    .into()
 }
 
-fn type_scale_row(label: &'static str, size: text::Size) -> Element<'static, Message> {
+fn type_scale_row(label: &'static str, size: text::Size) -> impl Widget<Message> + 'static {
     row![
         text(label)
             .size(text::Size::Label)
@@ -154,10 +153,9 @@ fn type_scale_row(label: &'static str, size: text::Size) -> Element<'static, Mes
     ]
     .spacing(spacing::MD)
     .align_y(Alignment::Center)
-    .into()
 }
 
-fn type_scale_sample(size: text::Size, scale: text::Scale) -> Element<'static, Message> {
+fn type_scale_sample(size: text::Size, scale: text::Scale) -> impl Widget<Message> + 'static {
     let pixels = size.px(scale);
     column![
         text("Aa").size(pixels).class(text::Variant::Primary),
@@ -168,10 +166,9 @@ fn type_scale_sample(size: text::Size, scale: text::Scale) -> Element<'static, M
     .spacing(spacing::XS)
     .align_x(Alignment::Center)
     .width(Fill)
-    .into()
 }
 
-fn semantic_sample(label: &'static str, intent: Intent) -> Element<'static, Message> {
+fn semantic_sample(label: &'static str, intent: Intent) -> impl Widget<Message> + 'static {
     container(column![text(label), text("Soft pair").size(text::Size::Label),].spacing(spacing::XS))
         .class(container::Variant::Semantic {
             intent,
@@ -179,5 +176,4 @@ fn semantic_sample(label: &'static str, intent: Intent) -> Element<'static, Mess
         })
         .padding(14)
         .width(Fill)
-        .into()
 }

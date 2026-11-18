@@ -3,21 +3,22 @@ use crate::message::Message;
 use crate::shared::Field;
 use crate::ui::{band, matrix_label, page, panel, section_heading};
 use iced::Length::Fill;
-use moonveil::widget::{column, row};
 use iced::{Alignment, Length};
+use moonveil::Widget;
+use moonveil::spacing;
 use moonveil::widget::text::TextExt as _;
 use moonveil::widget::{Labeled, labeled, text, text_editor, text_input};
-use moonveil::{Element, spacing};
+use moonveil::widget::{column, row};
 
-pub(super) fn fields(gallery: &Gallery) -> Element<'_, Message> {
+pub(super) fn fields(gallery: &Gallery) -> impl Widget<Message> + '_ {
     page([
-        panel(section_heading("FIELD CATALOGS", "Structured input", None)).into(),
-        band([live_fields(gallery), live_editor(gallery)]),
-        field_state_matrix(gallery),
+        panel(section_heading("FIELD CATALOGS", "Structured input", None)).boxed(),
+        band([live_fields(gallery).boxed(), live_editor(gallery).boxed()]).boxed(),
+        field_state_matrix(gallery).boxed(),
     ])
 }
 
-fn live_fields(gallery: &Gallery) -> Element<'_, Message> {
+fn live_fields(gallery: &Gallery) -> impl Widget<Message> + '_ {
     panel(
         column![
             text("Request details").class(text::Variant::Primary),
@@ -61,7 +62,6 @@ fn live_fields(gallery: &Gallery) -> Element<'_, Message> {
         .spacing(spacing::SM),
     )
     .width(Length::FillPortion(3))
-    .into()
 }
 
 fn labeled_input<'a>(
@@ -80,7 +80,7 @@ fn labeled_input<'a>(
     )
 }
 
-fn live_editor(gallery: &Gallery) -> Element<'_, Message> {
+fn live_editor(gallery: &Gallery) -> impl Widget<Message> + '_ {
     panel(
         column![
             text("Deployment notes").class(text::Variant::Primary),
@@ -101,10 +101,9 @@ fn live_editor(gallery: &Gallery) -> Element<'_, Message> {
         .spacing(9),
     )
     .width(Length::FillPortion(2))
-    .into()
 }
 
-fn field_state_matrix(gallery: &Gallery) -> Element<'_, Message> {
+fn field_state_matrix(gallery: &Gallery) -> impl Widget<Message> + '_ {
     panel(
         column![
             row![
@@ -132,14 +131,13 @@ fn field_state_matrix(gallery: &Gallery) -> Element<'_, Message> {
         ]
         .spacing(spacing::SM),
     )
-    .into()
 }
 
 fn field_state_row<'a>(
     gallery: &'a Gallery,
     label: &'static str,
     status: text_input::Status,
-) -> Element<'a, Message> {
+) -> impl Widget<Message> + 'a {
     let editor_status = match status {
         text_input::Status::Active => text_editor::Status::Active,
         text_input::Status::Hovered => text_editor::Status::Hovered,
@@ -169,5 +167,4 @@ fn field_state_row<'a>(
     ]
     .spacing(10)
     .align_y(Alignment::Center)
-    .into()
 }

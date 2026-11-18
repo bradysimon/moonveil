@@ -1,16 +1,11 @@
 //! Distribute content horizontally.
 
-use crate::{Element, Theme};
-
-pub type Row<'a, Message, Renderer = iced_widget::Renderer> =
-    iced_widget::Row<'a, Message, Theme, Renderer>;
+pub type Row<W> = iced_widget::Row<W>;
 
 /// A container that distributes its contents horizontally.
-pub fn row<'a, Message, Renderer>(
-    children: impl IntoIterator<Item = Element<'a, Message, Renderer>>,
-) -> Row<'a, Message, Renderer>
+pub fn row<W>(children: impl IntoIterator<Item = W>) -> Row<W>
 where
-    Renderer: iced_core::Renderer,
+    W: iced_core::widget::Meta,
 {
     Row::with_children(children)
 }
@@ -24,6 +19,6 @@ macro_rules! row {
         $crate::widget::Row::new()
     );
     ($($x:expr),+ $(,)?) => (
-        $crate::widget::Row::with_children([$($crate::Element::from($x)),+])
+        $crate::widget::Row::with_children([$($crate::Widget::boxed($x)),+])
     );
 }

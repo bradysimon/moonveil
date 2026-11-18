@@ -8,7 +8,7 @@ use moonveil::widget::text::{self, TextExt as _, text};
 use moonveil::widget::{
     button, combo_box, container, dialog, markdown, row, rule, snackbar, text_editor,
 };
-use moonveil::{Element, Theme};
+use moonveil::{Theme, Widget};
 
 pub(super) struct Gallery {
     pub(super) theme: Theme,
@@ -133,7 +133,7 @@ impl Gallery {
         }
     }
 
-    pub fn view(gallery: &Gallery) -> Element<'_, Message> {
+    pub fn view(gallery: &Gallery) -> impl Widget<Message> + '_ {
         let base = container(row![
             ui::sidebar(gallery),
             rule::vertical(1).class(rule::Variant::Subtle),
@@ -167,6 +167,5 @@ impl Gallery {
             dialog_config,
         )
         .on_update(Message::Dialog)
-        .into()
     }
 }
